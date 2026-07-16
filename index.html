@@ -57,6 +57,16 @@
   .mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums;}
   .up{color:var(--up);} .down{color:var(--down);}
 
+  /* ---------- language switch ---------- */
+  [data-lang="en"] .pt{display:none!important;}
+  :root:not([data-lang="en"]) .en{display:none!important;}
+  .langtabs{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+  .langtabs button{
+    background:transparent;border:none;color:var(--ink3);cursor:pointer;
+    font-family:var(--mono);font-size:11px;font-weight:600;padding:6px 11px;
+  }
+  .langtabs button[aria-pressed="true"]{background:#27272a;color:var(--ink);}
+
   /* ---------- buttons ---------- */
   .btn{
     display:inline-flex;align-items:center;gap:8px;border-radius:8px;cursor:pointer;
@@ -73,7 +83,7 @@
 
   /* ---------- top bar ---------- */
   .topbar{
-    display:flex;align-items:center;gap:22px;
+    display:flex;align-items:center;gap:20px;
     padding:16px 0;border-bottom:1px solid #18181b;
   }
   .brand{display:flex;align-items:center;gap:10px;}
@@ -106,7 +116,7 @@
   .ticker .lane{display:inline-flex;gap:40px;padding:8px 0;animation:slide 46s linear infinite;}
   @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   @media (prefers-reduced-motion:reduce){.ticker .lane{animation:none;}}
-  .ticker span{font-family:var(--mono);font-size:11.5px;color:var(--ink3);}
+  .ticker span.item{font-family:var(--mono);font-size:11.5px;color:var(--ink3);}
   .ticker b{color:var(--ink);font-weight:600;}
   .ticker .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:1px;}
 
@@ -265,7 +275,7 @@
     display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-top:1px;
   }
   .step .t b{display:block;font-weight:700;font-size:14px;margin-bottom:2px;}
-  .step .t span{font-size:13px;color:var(--ink2);line-height:1.55;}
+  .step .t span.body{font-size:13px;color:var(--ink2);line-height:1.55;}
   .step .t code{font-family:var(--mono);font-size:11.5px;color:var(--accent);background:var(--accent-dim);border-radius:4px;padding:1px 6px;}
   .agentchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;}
   .achip{
@@ -378,7 +388,6 @@
     <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></symbol>
     <symbol id="i-scale" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol>
     <symbol id="i-term" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></symbol>
-    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
   </defs>
 </svg>
 
@@ -390,35 +399,39 @@
       <span class="prod"><b>rodada</b> · brasil · mock v0.2</span>
     </div>
     <nav class="mainnav" aria-label="principal">
-      <a href="#cal" aria-current="page">Calendário</a>
-      <a href="#div">Divergência</a>
-      <a href="#agentes">Agentes</a>
-      <a href="#liga">Liga</a>
+      <a href="#cal" aria-current="page"><span class="pt">Calendário</span><span class="en">Calendar</span></a>
+      <a href="#div"><span class="pt">Divergência</span><span class="en">Divergence</span></a>
+      <a href="#agentes"><span class="pt">Agentes</span><span class="en">Agents</span></a>
+      <a href="#liga"><span class="pt">Liga</span><span class="en">League</span></a>
       <a href="#vaults">Vaults</a>
     </nav>
     <div class="right">
-      <span class="chzchip">CHZ R$ 0,091 <span class="down">−0,1%</span></span>
-      <button class="btn primary sm"><svg class="ic"><use href="#i-wallet"/></svg>Conectar</button>
+      <div class="langtabs" role="group" aria-label="idioma / language">
+        <button type="button" data-lang="pt" aria-pressed="true">PT</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <span class="chzchip"><span class="pt">CHZ R$ 0,091</span><span class="en">CHZ R$0.091</span> <span class="down"><span class="pt">−0,1%</span><span class="en">−0.1%</span></span></span>
+      <button class="btn primary sm"><svg class="ic"><use href="#i-wallet"/></svg><span class="pt">Conectar</span><span class="en">Connect</span></button>
     </div>
   </div>
 </header>
 
 <div class="ticker" aria-label="volume agora">
   <div class="lane">
-    <span><span class="live-dot"></span><b>Copa do Mundo 2026 — semana de semifinal.</b> Volatilidade agendada, ao vivo:</span>
-    <span>ARG <b class="up">+122,7%</b> 24h</span>
-    <span>BAR <b class="up">+20,6%</b></span>
-    <span>POR <b class="up">+14,5%</b></span>
-    <span>SPAIN <b class="up">+7,9%</b></span>
-    <span>MENGO <b class="up">+35,6%</b></span>
-    <span>vol. fan tokens 24h <b>R$ 118M</b></span>
-    <span><span class="live-dot"></span><b>Copa do Mundo 2026 — semana de semifinal.</b> Volatilidade agendada, ao vivo:</span>
-    <span>ARG <b class="up">+122,7%</b> 24h</span>
-    <span>BAR <b class="up">+20,6%</b></span>
-    <span>POR <b class="up">+14,5%</b></span>
-    <span>SPAIN <b class="up">+7,9%</b></span>
-    <span>MENGO <b class="up">+35,6%</b></span>
-    <span>vol. fan tokens 24h <b>R$ 118M</b></span>
+    <span class="item"><span class="live-dot"></span><b><span class="pt">Copa do Mundo 2026 — semana de semifinal.</span><span class="en">2026 World Cup — semifinal week.</span></b> <span class="pt">Volatilidade agendada, ao vivo:</span><span class="en">Scheduled volatility, live:</span></span>
+    <span class="item">ARG <b class="up"><span class="pt">+122,7%</span><span class="en">+122.7%</span></b> 24h</span>
+    <span class="item">BAR <b class="up"><span class="pt">+20,6%</span><span class="en">+20.6%</span></b></span>
+    <span class="item">POR <b class="up"><span class="pt">+14,5%</span><span class="en">+14.5%</span></b></span>
+    <span class="item">SPAIN <b class="up"><span class="pt">+7,9%</span><span class="en">+7.9%</span></b></span>
+    <span class="item">MENGO <b class="up"><span class="pt">+35,6%</span><span class="en">+35.6%</span></b></span>
+    <span class="item"><span class="pt">vol. fan tokens 24h</span><span class="en">fan token vol 24h</span> <b>R$ 118M</b></span>
+    <span class="item"><span class="live-dot"></span><b><span class="pt">Copa do Mundo 2026 — semana de semifinal.</span><span class="en">2026 World Cup — semifinal week.</span></b> <span class="pt">Volatilidade agendada, ao vivo:</span><span class="en">Scheduled volatility, live:</span></span>
+    <span class="item">ARG <b class="up"><span class="pt">+122,7%</span><span class="en">+122.7%</span></b> 24h</span>
+    <span class="item">BAR <b class="up"><span class="pt">+20,6%</span><span class="en">+20.6%</span></b></span>
+    <span class="item">POR <b class="up"><span class="pt">+14,5%</span><span class="en">+14.5%</span></b></span>
+    <span class="item">SPAIN <b class="up"><span class="pt">+7,9%</span><span class="en">+7.9%</span></b></span>
+    <span class="item">MENGO <b class="up"><span class="pt">+35,6%</span><span class="en">+35.6%</span></b></span>
+    <span class="item"><span class="pt">vol. fan tokens 24h</span><span class="en">fan token vol 24h</span> <b>R$ 118M</b></span>
   </div>
 </div>
 
@@ -428,53 +441,55 @@
   <div class="hero">
     <div class="hero-inner">
       <div>
-        <span class="eyebrow">Campanha em destaque — Rodada 16 · Brasileirão</span>
+        <span class="eyebrow"><span class="pt">Campanha em destaque — Rodada 16 · Brasileirão</span><span class="en">Featured campaign — Matchday 16 · Brasileirão</span></span>
         <h1>
           <span class="clubdots" aria-hidden="true"><i style="background:#C52613"></i><i style="background:#0a0a0a"></i></span>
           Flamengo <span class="x">×</span> Fluminense
           <span class="clubdots" aria-hidden="true"><i style="background:#7A1F3D"></i><i style="background:#009E60"></i></span>
         </h1>
         <div class="meta">
-          <span class="countchip"><svg class="ic"><use href="#i-zap"/></svg>faltam 9d 04h</span>
-          <span>Dom 26 Jul · 16:00</span><span class="sep">·</span>
+          <span class="countchip"><svg class="ic"><use href="#i-zap"/></svg><span class="pt">faltam 9d 04h</span><span class="en">kickoff in 9d 04h</span></span>
+          <span><span class="pt">Dom 26 Jul · 16:00</span><span class="en">Sun Jul 26 · 4:00 PM</span></span><span class="sep">·</span>
           <span>Maracanã</span><span class="sep">·</span>
-          <span class="ptschip"><svg class="ic" style="width:12px;height:12px"><use href="#i-trophy"/></svg>2× pontos na Liga</span>
+          <span class="ptschip"><svg class="ic" style="width:12px;height:12px"><use href="#i-trophy"/></svg><span class="pt">2× pontos na Liga</span><span class="en">2× League points</span></span>
         </div>
         <div class="ctas">
-          <a class="btn primary" href="#">Operar MENGO na Kayen<svg class="ic"><use href="#i-arrow"/></svg></a>
+          <a class="btn primary" href="#"><span class="pt">Operar MENGO na Kayen</span><span class="en">Trade MENGO on Kayen</span><svg class="ic"><use href="#i-arrow"/></svg></a>
           <a class="btn secondary" href="#">BRL · Mercado Bitcoin</a>
           <a class="btn secondary" href="#">Socios.com</a>
-          <a class="btn agent" href="#agentes"><svg class="ic"><use href="#i-term"/></svg>Analisar com meu agente</a>
+          <a class="btn agent" href="#agentes"><svg class="ic"><use href="#i-term"/></svg><span class="pt">Analisar com meu agente</span><span class="en">Analyze with my agent</span></a>
         </div>
         <div class="zapline">
           <svg class="ic"><use href="#i-bell"/></svg>
-          <span>Alerta no Zap 2h antes da bola rolar — <a href="#zap">ativar para o meu clube</a></span>
+          <span class="pt">Alerta no Zap 2h antes da bola rolar — <a href="#zap">ativar para o meu clube</a></span>
+          <span class="en">WhatsApp alert 2h before kickoff — <a href="#zap">enable for my club</a></span>
         </div>
         <div class="flu-note">
           <svg class="ic"><use href="#i-lock"/></svg>
-          <span><b>FLU fora desta campanha.</b> Book raso (R$ 33/dia) não passa no gate de profundidade — promover token sem saída é marketing negativo. <a href="#vaults">Vault FLU aberto para makers.</a></span>
+          <span class="pt"><b>FLU fora desta campanha.</b> Book raso (R$ 33/dia) não passa no gate de profundidade — promover token sem saída é marketing negativo. <a href="#vaults">Vault FLU aberto para makers.</a></span>
+          <span class="en"><b>FLU is out of this campaign.</b> A shallow book (R$33/day) fails the depth gate — promoting a token with no exit is negative marketing. <a href="#vaults">FLU vault open for makers.</a></span>
         </div>
       </div>
       <div class="statstack">
         <div class="stat">
           <svg class="ic lg"><use href="#i-trend"/></svg>
           <div>
-            <span class="lab">Reação histórica MENGO</span>
-            <div class="val"><span class="up">+4,1%</span> vitória · <span class="down">−6,3%</span> derrota <small>mediana pós-jogo · 38 partidas</small></div>
+            <span class="lab"><span class="pt">Reação histórica MENGO</span><span class="en">MENGO historical reaction</span></span>
+            <div class="val"><span class="up"><span class="pt">+4,1%</span><span class="en">+4.1%</span></span> <span class="pt">vitória</span><span class="en">win</span> · <span class="down"><span class="pt">−6,3%</span><span class="en">−6.3%</span></span> <span class="pt">derrota</span><span class="en">loss</span> <small><span class="pt">mediana pós-jogo · 38 partidas</span><span class="en">post-match median · 38 games</span></small></div>
           </div>
         </div>
         <div class="stat">
           <svg class="ic lg"><use href="#i-scale"/></svg>
           <div>
-            <span class="lab">Divergência casas × token</span>
-            <div class="val">casas 68% Fla · token <span class="down">−0,2%</span> <span class="badge hot" style="margin-left:6px">Alta</span></div>
+            <span class="lab"><span class="pt">Divergência casas × token</span><span class="en">Books × token divergence</span></span>
+            <div class="val"><span class="pt">casas 68% Fla · token</span><span class="en">books 68% Fla · token</span> <span class="down"><span class="pt">−0,2%</span><span class="en">−0.2%</span></span> <span class="badge hot" style="margin-left:6px"><span class="pt">Alta</span><span class="en">High</span></span></div>
           </div>
         </div>
         <div class="stat">
           <svg class="ic lg" style="color:var(--up)"><use href="#i-shield"/></svg>
           <div>
-            <span class="lab">Gate de profundidade</span>
-            <div class="val">slippage 1,4% @ R$ 25k <small>auditado 10:49 UTC · Kayen + MB</small></div>
+            <span class="lab"><span class="pt">Gate de profundidade</span><span class="en">Depth gate</span></span>
+            <div class="val"><span class="pt">slippage 1,4% @ R$ 25k</span><span class="en">1.4% slippage @ R$25k</span> <small><span class="pt">auditado 10:49 UTC · Kayen + MB</span><span class="en">audited 10:49 UTC · Kayen + MB</span></small></div>
           </div>
         </div>
       </div>
@@ -485,60 +500,60 @@
   <section id="cal">
     <div class="sechead">
       <div>
-        <span class="eyebrow">Calendário</span>
-        <h2>Próximas rodadas</h2>
+        <span class="eyebrow"><span class="pt">Calendário</span><span class="en">Calendar</span></span>
+        <h2><span class="pt">Próximas rodadas</span><span class="en">Upcoming matchdays</span></h2>
       </div>
-      <span class="note">42 pipelines · atualizado a cada 30s</span>
+      <span class="note"><span class="pt">42 pipelines · atualizado a cada 30s</span><span class="en">42 pipelines · refreshed every 30s</span></span>
     </div>
-    <p class="secsub">Cada partida vira campanha só se o book aguenta o fluxo. Sem profundidade, sem promoção — o gate protege quem entra.</p>
+    <p class="secsub"><span class="pt">Cada partida vira campanha só se o book aguenta o fluxo. Sem profundidade, sem promoção — o gate protege quem entra.</span><span class="en">A match becomes a campaign only if the book can take the flow. No depth, no promotion — the gate protects whoever steps in.</span></p>
     <div class="calscroll">
     <div class="cal">
       <div class="head">
-        <span>Data</span><span>Partida</span><span>Token</span><span>Reação (V / D)</span><span>Profundidade</span><span style="text-align:right">Operar</span>
+        <span><span class="pt">Data</span><span class="en">Date</span></span><span><span class="pt">Partida</span><span class="en">Match</span></span><span>Token</span><span><span class="pt">Reação (V / D)</span><span class="en">Reaction (W / L)</span></span><span><span class="pt">Profundidade</span><span class="en">Depth</span></span><span style="text-align:right"><span class="pt">Operar</span><span class="en">Trade</span></span>
       </div>
 
       <div class="row featured">
-        <div class="when"><span class="d">Dom 26 Jul</span><br><span class="t">16:00 · BRA R16</span></div>
-        <div class="match"><span class="m"><span class="clubdots"><i style="background:#C52613"></i><i style="background:#0a0a0a"></i></span>Flamengo × Fluminense</span><span class="c">Maracanã · em destaque · 2× pontos</span></div>
-        <div><span class="tok">MENGO R$ 0,16</span></div>
-        <div class="react"><span class="lab">mediana pós-jogo</span><span class="up">+4,1%</span> / <span class="down">−6,3%</span></div>
-        <div class="depth"><span class="lab">gate</span><span class="okline"><svg class="ic"><use href="#i-shield"/></svg>1,4% @ R$ 25k</span></div>
+        <div class="when"><span class="d"><span class="pt">Dom 26 Jul</span><span class="en">Sun Jul 26</span></span><br><span class="t"><span class="pt">16:00 · BRA R16</span><span class="en">4:00 PM · BRA R16</span></span></div>
+        <div class="match"><span class="m"><span class="clubdots"><i style="background:#C52613"></i><i style="background:#0a0a0a"></i></span>Flamengo × Fluminense</span><span class="c"><span class="pt">Maracanã · em destaque · 2× pontos</span><span class="en">Maracanã · featured · 2× points</span></span></div>
+        <div><span class="tok"><span class="pt">MENGO R$ 0,16</span><span class="en">MENGO R$0.16</span></span></div>
+        <div class="react"><span class="lab"><span class="pt">mediana pós-jogo</span><span class="en">post-match median</span></span><span class="up"><span class="pt">+4,1%</span><span class="en">+4.1%</span></span> / <span class="down"><span class="pt">−6,3%</span><span class="en">−6.3%</span></span></div>
+        <div class="depth"><span class="lab">gate</span><span class="okline"><svg class="ic"><use href="#i-shield"/></svg><span class="pt">1,4% @ R$ 25k</span><span class="en">1.4% @ R$25k</span></span></div>
         <div class="act"><a class="btn primary sm" href="#">Kayen</a><a class="btn secondary sm" href="#">MB</a></div>
       </div>
 
       <div class="row">
-        <div class="when"><span class="d">Dom 26 Jul</span><br><span class="t">18:30 · BRA R16</span></div>
-        <div class="match"><span class="m"><span class="clubdots"><i style="background:#0a0a0a"></i><i style="background:#fafafa"></i></span>Corinthians × Palmeiras</span><span class="c">Dérbi Paulista · Neo Química Arena</span></div>
-        <div><span class="tok">SCCP R$ 0,12</span></div>
-        <div class="react"><span class="lab">mediana pós-jogo</span><span class="up">+3,2%</span> / <span class="down">−4,8%</span></div>
-        <div class="depth"><span class="lab">gate</span><span class="okline"><svg class="ic"><use href="#i-shield"/></svg>2,0% @ R$ 10k</span></div>
+        <div class="when"><span class="d"><span class="pt">Dom 26 Jul</span><span class="en">Sun Jul 26</span></span><br><span class="t"><span class="pt">18:30 · BRA R16</span><span class="en">6:30 PM · BRA R16</span></span></div>
+        <div class="match"><span class="m"><span class="clubdots"><i style="background:#0a0a0a"></i><i style="background:#fafafa"></i></span>Corinthians × Palmeiras</span><span class="c"><span class="pt">Dérbi Paulista · Neo Química Arena</span><span class="en">Dérbi Paulista · Neo Química Arena</span></span></div>
+        <div><span class="tok"><span class="pt">SCCP R$ 0,12</span><span class="en">SCCP R$0.12</span></span></div>
+        <div class="react"><span class="lab"><span class="pt">mediana pós-jogo</span><span class="en">post-match median</span></span><span class="up"><span class="pt">+3,2%</span><span class="en">+3.2%</span></span> / <span class="down"><span class="pt">−4,8%</span><span class="en">−4.8%</span></span></div>
+        <div class="depth"><span class="lab">gate</span><span class="okline"><svg class="ic"><use href="#i-shield"/></svg><span class="pt">2,0% @ R$ 10k</span><span class="en">2.0% @ R$10k</span></span></div>
         <div class="act"><a class="btn primary sm" href="#">Kayen</a><a class="btn secondary sm" href="#">MB</a></div>
       </div>
 
       <div class="row">
-        <div class="when"><span class="d">Qua 29 Jul</span><br><span class="t">21:30 · BRA R17</span></div>
+        <div class="when"><span class="d"><span class="pt">Qua 29 Jul</span><span class="en">Wed Jul 29</span></span><br><span class="t"><span class="pt">21:30 · BRA R17</span><span class="en">9:30 PM · BRA R17</span></span></div>
         <div class="match"><span class="m"><span class="clubdots"><i style="background:#fafafa"></i><i style="background:#0a0a0a"></i></span>Santos × São Paulo</span><span class="c">San-São · Vila Belmiro</span></div>
-        <div><span class="tok">SANTOS R$ 2,98</span></div>
-        <div class="react"><span class="lab">mediana pós-jogo</span><span class="up">+2,7%</span> / <span class="down">−3,5%</span></div>
-        <div class="depth"><span class="lab">gate</span><span class="okline"><svg class="ic"><use href="#i-shield"/></svg>0,9% @ R$ 50k</span></div>
+        <div><span class="tok"><span class="pt">SANTOS R$ 2,98</span><span class="en">SANTOS R$2.98</span></span></div>
+        <div class="react"><span class="lab"><span class="pt">mediana pós-jogo</span><span class="en">post-match median</span></span><span class="up"><span class="pt">+2,7%</span><span class="en">+2.7%</span></span> / <span class="down"><span class="pt">−3,5%</span><span class="en">−3.5%</span></span></div>
+        <div class="depth"><span class="lab">gate</span><span class="okline"><svg class="ic"><use href="#i-shield"/></svg><span class="pt">0,9% @ R$ 50k</span><span class="en">0.9% @ R$50k</span></span></div>
         <div class="act"><a class="btn primary sm" href="#">Kayen</a><a class="btn secondary sm" href="#">MB</a></div>
       </div>
 
       <div class="row gated">
-        <div class="when"><span class="d">Qui 30 Jul</span><br><span class="t">19:00 · BRA R17</span></div>
+        <div class="when"><span class="d"><span class="pt">Qui 30 Jul</span><span class="en">Thu Jul 30</span></span><br><span class="t"><span class="pt">19:00 · BRA R17</span><span class="en">7:00 PM · BRA R17</span></span></div>
         <div class="match"><span class="m"><span class="clubdots"><i style="background:#0a0a0a"></i><i style="background:#fafafa"></i></span>Atlético-MG × Bahia</span><span class="c">Arena MRV</span></div>
         <div><span class="tok dead">GALO</span> <span class="tok dead">BAHIA</span></div>
-        <div class="react"><span class="lab">mediana pós-jogo</span><span style="color:var(--ink3)">— sem fluxo</span></div>
-        <div class="depth"><span class="lab">gate</span><span class="gateline"><svg class="ic"><use href="#i-lock"/></svg>book raso · bloqueada</span></div>
-        <div class="act"><a class="btn secondary sm" href="#vaults">Abrir vault</a></div>
+        <div class="react"><span class="lab"><span class="pt">mediana pós-jogo</span><span class="en">post-match median</span></span><span style="color:var(--ink3)"><span class="pt">— sem fluxo</span><span class="en">— no flow</span></span></div>
+        <div class="depth"><span class="lab">gate</span><span class="gateline"><svg class="ic"><use href="#i-lock"/></svg><span class="pt">book raso · bloqueada</span><span class="en">shallow book · blocked</span></span></div>
+        <div class="act"><a class="btn secondary sm" href="#vaults"><span class="pt">Abrir vault</span><span class="en">Open vault</span></a></div>
       </div>
 
       <div class="row">
-        <div class="when"><span class="d">Ter 05 Ago</span><br><span class="t">21:30 · CdB oitavas</span></div>
-        <div class="match"><span class="m"><span class="clubdots"><i style="background:#0a0a0a"></i><i style="background:#fafafa"></i></span>Vasco × Corinthians</span><span class="c">São Januário · mata-mata paga mais vol</span></div>
-        <div><span class="tok">SCCP R$ 0,12</span> <span class="tok dead">VASCO</span></div>
-        <div class="react"><span class="lab">mediana pós-jogo</span><span class="up">+3,9%</span> / <span class="down">−5,1%</span></div>
-        <div class="depth"><span class="lab">gate</span><span class="okline"><svg class="ic"><use href="#i-shield"/></svg>SCCP ok · VASCO vault</span></div>
+        <div class="when"><span class="d"><span class="pt">Ter 05 Ago</span><span class="en">Tue Aug 5</span></span><br><span class="t"><span class="pt">21:30 · CdB oitavas</span><span class="en">9:30 PM · Cup Rd16</span></span></div>
+        <div class="match"><span class="m"><span class="clubdots"><i style="background:#0a0a0a"></i><i style="background:#fafafa"></i></span>Vasco × Corinthians</span><span class="c"><span class="pt">São Januário · mata-mata paga mais vol</span><span class="en">São Januário · knockouts pay more vol</span></span></div>
+        <div><span class="tok"><span class="pt">SCCP R$ 0,12</span><span class="en">SCCP R$0.12</span></span> <span class="tok dead">VASCO</span></div>
+        <div class="react"><span class="lab"><span class="pt">mediana pós-jogo</span><span class="en">post-match median</span></span><span class="up"><span class="pt">+3,9%</span><span class="en">+3.9%</span></span> / <span class="down"><span class="pt">−5,1%</span><span class="en">−5.1%</span></span></div>
+        <div class="depth"><span class="lab">gate</span><span class="okline"><svg class="ic"><use href="#i-shield"/></svg><span class="pt">SCCP ok · VASCO vault</span><span class="en">SCCP ok · VASCO vault</span></span></div>
         <div class="act"><a class="btn primary sm" href="#">Kayen</a><a class="btn secondary sm" href="#">MB</a></div>
       </div>
     </div>
@@ -549,63 +564,63 @@
   <section id="div">
     <div class="band">
       <div class="panel">
-        <div class="ph"><svg class="ic lg"><use href="#i-scale"/></svg><h3>Placar de divergência</h3></div>
-        <p class="secsub" style="margin-bottom:2px">O que as casas licenciadas precificam × o que o token já se moveu. Quando os dois descolam, o cripto-nativo aparece.</p>
+        <div class="ph"><svg class="ic lg"><use href="#i-scale"/></svg><h3><span class="pt">Placar de divergência</span><span class="en">Divergence board</span></h3></div>
+        <p class="secsub" style="margin-bottom:2px"><span class="pt">O que as casas licenciadas precificam × o que o token já se moveu. Quando os dois descolam, o cripto-nativo aparece.</span><span class="en">What licensed sportsbooks price vs what the token has already moved. When the two decouple, crypto natives show up.</span></p>
         <table class="div">
           <thead>
-            <tr><th>Token</th><th>24h</th><th class="r">Prob. implícita</th><th class="r">Desde a linha</th><th class="r">Divergência</th><th class="r"></th></tr>
+            <tr><th>Token</th><th>24h</th><th class="r"><span class="pt">Prob. implícita</span><span class="en">Implied prob.</span></th><th class="r"><span class="pt">Desde a linha</span><span class="en">Since the line</span></th><th class="r"><span class="pt">Divergência</span><span class="en">Divergence</span></th><th class="r"></th></tr>
           </thead>
           <tbody>
             <tr>
               <td><span class="tok">MENGO</span></td>
-              <td><svg class="spark" width="88" height="26" role="img" aria-label="MENGO 24h em alta"><path d="M0,20 11,19 22,21 33,18 44,19 55,16 66,17 77,9 88,4 L88,26 0,26 Z" fill="rgba(74,222,128,.12)" stroke="none"/><polyline points="0,20 11,19 22,21 33,18 44,19 55,16 66,17 77,9 88,4" fill="none" stroke="#4ade80" stroke-width="2"/><circle cx="88" cy="4" r="2.5" fill="#4ade80"/></svg></td>
+              <td><svg class="spark" width="88" height="26" role="img" aria-label="MENGO 24h"><path d="M0,20 11,19 22,21 33,18 44,19 55,16 66,17 77,9 88,4 L88,26 0,26 Z" fill="rgba(74,222,128,.12)" stroke="none"/><polyline points="0,20 11,19 22,21 33,18 44,19 55,16 66,17 77,9 88,4" fill="none" stroke="#4ade80" stroke-width="2"/><circle cx="88" cy="4" r="2.5" fill="#4ade80"/></svg></td>
               <td class="r">68%</td>
-              <td class="r down">−0,2%</td>
-              <td class="r"><span class="badge hot">Alta</span></td>
-              <td class="r"><a class="btn secondary sm" href="#">Operar</a></td>
+              <td class="r down"><span class="pt">−0,2%</span><span class="en">−0.2%</span></td>
+              <td class="r"><span class="badge hot"><span class="pt">Alta</span><span class="en">High</span></span></td>
+              <td class="r"><a class="btn secondary sm" href="#"><span class="pt">Operar</span><span class="en">Trade</span></a></td>
             </tr>
             <tr>
               <td><span class="tok">SCCP</span></td>
-              <td><svg class="spark" width="88" height="26" role="img" aria-label="SCCP 24h em queda"><path d="M0,8 11,9 22,10 33,12 44,13 55,15 66,16 77,17 88,18 L88,26 0,26 Z" fill="rgba(248,113,113,.12)" stroke="none"/><polyline points="0,8 11,9 22,10 33,12 44,13 55,15 66,16 77,17 88,18" fill="none" stroke="#f87171" stroke-width="2"/><circle cx="88" cy="18" r="2.5" fill="#f87171"/></svg></td>
+              <td><svg class="spark" width="88" height="26" role="img" aria-label="SCCP 24h"><path d="M0,8 11,9 22,10 33,12 44,13 55,15 66,16 77,17 88,18 L88,26 0,26 Z" fill="rgba(248,113,113,.12)" stroke="none"/><polyline points="0,8 11,9 22,10 33,12 44,13 55,15 66,16 77,17 88,18" fill="none" stroke="#f87171" stroke-width="2"/><circle cx="88" cy="18" r="2.5" fill="#f87171"/></svg></td>
               <td class="r">41%</td>
-              <td class="r up">+0,1%</td>
-              <td class="r"><span class="badge mid">Média</span></td>
-              <td class="r"><a class="btn secondary sm" href="#">Operar</a></td>
+              <td class="r up"><span class="pt">+0,1%</span><span class="en">+0.1%</span></td>
+              <td class="r"><span class="badge mid"><span class="pt">Média</span><span class="en">Medium</span></span></td>
+              <td class="r"><a class="btn secondary sm" href="#"><span class="pt">Operar</span><span class="en">Trade</span></a></td>
             </tr>
             <tr>
               <td><span class="tok">SANTOS</span></td>
-              <td><svg class="spark" width="88" height="26" role="img" aria-label="SANTOS 24h leve alta"><path d="M0,18 11,17 22,18 33,16 44,15 55,14 66,14 77,12 88,11 L88,26 0,26 Z" fill="rgba(74,222,128,.12)" stroke="none"/><polyline points="0,18 11,17 22,18 33,16 44,15 55,14 66,14 77,12 88,11" fill="none" stroke="#4ade80" stroke-width="2"/><circle cx="88" cy="11" r="2.5" fill="#4ade80"/></svg></td>
+              <td><svg class="spark" width="88" height="26" role="img" aria-label="SANTOS 24h"><path d="M0,18 11,17 22,18 33,16 44,15 55,14 66,14 77,12 88,11 L88,26 0,26 Z" fill="rgba(74,222,128,.12)" stroke="none"/><polyline points="0,18 11,17 22,18 33,16 44,15 55,14 66,14 77,12 88,11" fill="none" stroke="#4ade80" stroke-width="2"/><circle cx="88" cy="11" r="2.5" fill="#4ade80"/></svg></td>
               <td class="r">55%</td>
-              <td class="r up">+1,9%</td>
-              <td class="r"><span class="badge low">Baixa</span></td>
+              <td class="r up"><span class="pt">+1,9%</span><span class="en">+1.9%</span></td>
+              <td class="r"><span class="badge low"><span class="pt">Baixa</span><span class="en">Low</span></span></td>
               <td class="r" style="color:var(--ink3)">—</td>
             </tr>
             <tr>
               <td><span class="tok dead">GALO</span></td>
-              <td><svg class="spark" width="88" height="26" role="img" aria-label="GALO sem fluxo"><polyline points="0,14 22,14 44,14 66,14 88,14" fill="none" stroke="#52525b" stroke-width="2" stroke-dasharray="3 4"/></svg></td>
+              <td><svg class="spark" width="88" height="26" role="img" aria-label="GALO 24h"><polyline points="0,14 22,14 44,14 66,14 88,14" fill="none" stroke="#52525b" stroke-width="2" stroke-dasharray="3 4"/></svg></td>
               <td class="r">62%</td>
-              <td class="r up">+1,2%</td>
-              <td class="r"><span class="badge gate">Bloqueado</span></td>
+              <td class="r up"><span class="pt">+1,2%</span><span class="en">+1.2%</span></td>
+              <td class="r"><span class="badge gate"><span class="pt">Bloqueado</span><span class="en">Blocked</span></span></td>
               <td class="r"><a class="btn secondary sm" href="#vaults">Vault</a></td>
             </tr>
           </tbody>
         </table>
-        <p class="fineprint">Divergência = distância entre a probabilidade implícita nas odds e o movimento já precificado no token. Linhas capturadas a cada 30s. Conteúdo descritivo — não é recomendação.</p>
+        <p class="fineprint"><span class="pt">Divergência = distância entre a probabilidade implícita nas odds e o movimento já precificado no token. Linhas capturadas a cada 30s. Conteúdo descritivo — não é recomendação.</span><span class="en">Divergence = distance between odds-implied probability and the move already priced into the token. Lines captured every 30s. Descriptive content — not a recommendation.</span></p>
       </div>
 
       <div class="panel" id="zap">
-        <div class="ph"><svg class="ic lg"><use href="#i-chat"/></svg><h3>O produto no bolso: alerta no Zap</h3></div>
-        <p class="secsub" style="margin-bottom:14px">O Brasil não converte em dashboard, converte no WhatsApp. T−2h antes de cada jogo do seu clube, recap depois do apito.</p>
-        <div class="phone" role="img" aria-label="conversa de WhatsApp com alertas da Rodada">
+        <div class="ph"><svg class="ic lg"><use href="#i-chat"/></svg><h3><span class="pt">O produto no bolso: alerta no Zap</span><span class="en">The product in your pocket: WhatsApp alerts</span></h3></div>
+        <p class="secsub" style="margin-bottom:14px"><span class="pt">O Brasil não converte em dashboard, converte no WhatsApp. T−2h antes de cada jogo do seu clube, recap depois do apito.</span><span class="en">Brazil doesn't convert on dashboards — it converts on WhatsApp. T−2h before every match of your club, recap after the final whistle.</span></p>
+        <div class="phone" role="img" aria-label="WhatsApp — Rodada alerts">
           <div class="ph-top">
             <div class="avatar"><svg class="ic"><use href="#i-zap"/></svg></div>
             <div class="who">
-              <span class="n">Rodada · Alertas MENGO <svg class="ic"><use href="#i-check"/></svg></span>
-              <span class="s">conta comercial verificada</span>
+              <span class="n"><span class="pt">Rodada · Alertas MENGO</span><span class="en">Rodada · MENGO Alerts</span> <svg class="ic"><use href="#i-check"/></svg></span>
+              <span class="s"><span class="pt">conta comercial verificada</span><span class="en">verified business account</span></span>
             </div>
           </div>
           <div class="msgs">
-            <div class="msg">
+            <div class="msg pt">
               <b>Fla-Flu hoje, 16:00 · Maracanã</b><br>
               <span class="mono">MENGO fechou <b>+4,1%</b> (mediana) nas últimas 12 vitórias.<br>
               Book: <b>1,4%</b> de slippage em R$ 25k.<br>
@@ -613,17 +628,32 @@
               Operar: <a class="link" href="#">rodada.app/m/flaflu</a>
               <span class="stamp">14:00</span>
             </div>
-            <div class="msg">
+            <div class="msg en">
+              <b>Fla-Flu today, 4:00 PM · Maracanã</b><br>
+              <span class="mono">MENGO closed <b>+4.1%</b> (median) after its last 12 wins.<br>
+              Book: <b>1.4%</b> slippage at R$25k.<br>
+              Books: Flamengo <b>68%</b> — token hasn't moved yet.</span><br>
+              Trade: <a class="link" href="#">rodada.app/m/flaflu</a>
+              <span class="stamp">2:00 PM</span>
+            </div>
+            <div class="msg pt">
               <b>Fim de jogo: Flamengo 2×1</b><br>
               <span class="mono">MENGO <b class="up">+5,3%</b> em 45 min.<br>
               Você fez <b>2.140 pts</b> — subiu para <b>#87</b> na Liga.</span><br>
               Recap: <a class="link" href="#">rodada.app/r/flaflu</a>
               <span class="stamp">18:52</span>
             </div>
+            <div class="msg en">
+              <b>Full time: Flamengo 2×1</b><br>
+              <span class="mono">MENGO <b class="up">+5.3%</b> in 45 min.<br>
+              You scored <b>2,140 pts</b> — up to <b>#87</b> in the League.</span><br>
+              Recap: <a class="link" href="#">rodada.app/r/flaflu</a>
+              <span class="stamp">6:52 PM</span>
+            </div>
           </div>
         </div>
         <div class="phone-cta">
-          <a class="btn primary" href="#"><svg class="ic"><use href="#i-bell"/></svg>Receber alertas do meu clube</a>
+          <a class="btn primary" href="#"><svg class="ic"><use href="#i-bell"/></svg><span class="pt">Receber alertas do meu clube</span><span class="en">Get my club's alerts</span></a>
         </div>
       </div>
     </div>
@@ -633,51 +663,55 @@
   <section id="agentes">
     <div class="sechead">
       <div>
-        <span class="eyebrow">Agentes · MCP</span>
-        <h2>Traga seu agente. A execução continua sua.</h2>
+        <span class="eyebrow"><span class="pt">Agentes · MCP</span><span class="en">Agents · MCP</span></span>
+        <h2><span class="pt">Traga seu agente. A execução continua sua.</span><span class="en">Bring your agent. Execution stays yours.</span></h2>
       </div>
       <span class="note">mcp.fantokenintel.com · OAuth · x402</span>
     </div>
-    <p class="secsub">O mesmo cérebro que alimenta esta página é um servidor MCP aberto: 100+ ferramentas sobre 42 pipelines de dados. Conecte o Claude, o Cursor ou o seu bot — o agente analisa a partida, prepara o trade e devolve o link. Quem assina é você.</p>
+    <p class="secsub"><span class="pt">O mesmo cérebro que alimenta esta página é um servidor MCP aberto: 100+ ferramentas sobre 42 pipelines de dados. Conecte o Claude, o Cursor ou o seu bot — o agente analisa a partida, prepara o trade e devolve o link. Quem assina é você.</span><span class="en">The same brain powering this page is an open MCP server: 100+ tools over 42 data pipelines. Connect Claude, Cursor or your own bot — the agent analyzes the match, prepares the trade and hands back the link. You do the signing.</span></p>
     <div class="agentgrid">
       <div>
         <div class="steps">
           <div class="step">
             <span class="n">1</span>
             <div class="t">
-              <b>Conecte</b>
-              <span>Adicione <code>mcp.fantokenintel.com</code> como conector no Claude ou em qualquer cliente MCP, com OAuth. Agente sem conta? Paga por chamada via <code>x402</code>, sem cadastro.</span>
+              <b><span class="pt">Conecte</span><span class="en">Connect</span></b>
+              <span class="body pt">Adicione <code>mcp.fantokenintel.com</code> como conector no Claude ou em qualquer cliente MCP, com OAuth. Agente sem conta? Paga por chamada via <code>x402</code>, sem cadastro.</span>
+              <span class="body en">Add <code>mcp.fantokenintel.com</code> as a connector in Claude or any MCP client, with OAuth. Agent without an account? It pays per call via <code>x402</code>, no signup.</span>
             </div>
           </div>
           <div class="step">
             <span class="n">2</span>
             <div class="t">
-              <b>Pergunte</b>
-              <span>Reação histórica, profundidade dos books, odds ao vivo, fluxo de baleias, sentimento — o agente cruza tudo em segundos, no contexto da partida do calendário.</span>
+              <b><span class="pt">Pergunte</span><span class="en">Ask</span></b>
+              <span class="body pt">Reação histórica, profundidade dos books, odds ao vivo, fluxo de baleias, sentimento — o agente cruza tudo em segundos, no contexto da partida do calendário.</span>
+              <span class="body en">Historical reaction, book depth, live odds, whale flows, sentiment — the agent crosses all of it in seconds, in the context of the match on the calendar.</span>
             </div>
           </div>
           <div class="step">
             <span class="n">3</span>
             <div class="t">
-              <b>Você executa</b>
-              <span>O Fan Token Intel é descritivo por design: nunca custodia, nunca assina, nunca recomenda. O agente entrega o contexto e o deep link — o clique final é seu, na sua carteira ou corretora.</span>
+              <b><span class="pt">Você executa</span><span class="en">You execute</span></b>
+              <span class="body pt">O Fan Token Intel é descritivo por design: nunca custodia, nunca assina, nunca recomenda. O agente entrega o contexto e o deep link — o clique final é seu, na sua carteira ou corretora.</span>
+              <span class="body en">Fan Token Intel is descriptive by design: it never holds custody, never signs, never recommends. The agent delivers context and the deep link — the final click is yours, on your own wallet or exchange.</span>
             </div>
           </div>
         </div>
         <div class="agentchips">
-          <span class="achip">100+ ferramentas MCP</span>
-          <span class="achip">42 pipelines de dados</span>
+          <span class="achip"><span class="pt">100+ ferramentas MCP</span><span class="en">100+ MCP tools</span></span>
+          <span class="achip"><span class="pt">42 pipelines de dados</span><span class="en">42 data pipelines</span></span>
           <span class="achip">OAuth hosted connector</span>
-          <span class="achip">x402 · pague por chamada</span>
-          <span class="achip">Claude · Cursor · qualquer cliente</span>
+          <span class="achip"><span class="pt">x402 · pague por chamada</span><span class="en">x402 · pay per call</span></span>
+          <span class="achip"><span class="pt">Claude · Cursor · qualquer cliente</span><span class="en">Claude · Cursor · any client</span></span>
         </div>
         <div class="guardline">
-          <b>Descritivo por design.</b> Sem custódia, sem execução, sem recomendação personalizada — o servidor entrega dados e contexto; decisão e assinatura ficam com o operador. É o que mantém a camada de agentes fora do perímetro regulado.
+          <span class="pt"><b>Descritivo por design.</b> Sem custódia, sem execução, sem recomendação personalizada — o servidor entrega dados e contexto; decisão e assinatura ficam com o operador. É o que mantém a camada de agentes fora do perímetro regulado.</span>
+          <span class="en"><b>Descriptive by design.</b> No custody, no execution, no personalized recommendations — the server delivers data and context; decision and signature stay with the operator. That's what keeps the agent layer outside the regulated perimeter.</span>
         </div>
       </div>
-      <div class="term" role="img" aria-label="sessão de agente conectado ao MCP do Fan Token Intel">
-        <div class="bar"><i></i><i></i><i></i><span class="title">claude — conectado a fantokenintel mcp</span></div>
-        <pre><span class="c-you">você:</span> MENGO antes do Fla-Flu de domingo. Vale olhar?
+      <div class="term" role="img" aria-label="MCP agent session — Fan Token Intel">
+        <div class="bar"><i></i><i></i><i></i><span class="title"><span class="pt">claude — conectado a fantokenintel mcp</span><span class="en">claude — connected to fantokenintel mcp</span></span></div>
+        <pre class="pt"><span class="c-you">você:</span> MENGO antes do Fla-Flu de domingo. Vale olhar?
 
 <span class="c-tool">tool</span> <span class="c-fn">event_reaction_profile</span>("MENGO")
   <span class="c-res">→ vitória <span class="c-up">+4,1%</span> · derrota <span class="c-down">−6,3%</span> · mediana, 38 jogos</span>
@@ -693,6 +727,22 @@ gorda dos dois lados — defina a saída antes de entrar.
 
 Preparei o swap. A execução é sua:
 <span class="c-link">kayen.io/swap?out=MENGO</span>  <span class="c-note">[você assina — não o agente]</span></pre>
+        <pre class="en"><span class="c-you">you:</span> MENGO ahead of Sunday's Fla-Flu. Worth a look?
+
+<span class="c-tool">tool</span> <span class="c-fn">event_reaction_profile</span>("MENGO")
+  <span class="c-res">→ win <span class="c-up">+4.1%</span> · loss <span class="c-down">−6.3%</span> · median, 38 games</span>
+<span class="c-tool">tool</span> <span class="c-fn">dex_depth</span>("MENGO")
+  <span class="c-res">→ slippage 1.4% @ R$25k · pool R$322k</span>
+<span class="c-tool">tool</span> <span class="c-fn">briefing</span>("MENGO")
+  <span class="c-res">→ books: 68% Fla · token −0.2% since the line
+    HIGH divergence · no relevant squad injuries</span>
+
+<span class="c-you">agent:</span> favorable historical asymmetry, book approved
+up to R$25k (1.4% cost). Careful: derbies have fat
+tails on both sides — set your exit before entering.
+
+I prepared the swap. Execution is yours:
+<span class="c-link">kayen.io/swap?out=MENGO</span>  <span class="c-note">[you sign — not the agent]</span></pre>
       </div>
     </div>
   </section>
@@ -701,35 +751,35 @@ Preparei o swap. A execução é sua:
   <section id="liga">
     <div class="sechead">
       <div>
-        <span class="eyebrow">Temporada 2026</span>
-        <h2>Liga do Trader Brasileirão</h2>
+        <span class="eyebrow"><span class="pt">Temporada 2026</span><span class="en">2026 Season</span></span>
+        <h2><span class="pt">Liga do Trader Brasileirão</span><span class="en">Brasileirão Trader League</span></h2>
       </div>
-      <span class="note">prêmio da temporada: 250.000 CHZ</span>
+      <span class="note"><span class="pt">prêmio da temporada: 250.000 CHZ</span><span class="en">season prize: 250,000 CHZ</span></span>
     </div>
     <div class="liga">
       <div class="panel">
-        <div class="ph"><svg class="ic lg"><use href="#i-trophy"/></svg><h3>Classificação — Rodada 15</h3></div>
+        <div class="ph"><svg class="ic lg"><use href="#i-trophy"/></svg><h3><span class="pt">Classificação — Rodada 15</span><span class="en">Standings — Matchday 15</span></h3></div>
         <table class="lb">
           <tbody>
-            <tr><td class="pos">1</td><td class="handle">degenmaria.eth</td><td class="role"><span class="badge mid">Maker</span></td><td class="pts">48.210 pts</td></tr>
-            <tr><td class="pos">2</td><td class="handle">0xJuninho</td><td class="role"><span class="badge low">Taker</span></td><td class="pts">44.905 pts</td></tr>
-            <tr><td class="pos">3</td><td class="handle">mengotrader10</td><td class="role"><span class="badge mid">Maker</span></td><td class="pts">39.114 pts</td></tr>
-            <tr><td class="pos">4</td><td class="handle">capivara.cap</td><td class="role"><span class="badge low">Taker</span></td><td class="pts">36.400 pts</td></tr>
-            <tr><td class="pos">5</td><td class="handle">spfc.hodl</td><td class="role"><span class="badge low">Taker</span></td><td class="pts">31.877 pts</td></tr>
+            <tr><td class="pos">1</td><td class="handle">degenmaria.eth</td><td class="role"><span class="badge mid">Maker</span></td><td class="pts"><span class="pt">48.210 pts</span><span class="en">48,210 pts</span></td></tr>
+            <tr><td class="pos">2</td><td class="handle">0xJuninho</td><td class="role"><span class="badge low">Taker</span></td><td class="pts"><span class="pt">44.905 pts</span><span class="en">44,905 pts</span></td></tr>
+            <tr><td class="pos">3</td><td class="handle">mengotrader10</td><td class="role"><span class="badge mid">Maker</span></td><td class="pts"><span class="pt">39.114 pts</span><span class="en">39,114 pts</span></td></tr>
+            <tr><td class="pos">4</td><td class="handle">capivara.cap</td><td class="role"><span class="badge low">Taker</span></td><td class="pts"><span class="pt">36.400 pts</span><span class="en">36,400 pts</span></td></tr>
+            <tr><td class="pos">5</td><td class="handle">spfc.hodl</td><td class="role"><span class="badge low">Taker</span></td><td class="pts"><span class="pt">31.877 pts</span><span class="en">31,877 pts</span></td></tr>
           </tbody>
         </table>
         <div class="season">
-          <span>Rodada 15 de 38</span>
+          <span><span class="pt">Rodada 15 de 38</span><span class="en">Matchday 15 of 38</span></span>
           <div class="bar"><i></i></div>
           <span>39%</span>
         </div>
       </div>
       <div class="panel">
-        <div class="ph"><svg class="ic lg"><use href="#i-shield"/></svg><h3>O que pontua — e o que não pontua</h3></div>
+        <div class="ph"><svg class="ic lg"><use href="#i-shield"/></svg><h3><span class="pt">O que pontua — e o que não pontua</span><span class="en">What scores — and what doesn't</span></h3></div>
         <div class="rulechips">
-          <div class="rule"><svg class="ic"><use href="#i-check"/></svg><span><b>Taker líquido pontua.</b> Fluxo novo que cruza o spread em dia de jogo — atribuição on-chain na Kayen, atribuição via API read-only na Mercado Bitcoin.</span></div>
-          <div class="rule"><svg class="ic"><use href="#i-drop"/></svg><span><b>Maker uptime vale 2×.</b> Manter cotação nos books durante a rodada pontua em dobro — profundidade é o que destrava as campanhas.</span></div>
-          <div class="rule"><svg class="ic"><use href="#i-lock"/></svg><span><b>Wash trade vale zero.</b> Volume bruto não pontua. Ida-e-volta se anula, contraparte concentrada é filtrada, e o scoring é código aberto — auditável por qualquer um.</span></div>
+          <div class="rule"><svg class="ic"><use href="#i-check"/></svg><span><span class="pt"><b>Taker líquido pontua.</b> Fluxo novo que cruza o spread em dia de jogo — atribuição on-chain na Kayen, atribuição via API read-only na Mercado Bitcoin.</span><span class="en"><b>Net taker flow scores.</b> New flow crossing the spread on match day — on-chain attribution on Kayen, read-only API attribution on Mercado Bitcoin.</span></span></div>
+          <div class="rule"><svg class="ic"><use href="#i-drop"/></svg><span><span class="pt"><b>Maker uptime vale 2×.</b> Manter cotação nos books durante a rodada pontua em dobro — profundidade é o que destrava as campanhas.</span><span class="en"><b>Maker uptime scores 2×.</b> Keeping quotes in the books through the matchday scores double — depth is what unlocks campaigns.</span></span></div>
+          <div class="rule"><svg class="ic"><use href="#i-lock"/></svg><span><span class="pt"><b>Wash trade vale zero.</b> Volume bruto não pontua. Ida-e-volta se anula, contraparte concentrada é filtrada, e o scoring é código aberto — auditável por qualquer um.</span><span class="en"><b>Wash trades score zero.</b> Gross volume doesn't score. Round-trips cancel out, concentrated counterparties are filtered, and the scoring is open source — auditable by anyone.</span></span></div>
         </div>
       </div>
     </div>
@@ -740,51 +790,70 @@ Preparei o swap. A execução é sua:
     <div class="sechead">
       <div>
         <span class="eyebrow">Season Vaults · Kayen</span>
-        <h2>Profundidade financia o calendário</h2>
+        <h2><span class="pt">Profundidade financia o calendário</span><span class="en">Depth funds the calendar</span></h2>
       </div>
-      <span class="note">carry medido 90d · líquido de impermanent loss</span>
+      <span class="note"><span class="pt">carry medido 90d · líquido de impermanent loss</span><span class="en">measured 90d carry · net of impermanent loss</span></span>
     </div>
-    <p class="secsub">Sem book, sem campanha. Os vaults transformam o torcedor cripto-nativo em maker do próprio clube — cada meta de TVL batida libera o clube no calendário.</p>
+    <p class="secsub"><span class="pt">Sem book, sem campanha. Os vaults transformam o torcedor cripto-nativo em maker do próprio clube — cada meta de TVL batida libera o clube no calendário.</span><span class="en">No book, no campaign. Vaults turn the crypto-native fan into their own club's maker — every TVL target hit unlocks the club on the campaign calendar.</span></p>
     <div class="vaults">
       <div class="vault">
         <div class="vh"><span class="tok">MENGO</span><span class="club">Flamengo · pool MENGO/CHZ</span></div>
-        <div class="carry"><div class="n up">+18,2% a.a.</div><div class="l">carry medido · líquido de IL</div></div>
+        <div class="carry"><div class="n up"><span class="pt">+18,2% a.a.</span><span class="en">+18.2% APY</span></div><div class="l"><span class="pt">carry medido · líquido de IL</span><span class="en">measured carry · net of IL</span></div></div>
         <div class="kv"><span>TVL</span><span>R$ 322k</span></div>
-        <div class="kv"><span>Fees 24h</span><span>R$ 1.940</span></div>
-        <div class="meta-bar" role="img" aria-label="64% da meta"><i style="width:64%"></i></div>
-        <span class="meta-lab">64% da meta de R$ 500k — destrava campanha Fla-Flu com gate a R$ 50k</span>
-        <a class="btn primary sm" href="#">Depositar CHZ</a>
+        <div class="kv"><span>Fees 24h</span><span><span class="pt">R$ 1.940</span><span class="en">R$1,940</span></span></div>
+        <div class="meta-bar" role="img" aria-label="64%"><i style="width:64%"></i></div>
+        <span class="meta-lab"><span class="pt">64% da meta de R$ 500k — destrava campanha Fla-Flu com gate a R$ 50k</span><span class="en">64% of the R$500k target — unlocks the Fla-Flu campaign with the gate at R$50k</span></span>
+        <a class="btn primary sm" href="#"><span class="pt">Depositar CHZ</span><span class="en">Deposit CHZ</span></a>
       </div>
       <div class="vault">
         <div class="vh"><span class="tok">SANTOS</span><span class="club">Santos FC · pool SANTOS/CHZ</span></div>
-        <div class="carry"><div class="n up">+21,4% a.a.</div><div class="l">carry medido · líquido de IL</div></div>
+        <div class="carry"><div class="n up"><span class="pt">+21,4% a.a.</span><span class="en">+21.4% APY</span></div><div class="l"><span class="pt">carry medido · líquido de IL</span><span class="en">measured carry · net of IL</span></div></div>
         <div class="kv"><span>TVL</span><span>R$ 96k</span></div>
         <div class="kv"><span>Fees 24h</span><span>R$ 610</span></div>
-        <div class="meta-bar" role="img" aria-label="19% da meta"><i style="width:19%"></i></div>
-        <span class="meta-lab">Vault novo — maior volume CEX do Brasil ainda sem book on-chain</span>
-        <a class="btn primary sm" href="#">Depositar CHZ</a>
+        <div class="meta-bar" role="img" aria-label="19%"><i style="width:19%"></i></div>
+        <span class="meta-lab"><span class="pt">Vault novo — maior volume CEX do Brasil ainda sem book on-chain</span><span class="en">New vault — Brazil's highest CEX volume still has no on-chain book</span></span>
+        <a class="btn primary sm" href="#"><span class="pt">Depositar CHZ</span><span class="en">Deposit CHZ</span></a>
       </div>
       <div class="vault gated">
         <div class="vh"><span class="tok dead">GALO</span><span class="club">Atlético-MG · pool GALO/CHZ</span></div>
-        <div class="carry"><div class="n" style="color:var(--ink3)">bloqueado</div><div class="l">campanha travada pelo gate</div></div>
+        <div class="carry"><div class="n" style="color:var(--ink3)"><span class="pt">bloqueado</span><span class="en">locked</span></div><div class="l"><span class="pt">campanha travada pelo gate</span><span class="en">campaign locked by the gate</span></div></div>
         <div class="kv"><span>TVL</span><span>R$ 43k</span></div>
-        <div class="kv"><span>Fluxo 24h</span><span class="down">R$ 280/dia</span></div>
-        <div class="meta-bar" role="img" aria-label="12% da meta"><i style="width:12%"></i></div>
-        <span class="meta-lab">12% da meta de R$ 150k — primeiro maker leva multiplicador 3× na Liga</span>
-        <a class="btn secondary sm" href="#">Ser o primeiro maker</a>
+        <div class="kv"><span><span class="pt">Fluxo 24h</span><span class="en">Flow 24h</span></span><span class="down"><span class="pt">R$ 280/dia</span><span class="en">R$280/day</span></span></div>
+        <div class="meta-bar" role="img" aria-label="12%"><i style="width:12%"></i></div>
+        <span class="meta-lab"><span class="pt">12% da meta de R$ 150k — primeiro maker leva multiplicador 3× na Liga</span><span class="en">12% of the R$150k target — first maker gets a 3× League multiplier</span></span>
+        <a class="btn secondary sm" href="#"><span class="pt">Ser o primeiro maker</span><span class="en">Be the first maker</span></a>
       </div>
     </div>
   </section>
 
   <footer>
     <div class="stack">
-      <span>Dados: <b>Fan Token Intel</b></span>
-      <span>Execução on-chain: <b>Kayen · Chiliz Chain</b></span>
-      <span>Execução BRL: <b>Mercado Bitcoin</b></span>
-      <span>Detentores: <b>Socios.com</b></span>
+      <span><span class="pt">Dados:</span><span class="en">Data:</span> <b>Fan Token Intel</b></span>
+      <span><span class="pt">Execução on-chain:</span><span class="en">On-chain execution:</span> <b>Kayen · Chiliz Chain</b></span>
+      <span><span class="pt">Execução BRL:</span><span class="en">BRL execution:</span> <b>Mercado Bitcoin</b></span>
+      <span><span class="pt">Detentores:</span><span class="en">Holders:</span> <b>Socios.com</b></span>
     </div>
-    <p class="mcp">agentes: <b>mcp.fantokenintel.com</b> · OAuth hosted connector · x402 pay-per-call · registry MCP publicado</p>
-    <p>Mock conceitual v0.2 — números ilustrativos derivados de dados reais do Fan Token Intel em 16 Jul 2026. O Fan Token Intel fornece dados e análise descritiva: não executa ordens, não custodia ativos e não faz recomendação de investimento. A Rodada não opera apostas e não paga por resultado esportivo. Fan Tokens™ são ativos de utilidade e seus preços variam.</p>
+    <p class="mcp"><span class="pt">agentes:</span><span class="en">agents:</span> <b>mcp.fantokenintel.com</b> · OAuth hosted connector · x402 pay-per-call · <span class="pt">registry MCP publicado</span><span class="en">published on the MCP registry</span></p>
+    <p><span class="pt">Mock conceitual v0.2 — números ilustrativos derivados de dados reais do Fan Token Intel em 16 Jul 2026. O Fan Token Intel fornece dados e análise descritiva: não executa ordens, não custodia ativos e não faz recomendação de investimento. A Rodada não opera apostas e não paga por resultado esportivo. Fan Tokens™ são ativos de utilidade e seus preços variam.</span><span class="en">Concept mock v0.2 — illustrative numbers derived from real Fan Token Intel data as of Jul 16, 2026. Fan Token Intel provides descriptive data and analytics: it does not execute orders, does not hold custody and does not provide investment advice. Rodada does not operate betting and never pays out on sporting results. Fan Tokens™ are utility assets and prices fluctuate.</span></p>
   </footer>
 
 </main>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var tabs = document.querySelectorAll('.langtabs button');
+  function setLang(l){
+    if(l === 'en'){ root.setAttribute('data-lang','en'); }
+    else { root.removeAttribute('data-lang'); }
+    try{ localStorage.setItem('rodada-lang', l); }catch(e){}
+    tabs.forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === l)); });
+  }
+  tabs.forEach(function(b){
+    b.addEventListener('click', function(){ setLang(b.getAttribute('data-lang')); });
+  });
+  var saved = null;
+  try{ saved = localStorage.getItem('rodada-lang'); }catch(e){}
+  setLang(saved === 'en' ? 'en' : 'pt');
+})();
+</script>
