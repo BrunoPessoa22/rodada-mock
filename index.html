@@ -121,22 +121,9 @@
   .ticker b{color:var(--ink);font-weight:600;}
   .ticker .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:1px;}
 
-  /* ---------- hero ---------- */
-  .hero{
-    margin:32px 0 14px;border:1px solid var(--border);border-radius:14px;
-    background:var(--card);position:relative;overflow:hidden;
-  }
-  .hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);}
-  .hero-inner{padding:30px 36px 28px;display:grid;grid-template-columns:1.22fr .9fr;gap:38px;}
-  .hero h1{
-    font-weight:700;letter-spacing:-.035em;font-size:42px;line-height:1.05;text-wrap:balance;margin-top:12px;
-    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-  }
-  .hero h1 .x{color:var(--ink3);font-weight:400;}
+  /* ---------- shared chips ---------- */
   .clubdots{display:inline-flex;gap:4px;vertical-align:middle;}
   .clubdots i{width:11px;height:11px;border-radius:50%;border:1px solid rgba(255,255,255,.25);}
-  .hero .meta{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--ink2);font-size:13px;align-items:center;}
-  .hero .meta .sep{color:#3f3f46;}
   .countchip{
     display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-weight:600;font-size:11.5px;
     color:var(--accent);background:var(--accent-dim);border:1px solid rgba(217,119,87,.35);
@@ -146,26 +133,6 @@
     display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;
     text-transform:uppercase;color:var(--warn);border:1px solid rgba(251,191,36,.35);border-radius:5px;padding:4px 9px;
   }
-  .hero .ctas{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px;}
-  .hero .zapline{margin-top:14px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink3);}
-  .hero .zapline a{color:var(--ink2);font-weight:600;}
-  .flu-note{
-    margin-top:20px;display:flex;gap:10px;align-items:flex-start;
-    border-top:1px solid #18181b;padding-top:16px;font-size:12.5px;color:var(--ink3);max-width:54ch;
-  }
-  .flu-note .ic{margin-top:2px;}
-  .flu-note b{color:var(--ink2);font-weight:600;}
-  .flu-note a{color:var(--accent);}
-
-  .statstack{display:flex;flex-direction:column;gap:10px;align-self:center;}
-  .stat{
-    border:1px solid var(--border);border-radius:10px;background:var(--card2);
-    padding:13px 16px;display:flex;align-items:center;gap:14px;
-  }
-  .stat .ic{color:var(--ink3);}
-  .stat .lab{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);}
-  .stat .val{font-family:var(--mono);font-size:14.5px;margin-top:3px;font-variant-numeric:tabular-nums;color:var(--ink);}
-  .stat .val small{font-family:var(--sans);font-size:11.5px;color:var(--ink3);font-weight:500;}
   .badge{
     display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
     letter-spacing:.09em;text-transform:uppercase;border-radius:4px;padding:3px 8px;
@@ -175,6 +142,52 @@
   .badge.low{color:var(--ink3);border:1px solid var(--border);}
   .badge.ok{color:var(--up);border:1px solid rgba(74,222,128,.35);}
   .badge.gate{color:var(--down);border:1px solid rgba(248,113,113,.35);}
+
+  /* ---------- jackpot ---------- */
+  .jack{
+    margin:36px 0 18px;border:1px solid var(--border);border-radius:16px;
+    background:var(--card);position:relative;overflow:hidden;
+    padding:42px 36px 38px;text-align:center;
+  }
+  .jack::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--accent);}
+  .potline{display:flex;align-items:baseline;justify-content:center;gap:14px;margin-top:18px;}
+  .potnum{
+    font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;
+    font-size:clamp(46px,7.5vw,72px);letter-spacing:-.03em;line-height:1;
+    text-shadow:0 0 34px rgba(217,119,87,.28);
+  }
+  .potchz{font-family:var(--mono);font-weight:600;font-size:clamp(18px,2.4vw,26px);color:var(--accent);}
+  .potlab{margin-top:10px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);}
+  .potsub{margin-top:8px;font-size:13.5px;color:var(--ink2);}
+  .potsub b{color:var(--ink);font-weight:600;}
+  .jack .chips{margin-top:22px;display:flex;justify-content:center;flex-wrap:wrap;gap:10px;}
+  .jack .ctas{margin-top:24px;display:flex;justify-content:center;flex-wrap:wrap;gap:10px;}
+
+  /* ---------- compete band ---------- */
+  .compete{display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:start;margin-bottom:14px;}
+  table.lb .earn{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--up);font-size:12px;}
+  table.lb tr.you td{border-top:1px dashed var(--border2);color:var(--ink2);}
+  .gapline{
+    margin-top:14px;border-top:1px solid #18181b;padding-top:14px;
+    font-size:12.5px;color:var(--ink2);line-height:1.6;
+  }
+  .gapline b{color:var(--ink);}
+  .bigmatch h4{font-weight:700;font-size:22px;letter-spacing:-.03em;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .bigmatch .kick{margin:12px 0 4px;display:flex;flex-wrap:wrap;gap:8px;}
+  .bigmatch .carrot{
+    margin-top:14px;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.07);
+    border-radius:9px;padding:11px 14px;font-size:13px;color:var(--ink);
+  }
+  .bigmatch .carrot b{color:var(--warn);}
+  .seats{margin-top:14px;}
+  .seats .lab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:6px;gap:10px;}
+  .seats .bar{height:5px;border-radius:3px;background:#27272a;overflow:hidden;}
+  .seats .bar i{display:block;height:100%;width:66%;background:var(--accent);}
+  .statline{margin-top:14px;font-size:12.5px;color:var(--ink2);}
+  .venues{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;}
+  .venues .note2{width:100%;font-size:11.5px;color:var(--ink3);margin-top:4px;}
+  .rules3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  @media (max-width:960px){ .compete,.rules3{grid-template-columns:1fr;} }
 
   /* ---------- sections ---------- */
   section{margin:52px 0;}
@@ -366,10 +379,9 @@
   footer .mcp b{color:var(--accent);font-weight:600;}
 
   @media (max-width:960px){
-    .hero-inner{grid-template-columns:1fr;gap:24px;}
-    .hero h1{font-size:32px;}
     .band,.liga,.agentgrid{grid-template-columns:1fr;}
     .vaults{grid-template-columns:1fr;}
+    .bigmatch h4{font-size:19px;}
     nav.mainnav{display:none;}
   }
 </style>
@@ -400,10 +412,10 @@
       <span class="prod"><b>rodada</b> · brasil · mock v0.2</span>
     </div>
     <nav class="mainnav" aria-label="principal">
-      <a href="#cal" aria-current="page"><span class="pt">Calendário</span><span class="en">Calendar</span></a>
-      <a href="#div"><span class="pt">Divergência</span><span class="en">Divergence</span></a>
+      <a href="#pote" aria-current="page"><span class="pt">Pote</span><span class="en">Prize pot</span></a>
+      <a href="#cal"><span class="pt">Calendário</span><span class="en">Calendar</span></a>
+      <a href="#div"><span class="pt">Dados</span><span class="en">Data</span></a>
       <a href="#agentes"><span class="pt">Agentes</span><span class="en">Agents</span></a>
-      <a href="#liga"><span class="pt">Liga</span><span class="en">League</span></a>
       <a href="#vaults">Vaults</a>
     </nav>
     <div class="right">
@@ -438,61 +450,58 @@
 
 <main class="wrap">
 
-  <!-- ============ HERO CAMPAIGN ============ -->
-  <div class="hero">
-    <div class="hero-inner">
-      <div>
-        <span class="eyebrow"><span class="pt">Campanha em destaque — Rodada 16 · Brasileirão</span><span class="en">Featured campaign — Matchday 16 · Brasileirão</span></span>
-        <h1>
-          <span class="clubdots" aria-hidden="true"><i style="background:#C52613"></i><i style="background:#0a0a0a"></i></span>
-          Flamengo <span class="x">×</span> Fluminense
-          <span class="clubdots" aria-hidden="true"><i style="background:#7A1F3D"></i><i style="background:#009E60"></i></span>
-        </h1>
-        <div class="meta">
-          <span class="countchip"><svg class="ic"><use href="#i-zap"/></svg><span class="pt">faltam 9d 04h</span><span class="en">kickoff in 9d 04h</span></span>
-          <span><span class="pt">Dom 26 Jul · 16:00</span><span class="en">Sun Jul 26 · 4:00 PM</span></span><span class="sep">·</span>
-          <span>Maracanã</span><span class="sep">·</span>
-          <span class="ptschip"><svg class="ic" style="width:12px;height:12px"><use href="#i-trophy"/></svg><span class="pt">2× pontos na Liga</span><span class="en">2× League points</span></span>
-        </div>
-        <div class="ctas">
-          <a class="btn primary" href="#"><span class="pt">Operar MENGO na Kayen</span><span class="en">Trade MENGO on Kayen</span><svg class="ic"><use href="#i-arrow"/></svg></a>
-          <a class="btn secondary" href="#">BRL · Mercado Bitcoin</a>
-          <a class="btn secondary" href="#">Socios.com</a>
-          <a class="btn agent" href="#agentes"><svg class="ic"><use href="#i-term"/></svg><span class="pt">Analisar com meu agente</span><span class="en">Analyze with my agent</span></a>
-        </div>
-        <div class="zapline">
-          <svg class="ic"><use href="#i-bell"/></svg>
-          <span class="pt">Alerta no Zap 2h antes da bola rolar — <a href="#zap">ativar para o meu clube</a></span>
-          <span class="en">WhatsApp alert 2h before kickoff — <a href="#zap">enable for my club</a></span>
-        </div>
-        <div class="flu-note">
-          <svg class="ic"><use href="#i-lock"/></svg>
-          <span class="pt"><b>FLU fora desta campanha.</b> Book raso (R$ 33/dia) não passa no gate de profundidade — promover token sem saída é marketing negativo. <a href="#vaults">Vault FLU aberto para makers.</a></span>
-          <span class="en"><b>FLU is out of this campaign.</b> A shallow book (R$33/day) fails the depth gate — promoting a token with no exit is negative marketing. <a href="#vaults">FLU vault open for makers.</a></span>
-        </div>
+  <!-- ============ JACKPOT ============ -->
+  <div class="jack" id="pote">
+    <span class="eyebrow"><span class="pt">Liga do Trader Brasileirão · Temporada 2026</span><span class="en">Brasileirão Trader League · 2026 Season</span></span>
+    <div class="potline"><span class="potnum" id="potnum">1.247.500</span><span class="potchz">CHZ</span></div>
+    <div class="potlab"><span class="pt">pote da temporada — em jogo agora</span><span class="en">season prize pot — up for grabs</span></div>
+    <p class="potsub"><span class="pt">Cresce <b>+10.000 CHZ por dia</b> — fundo comunitário + patrocínio dos parceiros de execução.</span><span class="en">Grows <b>+10,000 CHZ per day</b> — community fund + sponsorship from execution partners.</span></p>
+    <div class="chips">
+      <span class="ptschip"><svg class="ic" style="width:12px;height:12px"><use href="#i-trophy"/></svg><span class="pt">rodada 16 paga 70.000 CHZ</span><span class="en">matchday 16 pays 70,000 CHZ</span></span>
+      <span class="countchip"><svg class="ic"><use href="#i-zap"/></svg><span class="pt">janela fecha dom 16:00 — em 9d 04h</span><span class="en">window closes Sun 4PM — in 9d 04h</span></span>
+      <span class="achip"><span class="pt">entrada grátis — pontue operando onde você já opera</span><span class="en">free entry — score by trading where you already trade</span></span>
+    </div>
+    <div class="ctas">
+      <a class="btn primary" href="#jogao"><span class="pt">Entrar na rodada 16</span><span class="en">Join matchday 16</span><svg class="ic"><use href="#i-arrow"/></svg></a>
+      <a class="btn secondary" href="#pontuar"><span class="pt">Como pontuar</span><span class="en">How scoring works</span></a>
+    </div>
+  </div>
+
+  <!-- ============ COMPETE ============ -->
+  <div class="compete">
+    <div class="panel">
+      <div class="ph"><svg class="ic lg"><use href="#i-trophy"/></svg><h3><span class="pt">Artilharia — quem está mais perto do pote</span><span class="en">Top scorers — closest to the pot</span></h3></div>
+      <table class="lb">
+        <tbody>
+          <tr><td class="pos">1</td><td class="handle">degenmaria.eth</td><td class="role"><span class="badge mid">Maker</span></td><td class="earn"><span class="pt">já levou 31.250 CHZ</span><span class="en">won 31,250 CHZ</span></td><td class="pts"><span class="pt">48.210 pts</span><span class="en">48,210 pts</span></td></tr>
+          <tr><td class="pos">2</td><td class="handle">0xJuninho</td><td class="role"><span class="badge low">Taker</span></td><td class="earn"><span class="pt">já levou 27.800 CHZ</span><span class="en">won 27,800 CHZ</span></td><td class="pts"><span class="pt">44.905 pts</span><span class="en">44,905 pts</span></td></tr>
+          <tr><td class="pos">3</td><td class="handle">mengotrader10</td><td class="role"><span class="badge mid">Maker</span></td><td class="earn"><span class="pt">já levou 19.400 CHZ</span><span class="en">won 19,400 CHZ</span></td><td class="pts"><span class="pt">39.114 pts</span><span class="en">39,114 pts</span></td></tr>
+          <tr><td class="pos">4</td><td class="handle">capivara.cap</td><td class="role"><span class="badge low">Taker</span></td><td class="earn"><span class="pt">já levou 12.150 CHZ</span><span class="en">won 12,150 CHZ</span></td><td class="pts"><span class="pt">36.400 pts</span><span class="en">36,400 pts</span></td></tr>
+          <tr><td class="pos">5</td><td class="handle">spfc.hodl</td><td class="role"><span class="badge low">Taker</span></td><td class="earn"><span class="pt">já levou 9.800 CHZ</span><span class="en">won 9,800 CHZ</span></td><td class="pts"><span class="pt">31.877 pts</span><span class="en">31,877 pts</span></td></tr>
+          <tr class="you"><td class="pos">—</td><td class="handle"><span class="pt">você</span><span class="en">you</span></td><td class="role"></td><td class="earn"></td><td class="pts">0 pts</td></tr>
+        </tbody>
+      </table>
+      <p class="gapline"><span class="pt"><b>Para entrar na briga:</b> o top 5 está em 31.877 pts. Na rodada 16 os pontos valem 2× — ~R$ 9k de fluxo líquido no fim de semana, ou maker uptime nos dois clássicos, já coloca você nesta página.</span><span class="en"><b>To get in the race:</b> top 5 sits at 31,877 pts. Matchday 16 pays 2× points — ~R$9k of net flow over the weekend, or maker uptime through both derbies, puts you on this page.</span></p>
+    </div>
+    <div class="panel bigmatch" id="jogao">
+      <span class="eyebrow"><span class="pt">Próximo jogão — sua porta de entrada</span><span class="en">Next big match — your way in</span></span>
+      <h4><span class="clubdots" aria-hidden="true"><i style="background:#C52613"></i><i style="background:#0a0a0a"></i></span>Flamengo <span style="color:var(--ink3);font-weight:400">×</span> Fluminense <span class="clubdots" aria-hidden="true"><i style="background:#7A1F3D"></i><i style="background:#009E60"></i></span></h4>
+      <div class="kick">
+        <span class="countchip"><svg class="ic"><use href="#i-zap"/></svg><span class="pt">bola rola em 9d 04h — pontos fecham no apito</span><span class="en">kickoff in 9d 04h — points close at the whistle</span></span>
       </div>
-      <div class="statstack">
-        <div class="stat">
-          <svg class="ic lg"><use href="#i-trend"/></svg>
-          <div>
-            <span class="lab"><span class="pt">Reação histórica MENGO</span><span class="en">MENGO historical reaction</span></span>
-            <div class="val"><span class="up"><span class="pt">+4,1%</span><span class="en">+4.1%</span></span> <span class="pt">vitória</span><span class="en">win</span> · <span class="down"><span class="pt">−6,3%</span><span class="en">−6.3%</span></span> <span class="pt">derrota</span><span class="en">loss</span> <small><span class="pt">mediana pós-jogo · 38 partidas</span><span class="en">post-match median · 38 games</span></small></div>
-          </div>
-        </div>
-        <div class="stat">
-          <svg class="ic lg"><use href="#i-scale"/></svg>
-          <div>
-            <span class="lab"><span class="pt">Divergência casas × token</span><span class="en">Books × token divergence</span></span>
-            <div class="val"><span class="pt">casas 68% Fla · token</span><span class="en">books 68% Fla · token</span> <span class="down"><span class="pt">−0,2%</span><span class="en">−0.2%</span></span> <span class="badge hot" style="margin-left:6px"><span class="pt">Alta</span><span class="en">High</span></span></div>
-          </div>
-        </div>
-        <div class="stat">
-          <svg class="ic lg" style="color:var(--up)"><use href="#i-shield"/></svg>
-          <div>
-            <span class="lab"><span class="pt">Gate de profundidade</span><span class="en">Depth gate</span></span>
-            <div class="val"><span class="pt">slippage 1,4% @ R$ 25k</span><span class="en">1.4% slippage @ R$25k</span> <small><span class="pt">auditado 10:49 UTC · Kayen + MB</span><span class="en">audited 10:49 UTC · Kayen + MB</span></small></div>
-          </div>
-        </div>
+      <div class="carrot"><span class="pt"><b>2× pontos</b> nesta partida · rodada paga <b>70.000 CHZ</b> do pote</span><span class="en"><b>2× points</b> on this match · matchday pays <b>70,000 CHZ</b> from the pot</span></div>
+      <div class="seats">
+        <div class="lab"><span><span class="pt">bônus de largada 2× extra — primeiros 2.000</span><span class="en">2× early-bird bonus — first 2,000</span></span><span>1.313 / 2.000</span></div>
+        <div class="bar"><i></i></div>
+      </div>
+      <p class="statline"><span class="pt">MENGO costuma reagir: <b class="up">+4,1%</b> com vitória, <b class="down">−6,3%</b> com derrota (mediana, 38 jogos).</span><span class="en">MENGO usually reacts: <b class="up">+4.1%</b> on a win, <b class="down">−6.3%</b> on a loss (median, 38 games).</span></p>
+      <div class="venues">
+        <a class="btn primary sm" href="#">Kayen</a>
+        <a class="btn secondary sm" href="#">Mercado Bitcoin</a>
+        <a class="btn secondary sm" href="#">OKX</a>
+        <a class="btn secondary sm" href="#">Paribu</a>
+        <a class="btn agent sm" href="#agentes"><svg class="ic"><use href="#i-term"/></svg><span class="pt">meu agente</span><span class="en">my agent</span></a>
+        <span class="note2"><span class="pt">Opere onde você já opera — a Liga conta os pontos em qualquer parceiro. Alerta no Zap 2h antes: <a href="#zap" style="color:var(--accent)">ativar</a>.</span><span class="en">Trade where you already trade — the League scores points on any partner venue. WhatsApp alert 2h before: <a href="#zap" style="color:var(--accent)">enable</a>.</span></span>
       </div>
     </div>
   </div>
@@ -748,41 +757,20 @@ I prepared the swap. Execution is yours:
     </div>
   </section>
 
-  <!-- ============ LIGA ============ -->
-  <section id="liga">
+  <!-- ============ COMO PONTUAR ============ -->
+  <section id="pontuar">
     <div class="sechead">
       <div>
-        <span class="eyebrow"><span class="pt">Temporada 2026</span><span class="en">2026 Season</span></span>
-        <h2><span class="pt">Liga do Trader Brasileirão</span><span class="en">Brasileirão Trader League</span></h2>
+        <span class="eyebrow"><span class="pt">Regras</span><span class="en">Rules</span></span>
+        <h2><span class="pt">Como pontuar</span><span class="en">How scoring works</span></h2>
       </div>
-      <span class="note"><span class="pt">prêmio da temporada: 250.000 CHZ</span><span class="en">season prize: 250,000 CHZ</span></span>
+      <span class="note"><span class="pt">scoring código aberto · identidade KYC única · rodada 15 de 38</span><span class="en">open-source scoring · single KYC identity · matchday 15 of 38</span></span>
     </div>
-    <div class="liga">
-      <div class="panel">
-        <div class="ph"><svg class="ic lg"><use href="#i-trophy"/></svg><h3><span class="pt">Classificação — Rodada 15</span><span class="en">Standings — Matchday 15</span></h3></div>
-        <table class="lb">
-          <tbody>
-            <tr><td class="pos">1</td><td class="handle">degenmaria.eth</td><td class="role"><span class="badge mid">Maker</span></td><td class="pts"><span class="pt">48.210 pts</span><span class="en">48,210 pts</span></td></tr>
-            <tr><td class="pos">2</td><td class="handle">0xJuninho</td><td class="role"><span class="badge low">Taker</span></td><td class="pts"><span class="pt">44.905 pts</span><span class="en">44,905 pts</span></td></tr>
-            <tr><td class="pos">3</td><td class="handle">mengotrader10</td><td class="role"><span class="badge mid">Maker</span></td><td class="pts"><span class="pt">39.114 pts</span><span class="en">39,114 pts</span></td></tr>
-            <tr><td class="pos">4</td><td class="handle">capivara.cap</td><td class="role"><span class="badge low">Taker</span></td><td class="pts"><span class="pt">36.400 pts</span><span class="en">36,400 pts</span></td></tr>
-            <tr><td class="pos">5</td><td class="handle">spfc.hodl</td><td class="role"><span class="badge low">Taker</span></td><td class="pts"><span class="pt">31.877 pts</span><span class="en">31,877 pts</span></td></tr>
-          </tbody>
-        </table>
-        <div class="season">
-          <span><span class="pt">Rodada 15 de 38</span><span class="en">Matchday 15 of 38</span></span>
-          <div class="bar"><i></i></div>
-          <span>39%</span>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="ph"><svg class="ic lg"><use href="#i-shield"/></svg><h3><span class="pt">O que pontua — e o que não pontua</span><span class="en">What scores — and what doesn't</span></h3></div>
-        <div class="rulechips">
-          <div class="rule"><svg class="ic"><use href="#i-check"/></svg><span><span class="pt"><b>Taker líquido pontua.</b> Fluxo novo que cruza o spread em dia de jogo — atribuição on-chain na Kayen, atribuição via API read-only na Mercado Bitcoin.</span><span class="en"><b>Net taker flow scores.</b> New flow crossing the spread on match day — on-chain attribution on Kayen, read-only API attribution on Mercado Bitcoin.</span></span></div>
-          <div class="rule"><svg class="ic"><use href="#i-drop"/></svg><span><span class="pt"><b>Maker uptime vale 2×.</b> Manter cotação nos books durante a rodada pontua em dobro — profundidade é o que destrava as campanhas.</span><span class="en"><b>Maker uptime scores 2×.</b> Keeping quotes in the books through the matchday scores double — depth is what unlocks campaigns.</span></span></div>
-          <div class="rule"><svg class="ic"><use href="#i-lock"/></svg><span><span class="pt"><b>Wash trade vale zero.</b> Volume bruto não pontua. Ida-e-volta se anula, contraparte concentrada é filtrada, e o scoring é código aberto — auditável por qualquer um.</span><span class="en"><b>Wash trades score zero.</b> Gross volume doesn't score. Round-trips cancel out, concentrated counterparties are filtered, and the scoring is open source — auditable by anyone.</span></span></div>
-        </div>
-      </div>
+    <p class="secsub"><span class="pt">Prêmio por habilidade e participação — pontos, nunca palpite. A Liga não paga por resultado esportivo.</span><span class="en">Prizes for skill and participation — points, never predictions. The League does not pay out on sporting results.</span></p>
+    <div class="rules3">
+      <div class="rule"><svg class="ic"><use href="#i-check"/></svg><span><span class="pt"><b>Taker líquido pontua.</b> Fluxo novo que cruza o spread em dia de jogo — atribuição on-chain na Kayen, via API read-only nos parceiros CEX.</span><span class="en"><b>Net taker flow scores.</b> New flow crossing the spread on match day — on-chain attribution on Kayen, read-only API attribution on CEX partners.</span></span></div>
+      <div class="rule"><svg class="ic"><use href="#i-drop"/></svg><span><span class="pt"><b>Maker uptime vale 2×.</b> Manter cotação nos books durante a rodada pontua em dobro — profundidade é o que destrava as campanhas.</span><span class="en"><b>Maker uptime scores 2×.</b> Keeping quotes in the books through the matchday scores double — depth is what unlocks campaigns.</span></span></div>
+      <div class="rule"><svg class="ic"><use href="#i-lock"/></svg><span><span class="pt"><b>Wash trade vale zero.</b> Volume bruto não pontua: ida-e-volta se anula, contraparte concentrada é filtrada, alavancagem não multiplica ponto (colateral conta, nocional não). Scoring é código aberto.</span><span class="en"><b>Wash trades score zero.</b> Gross volume doesn't score: round-trips cancel out, concentrated counterparties are filtered, leverage doesn't multiply points (collateral counts, notional doesn't). Scoring is open source.</span></span></div>
     </div>
   </section>
 
@@ -844,11 +832,20 @@ I prepared the swap. Execution is yours:
 (function(){
   var root = document.documentElement;
   var tabs = document.querySelectorAll('.langtabs button');
+  var potEl = document.getElementById('potnum');
+  var POT_BASE = 1247500;
+  var pot = POT_BASE;
+  function fmtPot(){
+    if(!potEl) return;
+    var loc = root.getAttribute('data-lang') === 'en' ? 'en-US' : 'pt-BR';
+    potEl.textContent = pot.toLocaleString(loc);
+  }
   function setLang(l){
     if(l === 'en'){ root.setAttribute('data-lang','en'); }
     else { root.removeAttribute('data-lang'); }
     try{ localStorage.setItem('rodada-lang', l); }catch(e){}
     tabs.forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === l)); });
+    fmtPot();
   }
   tabs.forEach(function(b){
     b.addEventListener('click', function(){ setLang(b.getAttribute('data-lang')); });
@@ -856,5 +853,21 @@ I prepared the swap. Execution is yours:
   var saved = null;
   try{ saved = localStorage.getItem('rodada-lang'); }catch(e){}
   setLang(saved === 'en' ? 'en' : 'pt');
+
+  /* pot ticker: count-up on load, then the honest +10k CHZ/day pace (+1 every 8.64s) */
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(potEl && !reduced){
+    var start = POT_BASE - 1800, t0 = null;
+    pot = start; fmtPot();
+    var ease = function(ts){
+      if(t0 === null) t0 = ts;
+      var p = Math.min((ts - t0) / 1600, 1);
+      pot = Math.round(start + (POT_BASE - start) * (1 - Math.pow(1 - p, 3)));
+      fmtPot();
+      if(p < 1){ requestAnimationFrame(ease); } else { pot = POT_BASE; fmtPot(); }
+    };
+    requestAnimationFrame(ease);
+    setInterval(function(){ pot += 1; fmtPot(); }, 8640);
+  }
 })();
 </script>
