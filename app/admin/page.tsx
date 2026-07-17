@@ -37,7 +37,7 @@ export default function AdminPage() {
   const [log, setLog] = useState<string>("");
 
   useEffect(() => {
-    const stored = localStorage.getItem("rodada-admin-token");
+    const stored = sessionStorage.getItem("rodada-admin-token");
     if (stored) {
       setToken(stored);
       setSaved(true);
@@ -123,7 +123,7 @@ export default function AdminPage() {
             className="adminform"
             onSubmit={(e) => {
               e.preventDefault();
-              localStorage.setItem("rodada-admin-token", token);
+              sessionStorage.setItem("rodada-admin-token", token);
               setSaved(true);
             }}
           >
@@ -149,7 +149,7 @@ export default function AdminPage() {
         <button
           className="btn secondary sm"
           onClick={() => {
-            localStorage.removeItem("rodada-admin-token");
+            sessionStorage.removeItem("rodada-admin-token");
             setSaved(false);
           }}
         >

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Opere o token do seu clube em dia de jogo, onde você já opera. A Liga mede, pontua e paga — nunca executa, nunca custodia, nunca recomenda.",
 };
 
-const LANG_BOOT = `try{if(localStorage.getItem('rodada-lang')==='en')document.documentElement.setAttribute('data-lang','en')}catch(e){}`;
+const LANG_BOOT = `try{if(localStorage.getItem('rodada-lang')==='en'){var r=document.documentElement;r.setAttribute('data-lang','en');r.lang='en'}}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

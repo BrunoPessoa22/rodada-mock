@@ -8,6 +8,7 @@ export function applyLang(lang: Lang) {
   const root = document.documentElement;
   if (lang === "en") root.setAttribute("data-lang", "en");
   else root.removeAttribute("data-lang");
+  root.lang = lang === "en" ? "en" : "pt-BR";
   try {
     localStorage.setItem("rodada-lang", lang);
   } catch {

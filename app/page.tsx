@@ -21,14 +21,20 @@ function Num({ value, digits = 0 }: { value: number; digits?: number }) {
 function LeaderboardPanel({
   entries,
   totalPoints,
+  wallets,
   match,
 }: {
   entries: LeaderboardEntry[];
   totalPoints: number;
+  wallets: number;
   match: MatchRow | null;
 }) {
   const top = entries.slice(0, 8);
   const cutoff = top.length > 0 ? Math.floor(top[top.length - 1].points) : 0;
+  const windowOpen = match
+    ? new Date(match.window_start_utc).getTime() <= Date.now() &&
+      Date.now() < new Date(match.window_end_utc).getTime()
+    : false;
   return (
     <div className="panel">
       <div className="ph">
@@ -41,12 +47,14 @@ function LeaderboardPanel({
       {top.length === 0 ? (
         <p className="gapline">
           <span className="pt">
-            A janela ainda não abriu — a Artilharia conta operações reais na Kayen dentro da janela
-            da rodada. Seja o primeiro nome desta página.
+            {windowOpen
+              ? "Janela aberta — a Artilharia conta operações reais na Kayen e as primeiras entradas aparecem em minutos. Seja o primeiro nome desta página."
+              : "A janela ainda não abriu — a Artilharia conta operações reais na Kayen dentro da janela da rodada. Seja o primeiro nome desta página."}
           </span>
           <span className="en">
-            The window hasn&apos;t opened yet — the leaderboard counts real Kayen trades inside the
-            matchday window. Be the first name on this page.
+            {windowOpen
+              ? "Window open — the leaderboard counts real Kayen trades and the first entries appear within minutes. Be the first name on this page."
+              : "The window hasn't opened yet — the leaderboard counts real Kayen trades inside the matchday window. Be the first name on this page."}
           </span>
         </p>
       ) : (
@@ -119,12 +127,12 @@ function LeaderboardPanel({
       {totalPoints > 0 && match ? (
         <p className="gapline" style={{ marginTop: 4 }}>
           <span className="pt">
-            {entries.length.toLocaleString("pt-BR")} carteiras pontuando ·{" "}
+            {wallets.toLocaleString("pt-BR")} carteiras pontuando ·{" "}
             {match.pool_chz.toLocaleString("pt-BR")} CHZ na rodada · projeção = sua fatia do pool
             pelos pontos de agora.
           </span>
           <span className="en">
-            {entries.length.toLocaleString("en-US")} wallets scoring ·{" "}
+            {wallets.toLocaleString("en-US")} wallets scoring ·{" "}
             {match.pool_chz.toLocaleString("en-US")} CHZ this matchday · projection = your current
             share of the pool by points.
           </span>
@@ -166,7 +174,7 @@ function MatchCard({ match }: { match: MatchRow | null }) {
   const windowOpen =
     new Date(match.window_start_utc).getTime() <= Date.now() &&
     Date.now() < new Date(match.window_end_utc).getTime();
-  const kayenUrl = "https://app.kayen.io/swap";
+  const kayenUrl = "https://app.kayen.org/";
   return (
     <div className="panel bigmatch" id="jogao">
       <span className="eyebrow">
@@ -340,8 +348,8 @@ export default async function Home() {
             <span className="potchz">CHZ</span>
           </div>
           <div className="potlab">
-            <span className="pt">pote da temporada — em jogo agora</span>
-            <span className="en">season prize pot — up for grabs</span>
+            <span className="pt">pote-alvo da temporada — beta piloto</span>
+            <span className="en">season target pot — pilot beta</span>
           </div>
           <p className="potsub">
             <span className="pt">
@@ -392,7 +400,12 @@ export default async function Home() {
         </div>
 
         <div className="compete">
-          <LeaderboardPanel entries={board.entries} totalPoints={board.totalPoints} match={match} />
+          <LeaderboardPanel
+            entries={board.entries}
+            totalPoints={board.totalPoints}
+            wallets={board.wallets}
+            match={match}
+          />
           <MatchCard match={match} />
         </div>
 

@@ -17,6 +17,12 @@
  *  - A wallet that both trades and provides liquidity earns each component on
  *    its own net amount: √|netTakerUsd| + 2·√(max(0, makerAddUsd − makerRemoveUsd)),
  *    all × 2 when the match is featured.
+ *
+ * Known limitation (beta): netting is per-wallet, so two colluding wallets
+ * wash-trading against each other each show one-sided net flow. Pilot
+ * mitigation is manual review before any payout — flow-pattern clustering
+ * (shared funding source, mirrored timing) is the planned automated filter
+ * before the league opens beyond manually onboarded participants.
  */
 
 export interface WalletFlow {

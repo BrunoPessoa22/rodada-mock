@@ -51,4 +51,6 @@ export const PAIR_OVERRIDES: Record<string, `0x${string}`> = {
  * queries; 10k keeps responses comfortably small (~3.3k blocks/hour on 3s
  * blocks). Ankr fallback would need <=1000.
  */
-export const LOG_CHUNK_BLOCKS = Number(process.env.LOG_CHUNK_BLOCKS ?? 10_000);
+const rawChunk = Number(process.env.LOG_CHUNK_BLOCKS ?? 10_000);
+export const LOG_CHUNK_BLOCKS =
+  Number.isFinite(rawChunk) && rawChunk >= 100 && rawChunk <= 30_000 ? Math.floor(rawChunk) : 10_000;

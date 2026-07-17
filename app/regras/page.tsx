@@ -50,9 +50,12 @@ export default function RulesPage() {
               overflowX: "auto",
             }}
           >
-            {`pontos = √(seu fluxo LÍQUIDO de compra ou venda, em USD, na janela)
+            <span className="pt">{`pontos = √(seu fluxo LÍQUIDO de compra ou venda, em USD, na janela)
          × 2 em partidas em destaque
-         × 2 se você está provendo liquidez em vez de tomar`}
+         × 2 se você está provendo liquidez em vez de tomar`}</span>
+            <span className="en">{`points = √(your NET buying or selling, in USD, during the window)
+         × 2 on featured matches
+         × 2 if you are providing liquidity instead of taking it`}</span>
           </pre>
           <p className="gapline" style={{ marginTop: 12 }}>
             <span className="pt">

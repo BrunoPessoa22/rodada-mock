@@ -101,10 +101,11 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   const startMs = new Date(match.window_start_utc).getTime();
   const endMs = new Date(match.window_end_utc).getTime();
   if (startMs > now) return { ok: false, reason: "window not open yet" };
-  const windowClosed = endMs <= now;
 
-  const price = await getChzPrice();
-  const chzUsd = price?.usd ?? match.chz_usd ?? null;
+  // Once finalized, the stored CHZ/USD price is frozen — explicit re-runs must
+  // reproduce the same leaderboard, never reprice it with a fresh quote.
+  const finalized = match.status === "scored" && match.chz_usd != null;
+  const chzUsd = finalized ? match.chz_usd : ((await getChzPrice())?.usd ?? match.chz_usd ?? null);
   if (!chzUsd) {
     logIndex("error", "no CHZ price available and none stored — refusing to score", match.id);
     return { ok: false, reason: "no CHZ/USD price" };
@@ -112,10 +113,18 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
 
   const t0 = Date.now();
   const client = getClient();
+  const head = await client.getBlock();
+  // Finalize only when the chain head is comfortably past the window end;
+  // otherwise an RPC lagging behind wall-clock would freeze a score that is
+  // missing the last blocks of the window.
+  const FINALITY_MARGIN_S = 60;
+  const windowClosed = Number(head.timestamp) * 1000 >= endMs + FINALITY_MARGIN_S * 1000;
   const fromBlock = await findBlockByTimestamp(Math.floor(startMs / 1000));
+  // The end boundary is exclusive: findBlockByTimestamp returns the first
+  // block at-or-after the close, whose trades are outside the window.
   const toBlock = windowClosed
-    ? await findBlockByTimestamp(Math.floor(endMs / 1000))
-    : (await client.getBlock()).number;
+    ? (await findBlockByTimestamp(Math.floor(endMs / 1000))) - 1n
+    : head.number;
 
   const tokens = JSON.parse(match.tokens) as string[];
   const flows = new Map<string, RawFlow>();
@@ -146,6 +155,7 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
         events: UNIV2_ABI.filter((e) => e.type === "event"),
         fromBlock: start,
         toBlock: end,
+        strict: true, // drop undecodable logs instead of yielding empty args
       });
       if (logs.length === 0) continue;
       eventsSeen += logs.length;
@@ -156,17 +166,17 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
         if (!sender) continue;
         const args = (log as unknown as { eventName: string; args: Record<string, bigint> });
         if (args.eventName === "Swap") {
-          const wchzIn = info.wchzIsToken0 ? args.args.amount0In : args.args.amount1In;
-          const wchzOut = info.wchzIsToken0 ? args.args.amount0Out : args.args.amount1Out;
+          const wchzIn = (info.wchzIsToken0 ? args.args.amount0In : args.args.amount1In) ?? 0n;
+          const wchzOut = (info.wchzIsToken0 ? args.args.amount0Out : args.args.amount1Out) ?? 0n;
           const f = flow(sender);
           f.swaps += 1;
           if (wchzIn > 0n) f.buyWei += wchzIn;   // spent WCHZ → bought the fan token
           if (wchzOut > 0n) f.sellWei += wchzOut; // received WCHZ → sold the fan token
         } else if (args.eventName === "Mint") {
-          const wchz = info.wchzIsToken0 ? args.args.amount0 : args.args.amount1;
+          const wchz = (info.wchzIsToken0 ? args.args.amount0 : args.args.amount1) ?? 0n;
           flow(sender).addWei += 2n * wchz; // both sides of the add ≈ 2× the WCHZ leg
         } else if (args.eventName === "Burn") {
-          const wchz = info.wchzIsToken0 ? args.args.amount0 : args.args.amount1;
+          const wchz = (info.wchzIsToken0 ? args.args.amount0 : args.args.amount1) ?? 0n;
           flow(sender).removeWei += 2n * wchz;
         }
       }
@@ -219,7 +229,7 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   return { ok: true, wallets: scores.length };
 }
 
-/** Score every match whose window is open, plus recently-ended unfinalized ones. */
+/** Score every match whose window is open, plus ended-but-unfinalized ones. */
 export async function scoreDueMatches(): Promise<void> {
   const db = getDb();
   const nowIso = new Date().toISOString();
@@ -227,7 +237,7 @@ export async function scoreDueMatches(): Promise<void> {
     .prepare(
       `SELECT slug FROM matches
         WHERE (window_start_utc <= ? AND window_end_utc > ?)
-           OR (window_end_utc <= ? AND (scored_at IS NULL OR scored_at < window_end_utc))`
+           OR (window_end_utc <= ? AND status != 'scored')`
     )
     .all(nowIso, nowIso, nowIso) as { slug: string }[];
   for (const { slug } of due) {
