@@ -438,12 +438,12 @@ export default async function Home() {
           </div>
           <p className="secsub">
             <span className="pt">
-              Prêmio por habilidade e participação — pontos, nunca palpite. A Liga não paga por
-              resultado esportivo.
+              Pontos por operar de verdade no dia do jogo — nunca por palpite. Isto não é aposta: a
+              Liga não paga por resultado de partida.
             </span>
             <span className="en">
-              Prizes for skill and participation — points, never predictions. The League does not
-              pay out on sporting results.
+              Points for really trading on match day — never for predictions. This is not betting:
+              the League doesn&apos;t pay out on match results.
             </span>
           </p>
           <div className="rules3">
@@ -451,12 +451,14 @@ export default async function Home() {
               <Icon id="i-check" />
               <span>
                 <span className="pt">
-                  <b>Taker líquido pontua.</b> √(fluxo líquido em USD na janela) — compra e venda se
-                  anulam antes da raiz. Atribuição on-chain na Kayen.
+                  <b>Opere no dia do jogo.</b> Compre ou venda o token do seu clube durante a
+                  janela da rodada. Só conta o que você movimenta de verdade — e a contagem vem
+                  direto da blockchain, sem instalar nada.
                 </span>
                 <span className="en">
-                  <b>Net taker flow scores.</b> √(net USD flow in the window) — buys and sells
-                  cancel before the square root. On-chain attribution on Kayen.
+                  <b>Trade on match day.</b> Buy or sell your club&apos;s token during the matchday
+                  window. Only what you really move counts — read straight from the blockchain,
+                  nothing to install.
                 </span>
               </span>
             </div>
@@ -464,12 +466,14 @@ export default async function Home() {
               <Icon id="i-drop" />
               <span>
                 <span className="pt">
-                  <b>Prover liquidez vale 2×.</b> Liquidez líquida adicionada aos pools durante a
-                  janela pontua em dobro — profundidade é o que destrava as campanhas.
+                  <b>Segurou o mercado? Vale 2×.</b> Quem deixa seus tokens no pool de liquidez
+                  durante a rodada pontua em dobro — é essa profundidade que segura o preço para
+                  todo mundo.
                 </span>
                 <span className="en">
-                  <b>Providing liquidity scores 2×.</b> Net liquidity added to the pools during the
-                  window scores double — depth is what unlocks campaigns.
+                  <b>Backed the market? Counts 2×.</b> Keeping your tokens in the liquidity pool
+                  through the matchday scores double — that depth is what holds the price steady
+                  for everyone.
                 </span>
               </span>
             </div>
@@ -477,21 +481,14 @@ export default async function Home() {
               <Icon id="i-lock" />
               <span>
                 <span className="pt">
-                  <b>Wash trade vale zero.</b> Volume bruto não pontua: ida-e-volta se anula e
-                  alavancagem não multiplica ponto (colateral conta, nocional não). Scoring é{" "}
-                  <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
-                    código aberto
-                  </a>
-                  .
+                  <b>Trapaça vale zero.</b> Comprar e vender só para inflar volume não pontua nada,
+                  e alavancagem não multiplica ponto. Qualquer pessoa pode conferir a conta — a{" "}
+                  <a href="/regras">pontuação é código aberto</a>.
                 </span>
                 <span className="en">
-                  <b>Wash trades score zero.</b> Gross volume doesn&apos;t score: round-trips cancel
-                  and leverage doesn&apos;t multiply points (collateral counts, notional
-                  doesn&apos;t). Scoring is{" "}
-                  <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
-                    open source
-                  </a>
-                  .
+                  <b>Gaming it scores zero.</b> Buying and selling just to inflate volume earns
+                  nothing, and leverage doesn&apos;t multiply points. Anyone can check the math —{" "}
+                  <a href="/regras">scoring is open source</a>.
                 </span>
               </span>
             </div>
