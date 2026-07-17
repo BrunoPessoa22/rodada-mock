@@ -6,6 +6,9 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   const { RUN_INDEXER, INDEXER_INTERVAL_MS } = await import("./lib/config");
+  console.log(
+    JSON.stringify({ level: "info", msg: `indexer loop ${RUN_INDEXER ? "armed" : "disabled (RUN_INDEXER!=1)"}` })
+  );
   if (!RUN_INDEXER) return;
 
   const { scoreDueMatches } = await import("./lib/indexer");

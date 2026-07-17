@@ -20,15 +20,20 @@ export async function POST(request: Request) {
       return Response.json({ error: `${name} is required` }, { status: 400 });
     }
   }
+  // Normalize every timestamp to canonical toISOString form — window logic
+  // compares these lexicographically against toISOString values, so mixed
+  // precision ('T21:00Z' vs 'T21:00:00.000Z') must never reach the DB.
+  const times: Record<string, string> = {};
   for (const [name, value] of Object.entries({ kickoff_utc, window_start_utc, window_end_utc })) {
     if (typeof value !== "string" || !ISO_RE.test(value)) {
       return Response.json({ error: `${name} must be ISO-8601 UTC (…Z)` }, { status: 400 });
     }
+    times[name] = new Date(value).toISOString();
   }
   if (!Array.isArray(tokens) || tokens.length === 0 || !tokens.every((t) => typeof t === "string")) {
     return Response.json({ error: "tokens must be a non-empty array of symbols" }, { status: 400 });
   }
-  if ((window_start_utc as string) >= (window_end_utc as string)) {
+  if (times.window_start_utc >= times.window_end_utc) {
     return Response.json({ error: "window_start_utc must precede window_end_utc" }, { status: 400 });
   }
 
@@ -47,9 +52,9 @@ export async function POST(request: Request) {
       home,
       away,
       competition,
-      kickoff_utc,
-      window_start_utc,
-      window_end_utc,
+      kickoff_utc: times.kickoff_utc,
+      window_start_utc: times.window_start_utc,
+      window_end_utc: times.window_end_utc,
       featured,
       tokens: JSON.stringify(tokens),
       pool_chz,

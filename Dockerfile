@@ -13,6 +13,9 @@ ENV DATA_DIR=/app/data
 # Next standalone binds to $HOSTNAME; Docker sets it to the container id,
 # which breaks proxy connectivity — force wildcard bind.
 ENV HOSTNAME=0.0.0.0
+# The production image IS the league counter — the indexer loop must never be
+# silently off because an env var was forgotten at the platform layer.
+ENV RUN_INDEXER=1
 RUN mkdir -p /app/data && chown node:node /app/data
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static

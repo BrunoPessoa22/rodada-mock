@@ -1,7 +1,7 @@
 import { getAddress, type Log } from "viem";
 import { getClient, findBlockByTimestamp, UNIV2_ABI } from "./chain";
 import { getDb, getSetting, logIndex, setSetting } from "./db";
-import { getChzPrice } from "./prices";
+import { getChzPrice, getFreshChzPrice } from "./prices";
 import { scoreWindow, type WalletFlow } from "./scoring";
 import { FACTORY, WCHZ, TOKENS, PAIR_OVERRIDES, LOG_CHUNK_BLOCKS } from "./tokens";
 import type { MatchRow } from "./queries";
@@ -102,15 +102,6 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   const endMs = new Date(match.window_end_utc).getTime();
   if (startMs > now) return { ok: false, reason: "window not open yet" };
 
-  // Once finalized, the stored CHZ/USD price is frozen — explicit re-runs must
-  // reproduce the same leaderboard, never reprice it with a fresh quote.
-  const finalized = match.status === "scored" && match.chz_usd != null;
-  const chzUsd = finalized ? match.chz_usd : ((await getChzPrice())?.usd ?? match.chz_usd ?? null);
-  if (!chzUsd) {
-    logIndex("error", "no CHZ price available and none stored — refusing to score", match.id);
-    return { ok: false, reason: "no CHZ/USD price" };
-  }
-
   const t0 = Date.now();
   const client = getClient();
   const head = await client.getBlock();
@@ -119,12 +110,44 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   // missing the last blocks of the window.
   const FINALITY_MARGIN_S = 60;
   const windowClosed = Number(head.timestamp) * 1000 >= endMs + FINALITY_MARGIN_S * 1000;
+
+  // Price policy: once finalized, the stored CHZ/USD is FROZEN — re-runs must
+  // reproduce the same leaderboard, never reprice it. First finalization wants
+  // a fresh quote (≤15 min); a provisional price stored minutes earlier is the
+  // fallback; with neither, refuse rather than bake in a stale price.
+  const alreadyFinalized = match.status === "scored" && match.chz_usd != null;
+  let chzUsd: number | null;
+  if (alreadyFinalized) {
+    chzUsd = match.chz_usd;
+  } else if (windowClosed) {
+    const fresh = await getFreshChzPrice(15 * 60 * 1000);
+    chzUsd = fresh?.usd ?? match.chz_usd ?? null;
+    if (!fresh && chzUsd) {
+      logIndex("warn", "finalizing with last provisional CHZ price — live quote unavailable", match.id, { chzUsd });
+    }
+  } else {
+    chzUsd = (await getChzPrice())?.usd ?? match.chz_usd ?? null;
+  }
+  if (!chzUsd) {
+    logIndex("error", "no CHZ price available and none stored — refusing to score", match.id);
+    return { ok: false, reason: "no CHZ/USD price" };
+  }
+
   const fromBlock = await findBlockByTimestamp(Math.floor(startMs / 1000));
   // The end boundary is exclusive: findBlockByTimestamp returns the first
   // block at-or-after the close, whose trades are outside the window.
   const toBlock = windowClosed
     ? (await findBlockByTimestamp(Math.floor(endMs / 1000))) - 1n
     : head.number;
+  if (toBlock < fromBlock) {
+    // Lagging or non-monotonic RPC head — never persist an empty scan that
+    // would wipe the provisional leaderboard for a tick.
+    logIndex("warn", "toBlock < fromBlock — skipping run", match.id, {
+      fromBlock: Number(fromBlock),
+      toBlock: Number(toBlock),
+    });
+    return { ok: false, reason: "rpc head behind window start" };
+  }
 
   const tokens = JSON.parse(match.tokens) as string[];
   const flows = new Map<string, RawFlow>();
