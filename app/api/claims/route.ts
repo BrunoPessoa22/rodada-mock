@@ -1,33 +1,17 @@
 import { getDb } from "@/lib/db";
+import { clientIp, rateLimited } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 const MAX_FIELD = 120;
 
-// Soft anti-spam for the open beta: per-IP token bucket + global pending cap.
-// In-memory is fine — single container, and a restart resetting buckets is
-// harmless (the pending cap is the real backstop against volume abuse).
-const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 10 * 60 * 1000;
+// The pending cap is the real backstop against volume abuse; the per-IP
+// bucket in lib/ratelimit just slows a single spammer down.
 const MAX_PENDING_CLAIMS = 500;
-const buckets = new Map<string, { count: number; resetAt: number }>();
-
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const bucket = buckets.get(ip);
-  if (!bucket || bucket.resetAt < now) {
-    if (buckets.size > 10_000) buckets.clear();
-    buckets.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-  bucket.count += 1;
-  return bucket.count > RATE_LIMIT;
-}
 
 export async function POST(request: Request) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (rateLimited(ip)) {
+  if (rateLimited(`claim:${clientIp(request)}`, 5, 10 * 60 * 1000)) {
     return Response.json({ error: "too many claims — try again later" }, { status: 429 });
   }
   let body: unknown;

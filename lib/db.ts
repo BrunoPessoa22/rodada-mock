@@ -58,6 +58,14 @@ CREATE TABLE IF NOT EXISTS scores (
   PRIMARY KEY (match_id, address)
 );
 
+CREATE TABLE IF NOT EXISTS claim_nonces (
+  nonce      TEXT PRIMARY KEY,
+  address    TEXT NOT NULL,
+  handle     TEXT NOT NULL,
+  used       INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+
 CREATE TABLE IF NOT EXISTS index_log (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   ts       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),

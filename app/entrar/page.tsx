@@ -1,13 +1,92 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icons";
 
 type FormState = "idle" | "sending" | "done" | "error";
+type SigState = "idle" | "signing" | "verified" | "error";
+
+interface EthereumProvider {
+  request(args: { method: string; params?: unknown[] }): Promise<unknown>;
+}
+
+declare global {
+  interface Window {
+    ethereum?: EthereumProvider;
+  }
+}
+
+function toHexMessage(message: string): string {
+  return "0x" + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 export default function JoinPage() {
   const [state, setState] = useState<FormState>("idle");
   const [error, setError] = useState<string>("");
+  const [hasWallet, setHasWallet] = useState(false);
+  const [sigState, setSigState] = useState<SigState>("idle");
+  const [sigError, setSigError] = useState<string>("");
+  const [sigHandle, setSigHandle] = useState<string>("");
+  const [verifiedAs, setVerifiedAs] = useState<{ handle: string; address: string } | null>(null);
+
+  useEffect(() => {
+    setHasWallet(typeof window !== "undefined" && !!window.ethereum);
+  }, []);
+
+  async function claimWithSignature() {
+    if (!window.ethereum || sigHandle.trim().length < 2) {
+      setSigError("handle");
+      setSigState("error");
+      return;
+    }
+    setSigState("signing");
+    setSigError("");
+    try {
+      const accounts = (await window.ethereum.request({
+        method: "eth_requestAccounts",
+      })) as string[];
+      const address = accounts?.[0];
+      if (!address) throw new Error("no account");
+
+      const challengeRes = await fetch("/api/claims/challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, handle: sigHandle.trim() }),
+      });
+      const challenge = (await challengeRes.json()) as {
+        nonce?: string;
+        message?: string;
+        error?: string;
+      };
+      if (!challengeRes.ok || !challenge.nonce || !challenge.message) {
+        throw new Error(challenge.error ?? "challenge failed");
+      }
+
+      const signature = (await window.ethereum.request({
+        method: "personal_sign",
+        params: [toHexMessage(challenge.message), address],
+      })) as string;
+
+      const verifyRes = await fetch("/api/claims/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nonce: challenge.nonce, signature }),
+      });
+      const verify = (await verifyRes.json()) as {
+        ok?: boolean;
+        handle?: string;
+        address?: string;
+        error?: string;
+      };
+      if (!verifyRes.ok || !verify.ok) throw new Error(verify.error ?? "verification failed");
+
+      setVerifiedAs({ handle: verify.handle ?? sigHandle, address: verify.address ?? address });
+      setSigState("verified");
+    } catch (err) {
+      setSigError(err instanceof Error ? err.message : "wallet error");
+      setSigState("error");
+    }
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,7 +145,80 @@ export default function JoinPage() {
           </span>
         </p>
 
-        {state === "done" ? (
+        {sigState === "verified" && verifiedAs ? (
+          <div className="panel" style={{ marginTop: 24 }}>
+            <div className="ph">
+              <Icon id="i-check" lg />
+              <h3>
+                <span className="pt">Carteira verificada</span>
+                <span className="en">Wallet verified</span>
+              </h3>
+            </div>
+            <p className="gapline">
+              <span className="pt">
+                Assinatura confirmada — <b>{verifiedAs.handle}</b> agora é o nome desta carteira na
+                Artilharia. Toda operação sua na janela já pontua.
+              </span>
+              <span className="en">
+                Signature confirmed — <b>{verifiedAs.handle}</b> is now this wallet&apos;s name on
+                the leaderboard. Every trade you make in the window already scores.
+              </span>
+            </p>
+          </div>
+        ) : hasWallet && state !== "done" ? (
+          <div className="panel" style={{ marginTop: 24 }}>
+            <div className="ph">
+              <Icon id="i-wallet" lg />
+              <h3>
+                <span className="pt">Verificação instantânea — assine com a carteira</span>
+                <span className="en">Instant verification — sign with your wallet</span>
+              </h3>
+            </div>
+            <p className="gapline">
+              <span className="pt">
+                Sem transação, sem custo: sua carteira assina uma mensagem e pronto — só quem tem a
+                chave consegue. Nome na Artilharia na hora.
+              </span>
+              <span className="en">
+                No transaction, no cost: your wallet signs a message and that&apos;s it — only the
+                key holder can. Your name goes up instantly.
+              </span>
+            </p>
+            <div className="adminform" style={{ maxWidth: 420 }}>
+              <input
+                placeholder="mengotrader10"
+                value={sigHandle}
+                maxLength={40}
+                onChange={(e) => setSigHandle(e.target.value)}
+              />
+              {sigState === "error" ? (
+                <p className="formerror">
+                  <span className="pt">Não deu: {sigError}</span>
+                  <span className="en">Failed: {sigError}</span>
+                </p>
+              ) : null}
+              <button
+                className="btn primary"
+                onClick={claimWithSignature}
+                disabled={sigState === "signing"}
+              >
+                <Icon id="i-wallet" />
+                <span className="pt">
+                  {sigState === "signing" ? "Aguardando assinatura…" : "Assinar e verificar"}
+                </span>
+                <span className="en">
+                  {sigState === "signing" ? "Waiting for signature…" : "Sign and verify"}
+                </span>
+              </button>
+            </div>
+            <p className="gapline" style={{ marginTop: 14 }}>
+              <span className="pt">Carteira em outro lugar (Socios, celular)? Use o formulário abaixo — verificação manual.</span>
+              <span className="en">Wallet elsewhere (Socios, mobile)? Use the form below — manual verification.</span>
+            </p>
+          </div>
+        ) : null}
+
+        {sigState === "verified" ? null : state === "done" ? (
           <div className="panel" style={{ marginTop: 24 }}>
             <div className="ph">
               <Icon id="i-check" lg />
