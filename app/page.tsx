@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Countdown } from "@/components/Countdown";
 import { Icon } from "@/components/Icons";
 import { PotCounter } from "@/components/PotCounter";
+import { enName } from "@/lib/i18n";
 import { getPot } from "@/lib/pot";
 import { getChzPrice } from "@/lib/prices";
 import { getCurrentMatch, getLeaderboard, type LeaderboardEntry, type MatchRow } from "@/lib/queries";
@@ -190,7 +191,11 @@ function MatchCard({ match }: { match: MatchRow | null }) {
           <i style={{ background: homeColors[0] }}></i>
           <i style={{ background: homeColors[1] }}></i>
         </span>
-        {match.home} <span style={{ color: "var(--ink3)", fontWeight: 400 }}>×</span> {match.away}{" "}
+        <span className="pt">{match.home}</span>
+        <span className="en">{enName(match.home)}</span>{" "}
+        <span style={{ color: "var(--ink3)", fontWeight: 400 }}>×</span>{" "}
+        <span className="pt">{match.away}</span>
+        <span className="en">{enName(match.away)}</span>{" "}
         <span className="clubdots" aria-hidden="true">
           <i style={{ background: awayColors[0] }}></i>
           <i style={{ background: awayColors[1] }}></i>
@@ -287,7 +292,12 @@ export default async function Home() {
               </span>
               {match ? (
                 <span className="item">
-                  {match.home} × {match.away}{" "}
+                  <span className="pt">
+                    {match.home} × {match.away}
+                  </span>
+                  <span className="en">
+                    {enName(match.home)} × {enName(match.away)}
+                  </span>{" "}
                   <b>
                     <Countdown target={match.kickoff_utc} />
                   </b>
@@ -369,7 +379,7 @@ export default async function Home() {
                   {match.competition} paga {match.pool_chz.toLocaleString("pt-BR")} CHZ
                 </span>
                 <span className="en">
-                  {match.competition} pays {match.pool_chz.toLocaleString("en-US")} CHZ
+                  {enName(match.competition)} pays {match.pool_chz.toLocaleString("en-US")} CHZ
                 </span>
               </span>
             ) : null}
