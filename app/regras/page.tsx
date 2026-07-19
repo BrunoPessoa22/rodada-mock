@@ -59,24 +59,29 @@ export default function RulesPage() {
           </pre>
           <p className="gapline" style={{ marginTop: 12 }}>
             <span className="pt">
-              Três propriedades, escritas nas regras e garantidas no código: <b>ida-e-volta se
-              anula</b> — compre e venda o mesmo tanto, pontue zero; <b>alavancagem não multiplica
-              ponto</b> — colateral conta, nocional não; <b>o código de pontuação é público</b> —
-              qualquer pessoa recalcula a Artilharia:{" "}
+              No código: <b>ida-e-volta se anula</b> — compre e venda o mesmo tanto, pontue zero;{" "}
+              <b>pontuação por identidade, não por carteira</b> — o fluxo de todas as carteiras de
+              uma mesma pessoa é somado antes da raiz, então dividir entre carteiras próprias não
+              multiplica pontos, e só identidades verificadas dividem o pote; <b>o código é
+              público</b> — qualquer pessoa recalcula a Artilharia:{" "}
               <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
                 lib/scoring.ts
               </a>
-              .
+              . Nesta beta contamos só fluxo <b>spot on-chain</b>, que não tem alavancagem por
+              natureza; venues com alavancagem entram depois, sempre por colateral, nunca por
+              nocional.
             </span>
             <span className="en">
-              Three properties, stated in the rules and enforced in code: <b>round-trips cancel</b>{" "}
-              — buy and sell the same amount, score zero; <b>leverage doesn&apos;t multiply
-              points</b> — collateral counts, notional doesn&apos;t; <b>the scoring code is
+              In code: <b>round-trips cancel</b> — buy and sell the same amount, score zero;{" "}
+              <b>scoring is per identity, not per wallet</b> — flow from all of one person&apos;s
+              wallets is summed before the square root, so splitting across your own wallets never
+              multiplies points, and only verified identities divide the pot; <b>the code is
               public</b> — anyone can recompute the leaderboard:{" "}
               <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
                 lib/scoring.ts
               </a>
-              .
+              . This beta counts <b>on-chain spot flow only</b>, which is unlevered by nature;
+              leveraged venues come later, always by collateral, never notional.
             </span>
           </p>
         </div>
@@ -107,12 +112,15 @@ export default function RulesPage() {
               <Icon id="i-drop" />
               <span>
                 <span className="pt">
-                  <b>Nada de destaque em token raso.</b> Um piso público de profundidade decide —
-                  protege o usuário de slippage e o influenciador de acusação de pump.
+                  <b>Nada de destaque em token raso.</b> Hoje as partidas em destaque são
+                  escolhidas à mão por profundidade; o piso público de profundidade, checado
+                  on-chain na criação da partida, entra na sequência — protege o usuário de
+                  slippage e o influenciador de acusação de pump.
                 </span>
                 <span className="en">
-                  <b>No featured match on a thin token.</b> A public depth threshold decides — it
-                  protects users from slippage and KOLs from pump accusations.
+                  <b>No featured match on a thin token.</b> Featured matches are hand-picked for
+                  depth today; the public depth threshold, checked on-chain at match creation, is
+                  landing next — it protects users from slippage and KOLs from pump accusations.
                 </span>
               </span>
             </div>

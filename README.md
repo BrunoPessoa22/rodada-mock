@@ -13,9 +13,13 @@ and pays.
   FanX/Kayen AMM pools on Chiliz Chain for every match window and attributes
   flow to the wallet that signed the transaction.
 - **One public formula** — [`lib/scoring.ts`](lib/scoring.ts):
-  `points = √(net USD flow) × 2 featured × 2 maker`. Round-trips cancel;
-  wash volume scores zero by construction. Anyone can recompute the
-  leaderboard.
+  `points = √(net USD flow) × 2 featured × 2 maker`. Round-trips cancel, and
+  flows net **per KYC identity before the √**, so both single-identity wash and
+  splitting across your own wallets score zero; only verified identities divide
+  the pool. Anyone can recompute the on-chain leaderboard. (Beta scope:
+  on-chain spot only — unlevered by nature; residual defense against two
+  *distinct* colluding identities is manual review + clustering, not the
+  formula.)
 - **Claim your wallet** — unclaimed addresses appear truncated; claiming puts
   your handle on the leaderboard after manual verification (beta).
 
@@ -38,7 +42,9 @@ npm run score -- <match-slug>   # manual scoring run
 ```
 
 Env: `ADMIN_TOKEN` (admin API + /admin console), `RUN_INDEXER=1` (indexer loop,
-prod only), `DATA_DIR`, `CHILIZ_RPC_URL`, `LOG_CHUNK_BLOCKS`.
+prod only), `DATA_DIR`, `CHILIZ_RPC_URL`, `LOG_CHUNK_BLOCKS`,
+`MAKER_COOLDOWN_S` (anti-JIT: liquidity must persist this long past the whistle
+to keep maker points; default 6h — the board finalizes only after it elapses).
 
 Deploys via Coolify (Dockerfile build) on push to `main` + manual deploy API
 call. Matches are managed through `/admin` (or `POST /api/admin/matches`).

@@ -38,9 +38,10 @@ points = √(your NET buying or selling, in USD, during the match window)
 
 Three properties, stated in the rules and enforced in code:
 
-- **Round-trips cancel** — buy and sell the same amount, score zero. Wash volume is worthless by construction.
-- **Leverage doesn't multiply points** — collateral counts, notional doesn't.
-- **The scoring code is public** — anyone can recompute the leaderboard.
+- **Round-trips cancel, per identity** — flows from every wallet one KYC identity owns are summed *before* the square root, so a round-trip scores zero and splitting the same flow across your own wallets can't farm the curve. Only verified identities divide the pool, so unverified wallets never dilute a payable share. (Residual case — two *distinct* colluding identities — is handled by manual review + flow-pattern clustering before payout, not by the formula alone.)
+- **Liquidity has to stay** — maker points are clawed back if the liquidity is pulled within a cooldown after the whistle, so a mint-at-close/burn-after flash earns nothing.
+- **No leverage in scope** — this build counts on-chain spot flow only, which is unlevered by nature; leveraged venues (perps/CEX) are counted later, always by collateral, never notional.
+- **The scoring code is public** — anyone can recompute the on-chain leaderboard.
 
 (Why not v1's `PnL% × 10,000 + $Volume`: $10k of churned volume costs ~$20 in fees and scores the same as doubling your money. The leaderboard would be bought, publicly, in week one.)
 
@@ -75,7 +76,7 @@ No "which platform do we pick" decision — all of them, and they compete to spo
 ## Three rules we never break
 
 1. **Points only for real, net trading.** No seed money to traders — ever. We fund prizes and rebates, not positions.
-2. **No battle or featured match on a token too thin to absorb the audience.** A public depth threshold decides — it protects users from slippage and KOLs from pump accusations.
+2. **No battle or featured match on a token too thin to absorb the audience.** Featured matches are hand-picked for depth today; a public depth threshold, checked on-chain at match creation, is the next build — it protects users from slippage and KOLs from pump accusations.
 3. **Prizes follow points, never match predictions.** The league never pays out on sporting results. Skill competition, not betting.
 
 ## What we build (and what already exists)
