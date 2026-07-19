@@ -274,7 +274,7 @@ export default async function Home() {
   const match = getCurrentMatch() ?? null;
   const board = match
     ? getLeaderboard({ matchId: match.id, poolChz: match.pool_chz })
-    : { entries: [], totalPoints: 0, wallets: 0 };
+    : { entries: [], totalPoints: 0, payablePoints: 0, wallets: 0 };
   const chz = await getChzPrice();
 
   return (

@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
   const match = slug ? getMatchBySlug(slug) : getCurrentMatch();
   if (!match) {
-    return Response.json({ scope: "match", match: null, entries: [], totalPoints: 0, wallets: 0 });
+    return Response.json({ scope: "match", match: null, entries: [], totalPoints: 0, payablePoints: 0, wallets: 0 });
   }
   const board = getLeaderboard({ matchId: match.id, poolChz: match.pool_chz });
   return Response.json({

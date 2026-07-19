@@ -76,7 +76,7 @@ export function getLeaderboard(opts: {
   matchId?: number;
   poolChz: number;
   limit?: number;
-}): { entries: LeaderboardEntry[]; totalPoints: number; wallets: number } {
+}): { entries: LeaderboardEntry[]; totalPoints: number; payablePoints: number; wallets: number } {
   const db = getDb();
   const where = opts.matchId ? "WHERE s.match_id = ?" : "";
   const params = opts.matchId ? [opts.matchId] : [];
@@ -97,11 +97,16 @@ export function getLeaderboard(opts: {
     )
     .all(...params) as ScoreAggRow[];
 
+  const isVerified = (r: ScoreAggRow) => r.wallet_status === "verified" && !!r.handle;
   const totalPoints = rows.reduce((sum, r) => sum + r.points, 0);
+  // Only verified identities are payable, so only their points divide the pool.
+  // Unverified/bot wallets still appear on the board but neither earn a share
+  // nor dilute the projections of the people who actually get paid.
+  const payablePoints = rows.reduce((sum, r) => (isVerified(r) ? sum + r.points : sum), 0);
   const limit = opts.limit ?? 50;
 
   const entries = rows.slice(0, limit).map((r, i) => {
-    const verified = r.wallet_status === "verified" && !!r.handle;
+    const verified = isVerified(r);
     return {
       rank: i + 1,
       address: r.address,
@@ -112,9 +117,9 @@ export function getLeaderboard(opts: {
       netTakerUsd: r.net_taker_usd,
       makerNetAddUsd: r.maker_add_usd,
       swaps: r.swaps,
-      projectedChz: totalPoints > 0 ? (r.points / totalPoints) * opts.poolChz : 0,
+      projectedChz: verified && payablePoints > 0 ? (r.points / payablePoints) * opts.poolChz : 0,
     };
   });
 
-  return { entries, totalPoints, wallets: rows.length };
+  return { entries, totalPoints, payablePoints, wallets: rows.length };
 }
