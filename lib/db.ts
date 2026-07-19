@@ -26,12 +26,17 @@ CREATE TABLE IF NOT EXISTS matches (
 );
 
 CREATE TABLE IF NOT EXISTS wallets (
-  address    TEXT PRIMARY KEY,                        -- lowercase 0x…
-  handle     TEXT,
-  venue      TEXT,
-  contact    TEXT,
-  status     TEXT NOT NULL DEFAULT 'unclaimed',      -- unclaimed | verified
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  address     TEXT PRIMARY KEY,                       -- lowercase 0x…
+  handle      TEXT,
+  venue       TEXT,
+  contact     TEXT,
+  status      TEXT NOT NULL DEFAULT 'unclaimed',      -- unclaimed | verified
+  identity_id TEXT,                                   -- primary address of the KYC identity this
+                                                      -- wallet belongs to; NULL = its own identity.
+                                                      -- Flows net per identity BEFORE the √, so
+                                                      -- splitting across self-owned wallets can't
+                                                      -- farm the concave curve.
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
 CREATE TABLE IF NOT EXISTS claims (
@@ -88,8 +93,22 @@ export function getDb(): Database.Database {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
+  migrate(db);
   seedSettings(db);
   return db;
+}
+
+/**
+ * Additive, idempotent migrations for DBs created before a column existed.
+ * CREATE TABLE IF NOT EXISTS never alters an existing table, so new columns
+ * have to be added by hand here.
+ */
+function migrate(d: Database.Database) {
+  const cols = (table: string): Set<string> =>
+    new Set((d.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name));
+  if (!cols("wallets").has("identity_id")) {
+    d.exec("ALTER TABLE wallets ADD COLUMN identity_id TEXT");
+  }
 }
 
 function seedSettings(d: Database.Database) {

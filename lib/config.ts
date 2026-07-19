@@ -12,6 +12,15 @@ export const RPC_URL = process.env.CHILIZ_RPC_URL ?? "https://rpc.chiliz.com";
 export const RUN_INDEXER = process.env.RUN_INDEXER === "1";
 export const INDEXER_INTERVAL_MS = Number(process.env.INDEXER_INTERVAL_MS ?? 3 * 60 * 1000);
 
+// Maker anti-JIT cooldown: liquidity must stay in the pool this long PAST the
+// window close to keep its maker points. Burns observed in [window_end,
+// window_end + cooldown] are clawed back against in-window adds, so a
+// mint-at-close / burn-after-whistle flash earns nothing. Finalization waits
+// for this cooldown to elapse before freezing the board. Default 6h.
+const rawCooldown = Number(process.env.MAKER_COOLDOWN_S ?? 6 * 3600);
+export const MAKER_COOLDOWN_S =
+  Number.isFinite(rawCooldown) && rawCooldown >= 0 ? Math.floor(rawCooldown) : 6 * 3600;
+
 // Season pot: base amount at an anchor date + daily accrual. Values live in the
 // settings table (admin-editable); these are the seed defaults.
 export const POT_DEFAULTS = {

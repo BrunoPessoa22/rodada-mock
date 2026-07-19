@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scoreWallet, scoreWindow, type WalletFlow } from "./scoring";
+import { mergeFlowsByIdentity, scoreWallet, scoreWindow, type WalletFlow } from "./scoring";
 
 const flow = (partial: Partial<WalletFlow>): WalletFlow => ({
   address: "0xabc",
@@ -80,5 +80,61 @@ describe("scoreWindow", () => {
       { featured: false }
     );
     expect(scores.map((s) => s.address)).toEqual(["0x2", "0x1"]);
+  });
+});
+
+describe("mergeFlowsByIdentity — the √n sybil kill", () => {
+  it("splitting one flow across N self-owned wallets scores like one wallet", () => {
+    // One identity owns four wallets, each net-buying $2,500.
+    const wallets = [
+      flow({ address: "0xa1", grossBuyUsd: 2500 }),
+      flow({ address: "0xa2", grossBuyUsd: 2500 }),
+      flow({ address: "0xa3", grossBuyUsd: 2500 }),
+      flow({ address: "0xa4", grossBuyUsd: 2500 }),
+    ];
+    const owner: Record<string, string> = {
+      "0xa1": "id:alice", "0xa2": "id:alice", "0xa3": "id:alice", "0xa4": "id:alice",
+    };
+
+    // Per-wallet scoring pays the concavity bonus: 4 × √2500 = 200.
+    const split = scoreWindow(wallets, { featured: false });
+    expect(split.reduce((s, w) => s + w.points, 0)).toBe(200);
+
+    // Per-identity scoring nets first: √10000 = 100. Bonus gone.
+    const merged = scoreWindow(
+      mergeFlowsByIdentity(wallets, (a) => owner[a] ?? a),
+      { featured: false }
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0].address).toBe("id:alice");
+    expect(merged[0].points).toBe(100);
+    // Identical to one honest wallet trading the full size — no split advantage.
+    expect(merged[0].points).toBe(scoreWallet(flow({ grossBuyUsd: 10000 }), { featured: false }).points);
+  });
+
+  it("ungrouped wallets pass through unchanged (identity = self)", () => {
+    const wallets = [flow({ address: "0x1", grossBuyUsd: 900 }), flow({ address: "0x2", grossBuyUsd: 100 })];
+    const merged = scoreWindow(mergeFlowsByIdentity(wallets, (a) => a), { featured: false });
+    expect(merged.map((w) => [w.address, w.points])).toEqual([["0x1", 30], ["0x2", 10]]);
+  });
+
+  it("buy+sell split across an identity's own wallets nets toward zero once merged", () => {
+    const wallets = [
+      flow({ address: "0xb1", grossBuyUsd: 5000 }),
+      flow({ address: "0xb2", grossSellUsd: 5000 }),
+    ];
+    const merged = scoreWindow(mergeFlowsByIdentity(wallets, () => "id:bob"), { featured: false });
+    expect(merged).toHaveLength(0);
+  });
+
+  it("maker add in one wallet, remove in another of the same identity → zero maker credit", () => {
+    // Mirrors the anti-JIT clawback at the scoring level: add and later remove
+    // net inside the identity before max(0, add − remove).
+    const wallets = [
+      flow({ address: "0xc1", makerAddUsd: 10000 }),
+      flow({ address: "0xc2", makerRemoveUsd: 10000 }),
+    ];
+    const merged = scoreWindow(mergeFlowsByIdentity(wallets, () => "id:carol"), { featured: false });
+    expect(merged).toHaveLength(0);
   });
 });

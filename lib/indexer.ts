@@ -2,9 +2,32 @@ import { getAddress, type Log } from "viem";
 import { getClient, findBlockByTimestamp, UNIV2_ABI } from "./chain";
 import { getDb, getSetting, logIndex, setSetting } from "./db";
 import { getChzPrice, getFreshChzPrice } from "./prices";
-import { scoreWindow, type WalletFlow } from "./scoring";
+import { mergeFlowsByIdentity, scoreWindow, type WalletFlow } from "./scoring";
 import { FACTORY, WCHZ, TOKENS, PAIR_OVERRIDES, LOG_CHUNK_BLOCKS } from "./tokens";
+import { MAKER_COOLDOWN_S } from "./config";
 import type { MatchRow } from "./queries";
+
+/**
+ * Map each wallet to its scoring key — the identity's primary address if it
+ * belongs to a KYC group, else the address itself. Only wallets with a non-null
+ * identity_id are remapped; everything else scores solo.
+ */
+function resolveIdentities(db: ReturnType<typeof getDb>, addresses: string[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const CHUNK = 400; // stay well under SQLite's bound-variable ceiling
+  for (let i = 0; i < addresses.length; i += CHUNK) {
+    const batch = addresses.slice(i, i + CHUNK);
+    if (batch.length === 0) continue;
+    const rows = db
+      .prepare(
+        `SELECT address, identity_id FROM wallets
+          WHERE identity_id IS NOT NULL AND address IN (${batch.map(() => "?").join(",")})`
+      )
+      .all(...batch) as { address: string; identity_id: string }[];
+    for (const r of rows) map.set(r.address, r.identity_id);
+  }
+  return map;
+}
 
 interface PairInfo {
   symbol: string;
@@ -101,15 +124,21 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   const startMs = new Date(match.window_start_utc).getTime();
   const endMs = new Date(match.window_end_utc).getTime();
   if (startMs > now) return { ok: false, reason: "window not open yet" };
+  const cooldownEndMs = endMs + MAKER_COOLDOWN_S * 1000;
 
   const t0 = Date.now();
   const client = getClient();
   const head = await client.getBlock();
-  // Finalize only when the chain head is comfortably past the window end;
-  // otherwise an RPC lagging behind wall-clock would freeze a score that is
-  // missing the last blocks of the window.
+  const headMs = Number(head.timestamp) * 1000;
+  // Taker flow freezes once the chain head is comfortably past the window end;
+  // otherwise an RPC lagging behind wall-clock would freeze a score missing the
+  // last blocks of the window.
   const FINALITY_MARGIN_S = 60;
-  const windowClosed = Number(head.timestamp) * 1000 >= endMs + FINALITY_MARGIN_S * 1000;
+  const takerClosed = headMs >= endMs + FINALITY_MARGIN_S * 1000;
+  // The board only FINALIZES (freezes price + status) once the maker anti-JIT
+  // cooldown has also elapsed — until then a burn can still claw back an
+  // in-window add, so maker points aren't settled.
+  const windowClosed = headMs >= cooldownEndMs;
 
   // Price policy: once finalized, the stored CHZ/USD is FROZEN — re-runs must
   // reproduce the same leaderboard, never reprice it. First finalization wants
@@ -134,17 +163,23 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   }
 
   const fromBlock = await findBlockByTimestamp(Math.floor(startMs / 1000));
-  // The end boundary is exclusive: findBlockByTimestamp returns the first
-  // block at-or-after the close, whose trades are outside the window.
-  const toBlock = windowClosed
+  // The end boundary is exclusive: findBlockByTimestamp returns the first block
+  // at-or-after the close, whose trades are outside the window. Two boundaries:
+  //  - takerToBlock: last in-window block. Swaps and Mints only count here.
+  //  - scanToBlock:  extends through the maker cooldown so that a post-whistle
+  //    burn is observed and clawed back against its in-window add.
+  const takerToBlock = takerClosed
     ? (await findBlockByTimestamp(Math.floor(endMs / 1000))) - 1n
     : head.number;
-  if (toBlock < fromBlock) {
+  const scanToBlock = windowClosed
+    ? (await findBlockByTimestamp(Math.floor(cooldownEndMs / 1000))) - 1n
+    : head.number;
+  if (scanToBlock < fromBlock) {
     // Lagging or non-monotonic RPC head — never persist an empty scan that
     // would wipe the provisional leaderboard for a tick.
-    logIndex("warn", "toBlock < fromBlock — skipping run", match.id, {
+    logIndex("warn", "scanToBlock < fromBlock — skipping run", match.id, {
       fromBlock: Number(fromBlock),
-      toBlock: Number(toBlock),
+      scanToBlock: Number(scanToBlock),
     });
     return { ok: false, reason: "rpc head behind window start" };
   }
@@ -171,8 +206,8 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
     }
     pairsScanned += 1;
 
-    for (let start = fromBlock; start <= toBlock; start += BigInt(LOG_CHUNK_BLOCKS)) {
-      const end = start + BigInt(LOG_CHUNK_BLOCKS) - 1n > toBlock ? toBlock : start + BigInt(LOG_CHUNK_BLOCKS) - 1n;
+    for (let start = fromBlock; start <= scanToBlock; start += BigInt(LOG_CHUNK_BLOCKS)) {
+      const end = start + BigInt(LOG_CHUNK_BLOCKS) - 1n > scanToBlock ? scanToBlock : start + BigInt(LOG_CHUNK_BLOCKS) - 1n;
       const logs = await client.getLogs({
         address: info.pair,
         events: UNIV2_ABI.filter((e) => e.type === "event"),
@@ -187,8 +222,12 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
       for (const log of logs) {
         const sender = txSenderCache.get(log.transactionHash!);
         if (!sender) continue;
+        // Swaps and Mints only earn inside the window; Burns are counted through
+        // the cooldown so a post-window unwind claws back its add.
+        const inWindow = (log.blockNumber ?? 0n) <= takerToBlock;
         const args = (log as unknown as { eventName: string; args: Record<string, bigint> });
         if (args.eventName === "Swap") {
+          if (!inWindow) continue;
           const wchzIn = (info.wchzIsToken0 ? args.args.amount0In : args.args.amount1In) ?? 0n;
           const wchzOut = (info.wchzIsToken0 ? args.args.amount0Out : args.args.amount1Out) ?? 0n;
           const f = flow(sender);
@@ -196,11 +235,12 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
           if (wchzIn > 0n) f.buyWei += wchzIn;   // spent WCHZ → bought the fan token
           if (wchzOut > 0n) f.sellWei += wchzOut; // received WCHZ → sold the fan token
         } else if (args.eventName === "Mint") {
+          if (!inWindow) continue; // adds after the whistle earn nothing
           const wchz = (info.wchzIsToken0 ? args.args.amount0 : args.args.amount1) ?? 0n;
           flow(sender).addWei += 2n * wchz; // both sides of the add ≈ 2× the WCHZ leg
         } else if (args.eventName === "Burn") {
           const wchz = (info.wchzIsToken0 ? args.args.amount0 : args.args.amount1) ?? 0n;
-          flow(sender).removeWei += 2n * wchz;
+          flow(sender).removeWei += 2n * wchz; // clawback: nets against makerAddUsd
         }
       }
     }
@@ -215,7 +255,11 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
     makerRemoveUsd: toUsd(f.removeWei),
     swaps: f.swaps,
   }));
-  const scores = scoreWindow(walletFlows, { featured: match.featured === 1 });
+  // Net per KYC identity BEFORE the square root — self-owned wallet splits
+  // collapse to one flow, so the √n concavity bonus disappears.
+  const identityOf = resolveIdentities(db, walletFlows.map((w) => w.address));
+  const identityFlows = mergeFlowsByIdentity(walletFlows, (addr) => identityOf.get(addr) ?? addr);
+  const scores = scoreWindow(identityFlows, { featured: match.featured === 1 });
 
   const nowIso = new Date().toISOString();
   const provisional = windowClosed ? 0 : 1;
@@ -241,12 +285,15 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
 
   logIndex("info", `scored ${slug}`, match.id, {
     fromBlock: Number(fromBlock),
-    toBlock: Number(toBlock),
+    takerToBlock: Number(takerToBlock),
+    scanToBlock: Number(scanToBlock),
     pairsScanned,
     eventsSeen,
     wallets: scores.length,
     chzUsd,
     provisional,
+    takerClosed,
+    makerCooldownDone: windowClosed,
     ms: Date.now() - t0,
   });
   return { ok: true, wallets: scores.length };

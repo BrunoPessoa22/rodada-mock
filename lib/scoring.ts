@@ -18,11 +18,20 @@
  *    its own net amount: √|netTakerUsd| + 2·√(max(0, makerAddUsd − makerRemoveUsd)),
  *    all × 2 when the match is featured.
  *
- * Known limitation (beta): netting is per-wallet, so two colluding wallets
- * wash-trading against each other each show one-sided net flow. Pilot
- * mitigation is manual review before any payout — flow-pattern clustering
- * (shared funding source, mirrored timing) is the planned automated filter
- * before the league opens beyond manually onboarded participants.
+ * Sybil defense (partial, by design): scoring nets per KYC IDENTITY, not per
+ * wallet — flows from every wallet an identity owns are summed by
+ * mergeFlowsByIdentity() BEFORE the square root, so splitting the same net flow
+ * across N self-owned wallets can no longer harvest the √n bonus the concave
+ * curve would otherwise pay. Payout is then renormalized over verified
+ * identities only (see getLeaderboard), so unverified wallets can appear on the
+ * board but never dilute a payable share.
+ *
+ * Residual limitation (beta): two DISTINCT KYC identities (e.g. rented CPFs)
+ * colluding — one net buyer, one net seller — still each show one-sided net
+ * flow. That is identity rental, not wallet splitting; the defense is manual
+ * review before payout, with flow-pattern clustering (shared funding source,
+ * mirrored timing) as the planned automated filter before the league opens
+ * beyond manually onboarded participants.
  */
 
 export interface WalletFlow {
@@ -79,4 +88,32 @@ export function scoreWindow(flows: WalletFlow[], opts: { featured: boolean }): W
     .map((flow) => scoreWallet(flow, opts))
     .filter((score) => score.points > 0)
     .sort((a, b) => b.points - a.points);
+}
+
+/**
+ * Collapse per-wallet flows into per-identity flows before scoring. `identityOf`
+ * maps a wallet address to its scoring key (the identity's primary address, or
+ * the address itself when it belongs to no group). Raw USD components are summed,
+ * so netting and the square root then apply to the identity's TOTAL flow — the
+ * concavity bonus for wallet-splitting disappears. Must run before scoreWindow.
+ */
+export function mergeFlowsByIdentity(
+  flows: WalletFlow[],
+  identityOf: (address: string) => string
+): WalletFlow[] {
+  const merged = new Map<string, WalletFlow>();
+  for (const f of flows) {
+    const key = identityOf(f.address);
+    const m = merged.get(key);
+    if (!m) {
+      merged.set(key, { ...f, address: key });
+    } else {
+      m.grossBuyUsd += f.grossBuyUsd;
+      m.grossSellUsd += f.grossSellUsd;
+      m.makerAddUsd += f.makerAddUsd;
+      m.makerRemoveUsd += f.makerRemoveUsd;
+      m.swaps += f.swaps;
+    }
+  }
+  return [...merged.values()];
 }
