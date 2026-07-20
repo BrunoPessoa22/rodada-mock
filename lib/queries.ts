@@ -61,6 +61,34 @@ export function getCurrentMatch(now = new Date()): MatchRow | undefined {
     .get(iso) as MatchRow | undefined;
 }
 
+export interface CexVenueVolume {
+  venue: string;
+  quoteUsd: number;
+  trades: number;
+  pairs: number;
+  updatedAt: string | null;
+}
+
+/** Window volume per CEX venue for a match, summed across its listed pairs. */
+export function getCexVolume(matchId: number): CexVenueVolume[] {
+  return getDb()
+    .prepare(
+      `SELECT venue, SUM(quote_usd) AS quoteUsd, SUM(trades) AS trades,
+              COUNT(*) AS pairs, MAX(updated_at) AS updatedAt
+         FROM cex_volume WHERE match_id = ?
+        GROUP BY venue ORDER BY quoteUsd DESC`
+    )
+    .all(matchId) as CexVenueVolume[];
+}
+
+/** Gross on-chain taker volume (buys + sells, USD) counted for a match. */
+export function getOnchainVolume(matchId: number): number {
+  const row = getDb()
+    .prepare("SELECT SUM(gross_buy_usd + gross_sell_usd) AS vol FROM scores WHERE match_id = ?")
+    .get(matchId) as { vol: number | null };
+  return row.vol ?? 0;
+}
+
 interface ScoreAggRow {
   address: string;
   points: number;

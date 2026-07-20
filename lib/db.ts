@@ -71,6 +71,17 @@ CREATE TABLE IF NOT EXISTS claim_nonces (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
+CREATE TABLE IF NOT EXISTS cex_volume (
+  match_id   INTEGER NOT NULL REFERENCES matches(id),
+  venue      TEXT NOT NULL,                            -- binance | okx
+  token      TEXT NOT NULL,                            -- league symbol (MENGO, BAR…)
+  inst       TEXT NOT NULL,                            -- exchange pair (MENGO-USDT, BARUSDT…)
+  quote_usd  REAL NOT NULL DEFAULT 0,                  -- window volume in USD
+  trades     INTEGER NOT NULL DEFAULT 0,               -- 0 where the venue doesn't expose counts
+  updated_at TEXT,
+  PRIMARY KEY (match_id, inst)
+);
+
 CREATE TABLE IF NOT EXISTS index_log (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   ts       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),

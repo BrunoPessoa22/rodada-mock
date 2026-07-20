@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "score": "tsx scripts/score.ts"
+    "score": "tsx scripts/score.ts",
+    "cex": "tsx scripts/cex.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",

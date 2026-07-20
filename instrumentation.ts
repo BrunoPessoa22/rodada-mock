@@ -12,12 +12,19 @@ export async function register() {
   if (!RUN_INDEXER) return;
 
   const { scoreDueMatches } = await import("./lib/indexer");
+  const { refreshDueCexVolume } = await import("./lib/cex");
+  const { CEX_REFRESH_MS } = await import("./lib/config");
   let running = false;
+  let lastCexRefresh = 0;
   const tick = async () => {
     if (running) return;
     running = true;
     try {
       await scoreDueMatches();
+      if (Date.now() - lastCexRefresh >= CEX_REFRESH_MS) {
+        lastCexRefresh = Date.now();
+        await refreshDueCexVolume();
+      }
     } catch (error) {
       console.error(JSON.stringify({ level: "error", msg: `indexer tick failed: ${String(error)}` }));
     } finally {

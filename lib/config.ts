@@ -12,6 +12,13 @@ export const RPC_URL = process.env.CHILIZ_RPC_URL ?? "https://rpc.chiliz.com";
 export const RUN_INDEXER = process.env.RUN_INDEXER === "1";
 export const INDEXER_INTERVAL_MS = Number(process.env.INDEXER_INTERVAL_MS ?? 3 * 60 * 1000);
 
+// CEX venue-volume refresh cadence (piggybacks on the indexer loop). Coarser
+// than the 3-min scoring tick — venue volume is display data, and a full-window
+// refetch per pair every tick would hammer public candle endpoints for nothing.
+const rawCexMs = Number(process.env.CEX_REFRESH_MS ?? 10 * 60 * 1000);
+export const CEX_REFRESH_MS =
+  Number.isFinite(rawCexMs) && rawCexMs >= 60_000 ? Math.floor(rawCexMs) : 10 * 60 * 1000;
+
 // Maker anti-JIT cooldown: liquidity must stay in the pool this long PAST the
 // window close to keep its maker points. Burns observed in [window_end,
 // window_end + cooldown] are clawed back against in-window adds, so a
