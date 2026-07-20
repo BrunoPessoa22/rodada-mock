@@ -64,7 +64,7 @@ export default function RulesPage() {
               uma mesma pessoa é somado antes da raiz, então dividir entre carteiras próprias não
               multiplica pontos, e só identidades verificadas dividem o pote; <b>o código é
               público</b> — qualquer pessoa recalcula a Artilharia:{" "}
-              <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
+              <a href="https://github.com/BrunoPessoa22/trading-league/blob/main/lib/scoring.ts">
                 lib/scoring.ts
               </a>
               . Nesta beta contamos só fluxo <b>spot on-chain</b>, que não tem alavancagem por
@@ -77,7 +77,7 @@ export default function RulesPage() {
               wallets is summed before the square root, so splitting across your own wallets never
               multiplies points, and only verified identities divide the pot; <b>the code is
               public</b> — anyone can recompute the leaderboard:{" "}
-              <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
+              <a href="https://github.com/BrunoPessoa22/trading-league/blob/main/lib/scoring.ts">
                 lib/scoring.ts
               </a>
               . This beta counts <b>on-chain spot flow only</b>, which is unlevered by nature;
@@ -152,16 +152,44 @@ export default function RulesPage() {
             <span className="pt">
               <b>Kayen (Chiliz Chain)</b> — automático, on-chain, ao vivo nesta beta. Swaps líquidos
               e liquidez adicionada nos pools dos tokens da janela, atribuídos à carteira que
-              assinou a transação. <b>Mercado Bitcoin · OKX · Paribu · Binance</b> — entram na
-              sequência via chave de API somente-leitura que você conecta uma vez. <b>Vibe ·
-              Socios</b> — integração direta em conversa.
+              assinou a transação. <b>OKX · Binance</b> — a Liga já acompanha, ao vivo, o volume
+              spot dos tokens da rodada nessas casas (candles públicos de cada par listado, somados
+              dentro da janela e convertidos a USD) e mostra o total na página da partida.{" "}
+              <b>Mercado Bitcoin · Paribu</b> — na sequência. <b>Vibe · Socios</b> — integração
+              direta em conversa.
             </span>
             <span className="en">
               <b>Kayen (Chiliz Chain)</b> — automatic, on-chain, live in this beta. Net swaps and
               added liquidity on the window&apos;s token pools, attributed to the wallet that signed
-              the transaction. <b>Mercado Bitcoin · OKX · Paribu · Binance</b> — next, via a
-              read-only API key you link once. <b>Vibe · Socios</b> — direct integration in
-              discussion.
+              the transaction. <b>OKX · Binance</b> — the League already tracks, live, the
+              matchday tokens&apos; spot volume on these venues (public candles of every listed
+              pair, summed inside the window and converted to USD) and shows the total on the match
+              page. <b>Mercado Bitcoin · Paribu</b> — next. <b>Vibe · Socios</b> — direct
+              integration in discussion.
+            </span>
+          </p>
+          <p className="gapline" style={{ marginTop: 10 }}>
+            <span className="pt">
+              <b>Como um trader de exchange entra na Artilharia:</b> exchanges não publicam quem
+              operou, então a atribuição individual usa uma <b>chave de API somente-leitura</b> que
+              você conecta uma vez — sem permissão de saque nem de ordem; a Liga nunca movimenta
+              seus fundos. Com a chave, a Liga lê apenas suas execuções dos pares da rodada dentro
+              da janela (Binance <span className="mono">myTrades</span>, OKX{" "}
+              <span className="mono">fills</span>) e aplica a mesma fórmula pública: compras menos
+              vendas em USD, raiz quadrada, ida-e-volta vale zero. Uma fórmula, todas as casas. O
+              caminho paralelo é a casa patrocinar a rodada e reportar direto do servidor — os dois
+              modelos estão em conversa com os parceiros.
+            </span>
+            <span className="en">
+              <b>How an exchange trader joins the leaderboard:</b> exchanges don&apos;t publish who
+              traded, so individual attribution uses a <b>read-only API key</b> you link once — no
+              withdrawal or order permissions; the League never touches your funds. With the key,
+              the League reads only your executions on the matchday pairs inside the window
+              (Binance <span className="mono">myTrades</span>, OKX{" "}
+              <span className="mono">fills</span>) and applies the same public formula: buys minus
+              sells in USD, square root, round-trips score zero. One formula, every venue. The
+              parallel path is the venue sponsoring the matchday and reporting server-side — both
+              models are in discussion with partners.
             </span>
           </p>
         </div>
