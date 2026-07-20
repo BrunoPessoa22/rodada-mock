@@ -38,7 +38,10 @@ export function venueInstruments(tokens: string[], venue: CexVenue): string[] {
   return tokens.flatMap((t) => CEX_LISTINGS[t]?.[venue] ?? []);
 }
 
-const FETCH_OPTS = { signal: AbortSignal.timeout(10_000), cache: "no-store" as const };
+// Fresh options per request — AbortSignal.timeout starts its clock at CREATION,
+// so a shared module-level signal fires 10s after boot and instantly aborts
+// every fetch for the rest of the process's life.
+const fetchOpts = () => ({ signal: AbortSignal.timeout(10_000), cache: "no-store" as const });
 
 /**
  * Quote-currency → USD. Stablecoin/USD quotes pass through at 1; TRY and EUR
@@ -50,7 +53,7 @@ const fxCache = new Map<string, { rate: number; fetchedAt: number }>();
 const FX_TTL_MS = 30 * 60 * 1000;
 
 async function binanceLastPrice(symbol: string): Promise<number | null> {
-  const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, FETCH_OPTS);
+  const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, fetchOpts());
   if (!res.ok) return null;
   const body = (await res.json()) as { price?: string };
   const price = Number(body.price);
@@ -92,7 +95,7 @@ async function binanceWindowVolume(symbol: string, startMs: number, endMs: numbe
   let trades = 0;
   while (cursor < endMs) {
     const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&startTime=${cursor}&endTime=${endMs}&limit=1000`;
-    const res = await fetch(url, FETCH_OPTS);
+    const res = await fetch(url, fetchOpts());
     if (!res.ok) throw new Error(`binance ${symbol} HTTP ${res.status}`);
     const rows = (await res.json()) as (string | number)[][];
     if (rows.length === 0) break;
@@ -118,7 +121,7 @@ async function okxWindowVolume(instId: string, startMs: number, endMs: number): 
   let after = endMs + 1;
   for (let page = 0; page < 40; page++) {
     const url = `https://www.okx.com/api/v5/market/candles?instId=${instId}&bar=5m&after=${after}&limit=300`;
-    const res = await fetch(url, FETCH_OPTS);
+    const res = await fetch(url, fetchOpts());
     if (!res.ok) throw new Error(`okx ${instId} HTTP ${res.status}`);
     const body = (await res.json()) as { code: string; msg: string; data: string[][] };
     if (body.code !== "0") throw new Error(`okx ${instId} ${body.code} ${body.msg}`);
