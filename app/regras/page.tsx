@@ -64,7 +64,7 @@ export default function RulesPage() {
               uma mesma pessoa é somado antes da raiz, então dividir entre carteiras próprias não
               multiplica pontos, e só identidades verificadas dividem o pote; <b>o código é
               público</b> — qualquer pessoa recalcula a Artilharia:{" "}
-              <a href="https://github.com/BrunoPessoa22/trading-league/blob/main/lib/scoring.ts">
+              <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
                 lib/scoring.ts
               </a>
               . Nesta beta contamos só fluxo <b>spot on-chain</b>, que não tem alavancagem por
@@ -77,7 +77,7 @@ export default function RulesPage() {
               wallets is summed before the square root, so splitting across your own wallets never
               multiplies points, and only verified identities divide the pot; <b>the code is
               public</b> — anyone can recompute the leaderboard:{" "}
-              <a href="https://github.com/BrunoPessoa22/trading-league/blob/main/lib/scoring.ts">
+              <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
                 lib/scoring.ts
               </a>
               . This beta counts <b>on-chain spot flow only</b>, which is unlevered by nature;
