@@ -5,7 +5,16 @@ import { PotCounter } from "@/components/PotCounter";
 import { enName } from "@/lib/i18n";
 import { getPot } from "@/lib/pot";
 import { getChzPrice } from "@/lib/prices";
-import { getCurrentMatch, getLeaderboard, type LeaderboardEntry, type MatchRow } from "@/lib/queries";
+import { venueInstruments, VENUE_TRADE_URL } from "@/lib/cex";
+import {
+  getCexVolume,
+  getCurrentMatch,
+  getLeaderboard,
+  getOnchainVolume,
+  type CexVenueVolume,
+  type LeaderboardEntry,
+  type MatchRow,
+} from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -152,7 +161,36 @@ const CLUB_COLORS: Record<string, [string, string]> = {
   PSG: ["#004170", "#DA291C"],
 };
 
-function MatchCard({ match }: { match: MatchRow | null }) {
+// Colors keyed by the club NAME shown on the card — needed when one side has
+// no token (tokens[] then holds only the other club's symbol, and keying dots
+// off tokens[0]/tokens[1] would paint both sides with the tokenized club).
+const CLUB_NAME_COLORS: Record<string, [string, string]> = {
+  Flamengo: ["#C52613", "#0a0a0a"],
+  Chapecoense: ["#009846", "#FFFFFF"],
+  "São Paulo": ["#FE0000", "#FFFFFF"],
+  Fluminense: ["#7A1F3D", "#009E60"],
+  Argentina: ["#75AADB", "#FFFFFF"],
+  Espanha: ["#AA151B", "#F1BF00"],
+};
+
+function fmtUsd(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function MatchCard({
+  match,
+  cexVenues,
+  onchainUsd,
+}: {
+  match: MatchRow | null;
+  cexVenues: CexVenueVolume[];
+  onchainUsd: number;
+}) {
   if (!match) {
     return (
       <div className="panel bigmatch" id="jogao">
@@ -168,10 +206,14 @@ function MatchCard({ match }: { match: MatchRow | null }) {
     );
   }
   const tokens = JSON.parse(match.tokens) as string[];
-  const [homeColors, awayColors] = [
-    CLUB_COLORS[tokens[0]] ?? ["#3f3f46", "#71717a"],
-    CLUB_COLORS[tokens[1] ?? tokens[0]] ?? ["#3f3f46", "#71717a"],
-  ];
+  const homeColors =
+    CLUB_NAME_COLORS[match.home] ?? CLUB_COLORS[tokens[0]] ?? ["#3f3f46", "#71717a"];
+  const awayColors =
+    CLUB_NAME_COLORS[match.away] ?? CLUB_COLORS[tokens[1] ?? tokens[0]] ?? ["#3f3f46", "#71717a"];
+  const okxInsts = venueInstruments(tokens, "okx");
+  const binanceInsts = venueInstruments(tokens, "binance");
+  const venueUsd = Object.fromEntries(cexVenues.map((v) => [v.venue, v.quoteUsd])) as Record<string, number>;
+  const hasVolume = onchainUsd > 0 || cexVenues.some((v) => v.quoteUsd > 0);
   const windowOpen =
     new Date(match.window_start_utc).getTime() <= Date.now() &&
     Date.now() < new Date(match.window_end_utc).getTime();
@@ -245,25 +287,72 @@ function MatchCard({ match }: { match: MatchRow | null }) {
         <a className="btn primary sm" href={kayenUrl} target="_blank" rel="noopener noreferrer">
           Kayen
         </a>
+        {okxInsts.length > 0 ? (
+          <a
+            className="btn secondary sm"
+            href={VENUE_TRADE_URL.okx(okxInsts[0])}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            OKX <span className="pt">(volume contando)</span>
+            <span className="en">(volume counting)</span>
+          </a>
+        ) : (
+          <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
+            OKX <span className="pt">(sem par nesta rodada)</span>
+            <span className="en">(no pair this matchday)</span>
+          </span>
+        )}
+        {binanceInsts.length > 0 ? (
+          <a
+            className="btn secondary sm"
+            href={VENUE_TRADE_URL.binance(binanceInsts[0])}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Binance <span className="pt">(volume contando)</span>
+            <span className="en">(volume counting)</span>
+          </a>
+        ) : (
+          <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
+            Binance <span className="pt">(sem par nesta rodada)</span>
+            <span className="en">(no pair this matchday)</span>
+          </span>
+        )}
         <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
           Mercado Bitcoin{" "}
           <span className="pt">(em breve)</span>
           <span className="en">(soon)</span>
         </span>
-        <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-          OKX <span className="pt">(em breve)</span>
-          <span className="en">(soon)</span>
-        </span>
-        <span className="note2">
-          <span className="pt">
-            Opere onde você já opera — nesta beta a Liga conta a Kayen on-chain; parceiros CEX
-            entram com chave read-only.
+        {hasVolume ? (
+          <span className="note2">
+            <span className="pt">
+              Volume da janela até agora — Kayen {fmtUsd(onchainUsd, "pt-BR")}
+              {venueUsd.okx !== undefined ? ` · OKX ${fmtUsd(venueUsd.okx, "pt-BR")}` : ""}
+              {venueUsd.binance !== undefined ? ` · Binance ${fmtUsd(venueUsd.binance, "pt-BR")}` : ""}
+              . Na Kayen a contagem é por carteira; nas exchanges, por casa.
+            </span>
+            <span className="en">
+              Window volume so far — Kayen {fmtUsd(onchainUsd, "en-US")}
+              {venueUsd.okx !== undefined ? ` · OKX ${fmtUsd(venueUsd.okx, "en-US")}` : ""}
+              {venueUsd.binance !== undefined ? ` · Binance ${fmtUsd(venueUsd.binance, "en-US")}` : ""}
+              . Kayen counts wallet by wallet; exchanges count by venue.
+            </span>
           </span>
-          <span className="en">
-            Trade where you already trade — this beta counts Kayen on-chain; CEX partners join via
-            read-only keys.
+        ) : (
+          <span className="note2">
+            <span className="pt">
+              Opere onde você já opera — a Liga conta a Kayen carteira a carteira e acompanha o
+              volume de OKX e Binance ao vivo. Pontuação individual nas exchanges chega via chave
+              read-only.
+            </span>
+            <span className="en">
+              Trade where you already trade — the League counts Kayen wallet by wallet and tracks
+              OKX and Binance volume live. Individual scoring on exchanges arrives via read-only
+              keys.
+            </span>
           </span>
-        </span>
+        )}
       </div>
     </div>
   );
@@ -275,6 +364,8 @@ export default async function Home() {
   const board = match
     ? getLeaderboard({ matchId: match.id, poolChz: match.pool_chz })
     : { entries: [], totalPoints: 0, payablePoints: 0, wallets: 0 };
+  const cexVenues = match ? getCexVolume(match.id) : [];
+  const onchainUsd = match ? getOnchainVolume(match.id) : 0;
   const chz = await getChzPrice();
 
   return (
@@ -416,7 +507,7 @@ export default async function Home() {
             wallets={board.wallets}
             match={match}
           />
-          <MatchCard match={match} />
+          <MatchCard match={match} cexVenues={cexVenues} onchainUsd={onchainUsd} />
         </div>
 
         <section id="pontuar">

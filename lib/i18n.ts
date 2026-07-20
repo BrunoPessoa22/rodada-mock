@@ -14,6 +14,8 @@ const NAME_EN: Record<string, string> = {
   "Copa do Mundo — Final": "World Cup — Final",
   "Copa do Mundo": "World Cup",
   Brasileirão: "Brasileirão",
+  "Brasileirão — Rodada 19": "Brasileirão — Round 19",
+  "Brasileirão — Rodada 20": "Brasileirão — Round 20",
   Libertadores: "Libertadores",
   "Aquecimento — Copa do Mundo": "Warm-up — World Cup",
 };
