@@ -134,7 +134,7 @@ export default function AdminPage() {
               onChange={(e) => setToken(e.target.value)}
             />
             <button className="btn primary" type="submit">
-              Entrar
+              Sign in
             </button>
           </form>
         </section>
