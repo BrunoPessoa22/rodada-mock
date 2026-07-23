@@ -301,7 +301,7 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   // to one flow so splitting cannot farm the volume unlock or PnL% denominator.
   const identityOf = resolveIdentities(db, walletFlows.map((w) => w.address));
   const identityFlows = mergeFlowsByIdentity(walletFlows, (addr) => identityOf.get(addr) ?? addr);
-  const scores = scoreWindow(identityFlows, { featured: match.featured === 1 });
+  const scores = scoreWindow(identityFlows);
 
   const nowIso = new Date().toISOString();
   const provisional = windowClosed ? 0 : 1;

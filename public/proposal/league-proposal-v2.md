@@ -32,7 +32,6 @@ Signup is once: log in with Socios ID, link where you trade (wallet signature or
 
 ```
 Points = PnL% × (1 − e^(−Volume / V_target))
-         × 2 on featured matches
 ```
 
 - **PnL%** — window cash-flow (sells − buys) plus mark-to-market of remaining inventory at score-time pool price, as % of capital deployed (buy USD).

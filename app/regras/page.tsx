@@ -50,10 +50,8 @@ export default function RulesPage() {
               overflowX: "auto",
             }}
           >
-            <span className="pt">{`pontos = PnL% × (1 − e^(−Volume / V_alvo))
-         × 2 em partidas em destaque`}</span>
-            <span className="en">{`points = PnL% × (1 − e^(−Volume / V_target))
-         × 2 on featured matches`}</span>
+            <span className="pt">{`pontos = PnL% × (1 − e^(−Volume / V_alvo))`}</span>
+            <span className="en">{`points = PnL% × (1 − e^(−Volume / V_target))`}</span>
           </pre>
           <p className="gapline" style={{ marginTop: 12 }}>
             <span className="pt">

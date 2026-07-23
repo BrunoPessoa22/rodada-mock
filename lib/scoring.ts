@@ -6,7 +6,6 @@
  * one formula, everyone"):
  *
  *   Points = PnL% × (1 − e^(−Volume / V_target))
- *            × 2 on featured matches
  *
  * Where:
  *  - PnL%  = cash-flow + mark-to-market inventory, as % of capital deployed
@@ -76,8 +75,6 @@ export interface WalletScore {
   points: number;
 }
 
-const FEATURED_MULTIPLIER = 2;
-
 /** Volume unlock factor in [0, 1). At V = V_target ≈ 0.632. */
 export function volumeMultiplier(volumeUsd: number, volumeTargetUsd: number): number {
   if (volumeUsd <= 0 || volumeTargetUsd <= 0) return 0;
@@ -101,18 +98,17 @@ export function computePnl(flow: {
 
 export function scoreWallet(
   flow: WalletFlow,
-  opts: { featured: boolean; volumeTargetUsd?: number }
+  opts: { volumeTargetUsd?: number } = {}
 ): WalletScore {
   const volumeTargetUsd = opts.volumeTargetUsd ?? VOLUME_TARGET_USD;
   const netTakerUsd = flow.grossBuyUsd - flow.grossSellUsd;
   const makerNetAddUsd = Math.max(0, flow.makerAddUsd - flow.makerRemoveUsd);
 
-  // Taker volume + net LP depth (maker counts toward unlock, not as a 2× bonus).
+  // Taker volume + net LP depth (maker counts toward unlock only).
   const volumeUsd = flow.grossBuyUsd + flow.grossSellUsd + makerNetAddUsd;
   const { pnlUsd, pnlPct } = computePnl(flow);
   const mult = volumeMultiplier(volumeUsd, volumeTargetUsd);
-  const featured = opts.featured ? FEATURED_MULTIPLIER : 1;
-  const points = pnlPct * mult * featured;
+  const points = pnlPct * mult;
 
   return {
     address: flow.address,
@@ -131,7 +127,7 @@ export function scoreWallet(
 
 export function scoreWindow(
   flows: WalletFlow[],
-  opts: { featured: boolean; volumeTargetUsd?: number }
+  opts: { volumeTargetUsd?: number } = {}
 ): WalletScore[] {
   return flows
     .map((flow) => scoreWallet(flow, opts))

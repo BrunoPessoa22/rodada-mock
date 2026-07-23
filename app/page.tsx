@@ -123,14 +123,13 @@ function LeaderboardPanel({
         <p className="gapline">
           <span className="pt">
             <b>Para entrar na briga:</b> o top {top.length} fecha em{" "}
-            {cutoff.toLocaleString("pt-BR")} pts
-            {match?.featured ? " — e nesta rodada os pontos valem 2×" : ""}. PnL% × unlock de
-            volume na Kayen durante a janela coloca você nesta página; ida-e-volta flat vale zero.
+            {cutoff.toLocaleString("pt-BR")} pts. PnL% × unlock de volume na Kayen durante a janela
+            coloca você nesta página; ida-e-volta flat vale zero.
           </span>
           <span className="en">
             <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")}{" "}
-            pts{match?.featured ? " — and this matchday pays 2× points" : ""}. PnL% × volume unlock
-            on Kayen during the window puts you on this page; flat round-trips score zero.
+            pts. PnL% × volume unlock on Kayen during the window puts you on this page; flat
+            round-trips score zero.
           </span>
         </p>
       ) : null}
@@ -265,11 +264,11 @@ function MatchCard({
       </div>
       <div className="carrot">
         <span className="pt">
-          {match.featured ? <b>2× pontos</b> : <b>pontos valendo</b>} nesta partida · rodada paga{" "}
+          <b>pontos valendo</b> nesta partida · rodada paga{" "}
           <b>{match.pool_chz.toLocaleString("pt-BR")} CHZ</b> do pote
         </span>
         <span className="en">
-          {match.featured ? <b>2× points</b> : <b>points live</b>} on this match · matchday pays{" "}
+          <b>points live</b> on this match · matchday pays{" "}
           <b>{match.pool_chz.toLocaleString("en-US")} CHZ</b> from the pot
         </span>
       </div>

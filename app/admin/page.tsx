@@ -217,7 +217,7 @@ export default function AdminPage() {
             <input name="tokens" placeholder="tokens: ARG,SPAIN" required />
             <input name="pool_chz" placeholder="pool CHZ" type="number" defaultValue={0} />
             <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
-              <input type="checkbox" name="featured" /> featured (2×)
+              <input type="checkbox" name="featured" /> featured (display only)
             </label>
             <button className="btn primary sm" type="submit">
               salvar rodada

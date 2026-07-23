@@ -13,7 +13,7 @@ and pays.
   FanX/Kayen AMM pools on Chiliz Chain for every match window and attributes
   flow to the wallet that signed the transaction.
 - **One public formula** — [`lib/scoring.ts`](lib/scoring.ts):
-  `Points = PnL% × (1 − e^(−Volume / V_target)) × 2 featured`.
+  `Points = PnL% × (1 − e^(−Volume / V_target))`.
   PnL% is window cash-flow plus mark-to-market of remaining inventory; volume
   unlocks how much of that return counts (`VOLUME_TARGET_USD`, default 1000).
   Flat wash scores ~0. Flows net **per KYC identity before the formula**, so
