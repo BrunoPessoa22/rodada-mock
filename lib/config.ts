@@ -20,13 +20,19 @@ export const CEX_REFRESH_MS =
   Number.isFinite(rawCexMs) && rawCexMs >= 60_000 ? Math.floor(rawCexMs) : 10 * 60 * 1000;
 
 // Maker anti-JIT cooldown: liquidity must stay in the pool this long PAST the
-// window close to keep its maker points. Burns observed in [window_end,
-// window_end + cooldown] are clawed back against in-window adds, so a
-// mint-at-close / burn-after-whistle flash earns nothing. Finalization waits
-// for this cooldown to elapse before freezing the board. Default 6h.
+// window close to keep counting toward the volume unlock. Burns observed in
+// [window_end, window_end + cooldown] are clawed back against in-window adds,
+// so a mint-at-close / burn-after-whistle flash earns nothing. Finalization
+// waits for this cooldown to elapse before freezing the board. Default 6h.
 const rawCooldown = Number(process.env.MAKER_COOLDOWN_S ?? 6 * 3600);
 export const MAKER_COOLDOWN_S =
   Number.isFinite(rawCooldown) && rawCooldown >= 0 ? Math.floor(rawCooldown) : 6 * 3600;
+
+// Volume unlock target for Points = PnL% × (1 − e^(−Volume / V_target)).
+// At V = V_target the multiplier is ≈ 63%; at 3× ≈ 95%. Default $1,000.
+const rawVolumeTarget = Number(process.env.VOLUME_TARGET_USD ?? 1000);
+export const VOLUME_TARGET_USD =
+  Number.isFinite(rawVolumeTarget) && rawVolumeTarget > 0 ? rawVolumeTarget : 1000;
 
 // Season pot: base amount at an anchor date + daily accrual. Values live in the
 // settings table (admin-editable); these are the seed defaults.

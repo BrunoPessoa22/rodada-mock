@@ -33,9 +33,9 @@ CREATE TABLE IF NOT EXISTS wallets (
   status      TEXT NOT NULL DEFAULT 'unclaimed',      -- unclaimed | verified
   identity_id TEXT,                                   -- primary address of the KYC identity this
                                                       -- wallet belongs to; NULL = its own identity.
-                                                      -- Flows net per identity BEFORE the √, so
-                                                      -- splitting across self-owned wallets can't
-                                                      -- farm the concave curve.
+                                                      -- Flows net per identity BEFORE the formula,
+                                                      -- so splitting across self-owned wallets can't
+                                                      -- farm the volume unlock or PnL% denominator.
   created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 

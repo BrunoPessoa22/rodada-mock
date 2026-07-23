@@ -31,19 +31,23 @@ Signup is once: log in with Socios ID, link where you trade (wallet signature or
 ## Scoring — one formula, everyone
 
 ```
-points = √(your NET buying or selling, in USD, during the match window)
+Points = PnL% × (1 − e^(−Volume / V_target))
          × 2 on featured matches
-         × 2 if you're providing liquidity instead of taking it
 ```
 
-Three properties, stated in the rules and enforced in code:
+- **PnL%** — window cash-flow (sells − buys) plus mark-to-market of remaining inventory at score-time pool price, as % of capital deployed (buy USD).
+- **Volume** — gross buy + sell USD in the window, plus net liquidity left in the pool (maker depth counts toward the unlock).
+- **V_target** — single free parameter (default $1,000). At the target the multiplier is ≈ 63%; at 3× ≈ 95%.
 
-- **Round-trips cancel, per identity** — flows from every wallet one KYC identity owns are summed *before* the square root, so a round-trip scores zero and splitting the same flow across your own wallets can't farm the curve. Only verified identities divide the pool, so unverified wallets never dilute a payable share. (Residual case — two *distinct* colluding identities — is handled by manual review + flow-pattern clustering before payout, not by the formula alone.)
-- **Liquidity has to stay** — maker points are clawed back if the liquidity is pulled within a cooldown after the whistle, so a mint-at-close/burn-after flash earns nothing.
+Properties, stated in the rules and enforced in code:
+
+- **Return first, volume unlocks** — flat wash has PnL% ≈ 0, so volume alone cannot buy the board (this is the fix for v1's additive `$Volume` term).
+- **Per identity, not per wallet** — flows from every wallet one KYC identity owns are summed *before* the formula, so splitting the same flow across your own wallets can't farm the curve. Only verified identities divide the pool. (Residual case — two *distinct* colluding identities — is handled by manual review + flow-pattern clustering before payout, not by the formula alone.)
+- **Liquidity has to stay** — net maker depth is clawed back if the liquidity is pulled within a cooldown after the whistle, so a mint-at-close/burn-after flash earns nothing toward the unlock.
 - **No leverage in scope** — this build counts on-chain spot flow only, which is unlevered by nature; leveraged venues (perps/CEX) are counted later, always by collateral, never notional.
 - **The scoring code is public** — anyone can recompute the on-chain leaderboard.
 
-(Why not v1's `PnL% × 10,000 + $Volume`: $10k of churned volume costs ~$20 in fees and scores the same as doubling your money. The leaderboard would be bought, publicly, in week one.)
+(Why not v1's `PnL% × 10,000 + $Volume`: $10k of churned volume costs ~$20 in fees and scores the same as doubling your money. Saturating volume as a *multiplier on PnL%* — not an additive term — kills that exploit while still rewarding real activity.)
 
 ## Battles = a televised match inside the league
 

@@ -5,34 +5,37 @@
  * public Chiliz Chain data plus this function (League Proposal v2, "Scoring —
  * one formula, everyone"):
  *
- *   points = √(net buying or selling, in USD, during the match window)
+ *   Points = PnL% × (1 − e^(−Volume / V_target))
  *            × 2 on featured matches
- *            × 2 if providing liquidity instead of taking it
+ *
+ * Where:
+ *  - PnL%  = cash-flow + mark-to-market inventory, as % of capital deployed
+ *            (buy USD). Sells without buys use sell proceeds as denominator.
+ *  - Volume = gross buy + gross sell USD in the match window, plus net
+ *             liquidity added (maker depth counts toward the unlock).
+ *  - V_target = VOLUME_TARGET_USD (default 1000). At V = V_target the
+ *               multiplier is ≈ 0.632; at 3×V_target ≈ 0.95.
  *
  * Enforced properties:
- *  - Round-trips cancel: buys and sells NET before the square root, so wash
- *    volume scores zero by construction.
- *  - Collateral counts, notional doesn't: on-chain spot flows are unlevered by
- *    nature; venue integrations must report collateral-based flow.
- *  - A wallet that both trades and provides liquidity earns each component on
- *    its own net amount: √|netTakerUsd| + 2·√(max(0, makerAddUsd − makerRemoveUsd)),
- *    all × 2 when the match is featured.
+ *  - Flat wash scores ~0: round-trips at the same price leave PnL% ≈ 0, so
+ *    volume alone cannot buy the board.
+ *  - Buy-and-hold earns from price move: remaining inventory is marked at
+ *    score-time pool price (inventoryMarkUsd from the indexer).
+ *  - Collateral counts, notional doesn't: on-chain spot flows are unlevered
+ *    by nature; venue integrations must report collateral-based flow.
  *
  * Sybil defense (partial, by design): scoring nets per KYC IDENTITY, not per
  * wallet — flows from every wallet an identity owns are summed by
- * mergeFlowsByIdentity() BEFORE the square root, so splitting the same net flow
- * across N self-owned wallets can no longer harvest the √n bonus the concave
- * curve would otherwise pay. Payout is then renormalized over verified
- * identities only (see getLeaderboard), so unverified wallets can appear on the
- * board but never dilute a payable share.
+ * mergeFlowsByIdentity() BEFORE the formula, so splitting the same flow
+ * across N self-owned wallets cannot farm a concave bonus. Payout is then
+ * renormalized over verified identities only (see getLeaderboard).
  *
- * Residual limitation (beta): two DISTINCT KYC identities (e.g. rented CPFs)
- * colluding — one net buyer, one net seller — still each show one-sided net
- * flow. That is identity rental, not wallet splitting; the defense is manual
- * review before payout, with flow-pattern clustering (shared funding source,
- * mirrored timing) as the planned automated filter before the league opens
- * beyond manually onboarded participants.
+ * Residual limitation (beta): two DISTINCT KYC identities colluding (one net
+ * buyer, one net seller) can still each show one-sided flow. That is identity
+ * rental; the defense is manual review before payout.
  */
+
+import { VOLUME_TARGET_USD } from "./config";
 
 export interface WalletFlow {
   /** Lowercase 0x address the flow is attributed to (transaction sender). */
@@ -45,6 +48,12 @@ export interface WalletFlow {
   makerAddUsd: number;
   /** USD value of liquidity removed from the match's pools inside the window. */
   makerRemoveUsd: number;
+  /**
+   * Mark-to-market USD of remaining net fan-token inventory at score-time
+   * pool prices. Buy 100 of tokens still held → inventory ≈ 100×mark.
+   * Zero when flat. Set by the indexer from Swap token legs + reserves.
+   */
+  inventoryMarkUsd: number;
   /** Number of swaps observed (display only — never affects points). */
   swaps: number;
 }
@@ -57,20 +66,53 @@ export interface WalletScore {
   netTakerUsd: number;
   /** max(0, makerAddUsd − makerRemoveUsd). */
   makerNetAddUsd: number;
+  /** Cash-flow + inventory MTM, as % of capital deployed. */
+  pnlPct: number;
+  pnlUsd: number;
+  /** 1 − e^(−Volume / V_target), in [0, 1). */
+  volumeMultiplier: number;
+  volumeUsd: number;
   swaps: number;
   points: number;
 }
 
 const FEATURED_MULTIPLIER = 2;
-const MAKER_MULTIPLIER = 2;
 
-export function scoreWallet(flow: WalletFlow, opts: { featured: boolean }): WalletScore {
+/** Volume unlock factor in [0, 1). At V = V_target ≈ 0.632. */
+export function volumeMultiplier(volumeUsd: number, volumeTargetUsd: number): number {
+  if (volumeUsd <= 0 || volumeTargetUsd <= 0) return 0;
+  return 1 - Math.exp(-volumeUsd / volumeTargetUsd);
+}
+
+/**
+ * Cash-flow + MTM inventory, as percent of capital deployed (buy cost).
+ * Short-only books use sell proceeds as the denominator.
+ */
+export function computePnl(flow: {
+  grossBuyUsd: number;
+  grossSellUsd: number;
+  inventoryMarkUsd: number;
+}): { pnlUsd: number; pnlPct: number; capitalUsd: number } {
+  const pnlUsd = flow.grossSellUsd - flow.grossBuyUsd + flow.inventoryMarkUsd;
+  const capitalUsd = flow.grossBuyUsd > 0 ? flow.grossBuyUsd : flow.grossSellUsd;
+  const pnlPct = capitalUsd > 0 ? (pnlUsd / capitalUsd) * 100 : 0;
+  return { pnlUsd, pnlPct, capitalUsd };
+}
+
+export function scoreWallet(
+  flow: WalletFlow,
+  opts: { featured: boolean; volumeTargetUsd?: number }
+): WalletScore {
+  const volumeTargetUsd = opts.volumeTargetUsd ?? VOLUME_TARGET_USD;
   const netTakerUsd = flow.grossBuyUsd - flow.grossSellUsd;
   const makerNetAddUsd = Math.max(0, flow.makerAddUsd - flow.makerRemoveUsd);
 
-  const takerPoints = Math.sqrt(Math.abs(netTakerUsd));
-  const makerPoints = MAKER_MULTIPLIER * Math.sqrt(makerNetAddUsd);
+  // Taker volume + net LP depth (maker counts toward unlock, not as a 2× bonus).
+  const volumeUsd = flow.grossBuyUsd + flow.grossSellUsd + makerNetAddUsd;
+  const { pnlUsd, pnlPct } = computePnl(flow);
+  const mult = volumeMultiplier(volumeUsd, volumeTargetUsd);
   const featured = opts.featured ? FEATURED_MULTIPLIER : 1;
+  const points = pnlPct * mult * featured;
 
   return {
     address: flow.address,
@@ -78,24 +120,30 @@ export function scoreWallet(flow: WalletFlow, opts: { featured: boolean }): Wall
     grossSellUsd: flow.grossSellUsd,
     netTakerUsd,
     makerNetAddUsd,
+    pnlPct,
+    pnlUsd,
+    volumeMultiplier: mult,
+    volumeUsd,
     swaps: flow.swaps,
-    points: (takerPoints + makerPoints) * featured,
+    points,
   };
 }
 
-export function scoreWindow(flows: WalletFlow[], opts: { featured: boolean }): WalletScore[] {
+export function scoreWindow(
+  flows: WalletFlow[],
+  opts: { featured: boolean; volumeTargetUsd?: number }
+): WalletScore[] {
   return flows
     .map((flow) => scoreWallet(flow, opts))
     .filter((score) => score.points > 0)
-    .sort((a, b) => b.points - a.points);
+    .sort((a, b) => b.points - a.points || b.pnlPct - a.pnlPct || b.volumeUsd - a.volumeUsd);
 }
 
 /**
  * Collapse per-wallet flows into per-identity flows before scoring. `identityOf`
  * maps a wallet address to its scoring key (the identity's primary address, or
  * the address itself when it belongs to no group). Raw USD components are summed,
- * so netting and the square root then apply to the identity's TOTAL flow — the
- * concavity bonus for wallet-splitting disappears. Must run before scoreWindow.
+ * so netting and the formula then apply to the identity's TOTAL flow.
  */
 export function mergeFlowsByIdentity(
   flows: WalletFlow[],
@@ -112,6 +160,7 @@ export function mergeFlowsByIdentity(
       m.grossSellUsd += f.grossSellUsd;
       m.makerAddUsd += f.makerAddUsd;
       m.makerRemoveUsd += f.makerRemoveUsd;
+      m.inventoryMarkUsd += f.inventoryMarkUsd;
       m.swaps += f.swaps;
     }
   }

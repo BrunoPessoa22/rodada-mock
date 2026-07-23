@@ -92,6 +92,8 @@ interface RawFlow {
   sellWei: bigint;
   addWei: bigint;
   removeWei: bigint;
+  /** Net fan-token wei held from swaps this window (bought − sold), across all match tokens. */
+  tokenNetWeiByPair: Map<string, bigint>;
   swaps: number;
 }
 
@@ -137,7 +139,7 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   const takerClosed = headMs >= endMs + FINALITY_MARGIN_S * 1000;
   // The board only FINALIZES (freezes price + status) once the maker anti-JIT
   // cooldown has also elapsed — until then a burn can still claw back an
-  // in-window add, so maker points aren't settled.
+  // in-window add, so maker volume credit isn't settled.
   const windowClosed = headMs >= cooldownEndMs;
 
   // Price policy: once finalized, the stored CHZ/USD is FROZEN — re-runs must
@@ -189,7 +191,14 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   const flow = (addr: string): RawFlow => {
     let f = flows.get(addr);
     if (!f) {
-      f = { buyWei: 0n, sellWei: 0n, addWei: 0n, removeWei: 0n, swaps: 0 };
+      f = {
+        buyWei: 0n,
+        sellWei: 0n,
+        addWei: 0n,
+        removeWei: 0n,
+        tokenNetWeiByPair: new Map(),
+        swaps: 0,
+      };
       flows.set(addr, f);
     }
     return f;
@@ -197,6 +206,8 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
 
   let pairsScanned = 0;
   let eventsSeen = 0;
+  /** Score-time WCHZ-per-token-wei for each pair (from getReserves). */
+  const pairPriceWchzPerTokenWei = new Map<string, number>();
 
   for (const symbol of tokens) {
     const info = await resolvePair(symbol);
@@ -230,10 +241,15 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
           if (!inWindow) continue;
           const wchzIn = (info.wchzIsToken0 ? args.args.amount0In : args.args.amount1In) ?? 0n;
           const wchzOut = (info.wchzIsToken0 ? args.args.amount0Out : args.args.amount1Out) ?? 0n;
+          const tokenIn = (info.wchzIsToken0 ? args.args.amount1In : args.args.amount0In) ?? 0n;
+          const tokenOut = (info.wchzIsToken0 ? args.args.amount1Out : args.args.amount0Out) ?? 0n;
           const f = flow(sender);
           f.swaps += 1;
-          if (wchzIn > 0n) f.buyWei += wchzIn;   // spent WCHZ → bought the fan token
+          if (wchzIn > 0n) f.buyWei += wchzIn; // spent WCHZ → bought the fan token
           if (wchzOut > 0n) f.sellWei += wchzOut; // received WCHZ → sold the fan token
+          // Token inventory: received on buy (tokenOut), spent on sell (tokenIn).
+          const prev = f.tokenNetWeiByPair.get(info.pair) ?? 0n;
+          f.tokenNetWeiByPair.set(info.pair, prev + tokenOut - tokenIn);
         } else if (args.eventName === "Mint") {
           if (!inWindow) continue; // adds after the whistle earn nothing
           const wchz = (info.wchzIsToken0 ? args.args.amount0 : args.args.amount1) ?? 0n;
@@ -244,19 +260,45 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
         }
       }
     }
+
+    // Score-time pool price for inventory MTM (WCHZ per 1 token wei).
+    try {
+      const reserves = (await client.readContract({
+        address: info.pair,
+        abi: UNIV2_ABI,
+        functionName: "getReserves",
+      })) as readonly [bigint, bigint, number];
+      const reserveWchz = info.wchzIsToken0 ? reserves[0] : reserves[1];
+      const reserveToken = info.wchzIsToken0 ? reserves[1] : reserves[0];
+      if (reserveToken > 0n) {
+        pairPriceWchzPerTokenWei.set(info.pair, Number(reserveWchz) / Number(reserveToken));
+      }
+    } catch (error) {
+      logIndex("warn", `getReserves failed for ${symbol}`, match.id, { error: String(error) });
+    }
   }
 
   const toUsd = (wei: bigint) => (Number(wei) / 1e18) * chzUsd;
+  const inventoryMarkUsd = (f: RawFlow): number => {
+    let markWchzWei = 0;
+    for (const [pair, tokenNet] of f.tokenNetWeiByPair) {
+      const price = pairPriceWchzPerTokenWei.get(pair) ?? 0;
+      markWchzWei += Number(tokenNet) * price;
+    }
+    return (markWchzWei / 1e18) * chzUsd;
+  };
+
   const walletFlows: WalletFlow[] = [...flows.entries()].map(([address, f]) => ({
     address,
     grossBuyUsd: toUsd(f.buyWei),
     grossSellUsd: toUsd(f.sellWei),
     makerAddUsd: toUsd(f.addWei),
     makerRemoveUsd: toUsd(f.removeWei),
+    inventoryMarkUsd: inventoryMarkUsd(f),
     swaps: f.swaps,
   }));
-  // Net per KYC identity BEFORE the square root — self-owned wallet splits
-  // collapse to one flow, so the √n concavity bonus disappears.
+  // Net per KYC identity BEFORE the formula — self-owned wallet splits collapse
+  // to one flow so splitting cannot farm the volume unlock or PnL% denominator.
   const identityOf = resolveIdentities(db, walletFlows.map((w) => w.address));
   const identityFlows = mergeFlowsByIdentity(walletFlows, (addr) => identityOf.get(addr) ?? addr);
   const scores = scoreWindow(identityFlows, { featured: match.featured === 1 });

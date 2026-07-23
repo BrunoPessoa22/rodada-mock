@@ -13,13 +13,14 @@ and pays.
   FanX/Kayen AMM pools on Chiliz Chain for every match window and attributes
   flow to the wallet that signed the transaction.
 - **One public formula** — [`lib/scoring.ts`](lib/scoring.ts):
-  `points = √(net USD flow) × 2 featured × 2 maker`. Round-trips cancel, and
-  flows net **per KYC identity before the √**, so both single-identity wash and
-  splitting across your own wallets score zero; only verified identities divide
-  the pool. Anyone can recompute the on-chain leaderboard. (Beta scope:
-  on-chain spot only — unlevered by nature; residual defense against two
-  *distinct* colluding identities is manual review + clustering, not the
-  formula.)
+  `Points = PnL% × (1 − e^(−Volume / V_target)) × 2 featured`.
+  PnL% is window cash-flow plus mark-to-market of remaining inventory; volume
+  unlocks how much of that return counts (`VOLUME_TARGET_USD`, default 1000).
+  Flat wash scores ~0. Flows net **per KYC identity before the formula**, so
+  splitting across your own wallets cannot farm the board; only verified
+  identities divide the pool. Anyone can recompute the on-chain leaderboard.
+  (Beta scope: on-chain spot only — unlevered by nature; residual defense
+  against two *distinct* colluding identities is manual review + clustering.)
 - **Claim your wallet** — unclaimed addresses appear truncated; claiming puts
   your handle on the leaderboard after manual verification (beta).
 - **CEX venue volume** — [`lib/cex.ts`](lib/cex.ts) tracks live spot volume of
@@ -49,8 +50,10 @@ npm run score -- <match-slug>   # manual scoring run
 
 Env: `ADMIN_TOKEN` (admin API + /admin console), `RUN_INDEXER=1` (indexer loop,
 prod only), `DATA_DIR`, `CHILIZ_RPC_URL`, `LOG_CHUNK_BLOCKS`,
+`VOLUME_TARGET_USD` (volume unlock target; default 1000),
 `MAKER_COOLDOWN_S` (anti-JIT: liquidity must persist this long past the whistle
-to keep maker points; default 6h — the board finalizes only after it elapses).
+to keep counting toward the volume unlock; default 6h — the board finalizes
+only after it elapses).
 
 Deploys via Coolify (Dockerfile build) on push to `main` + manual deploy API
 call. Matches are managed through `/admin` (or `POST /api/admin/matches`).

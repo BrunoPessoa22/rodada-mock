@@ -124,13 +124,13 @@ function LeaderboardPanel({
           <span className="pt">
             <b>Para entrar na briga:</b> o top {top.length} fecha em{" "}
             {cutoff.toLocaleString("pt-BR")} pts
-            {match?.featured ? " — e nesta rodada os pontos valem 2×" : ""}. Fluxo líquido real na
-            Kayen durante a janela coloca você nesta página; ida-e-volta vale zero.
+            {match?.featured ? " — e nesta rodada os pontos valem 2×" : ""}. PnL% × unlock de
+            volume na Kayen durante a janela coloca você nesta página; ida-e-volta flat vale zero.
           </span>
           <span className="en">
             <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")}{" "}
-            pts{match?.featured ? " — and this matchday pays 2× points" : ""}. Real net flow on
-            Kayen during the window puts you on this page; round-trips score zero.
+            pts{match?.featured ? " — and this matchday pays 2× points" : ""}. PnL% × volume unlock
+            on Kayen during the window puts you on this page; flat round-trips score zero.
           </span>
         </p>
       ) : null}
@@ -557,14 +557,12 @@ export default async function Home() {
               <Icon id="i-drop" />
               <span>
                 <span className="pt">
-                  <b>Segurou o mercado? Vale 2×.</b> Quem deixa seus tokens no pool de liquidez
-                  durante a rodada pontua em dobro — é essa profundidade que segura o preço para
-                  todo mundo.
+                  <b>Retorno × volume.</b> Pontos = PnL% × (1 − e<sup>−Volume/V</sup>
+                  <sub>alvo</sub>). O retorno manda; o volume destrava quanto desse retorno conta.
                 </span>
                 <span className="en">
-                  <b>Backed the market? Counts 2×.</b> Keeping your tokens in the liquidity pool
-                  through the matchday scores double — that depth is what holds the price steady
-                  for everyone.
+                  <b>Return × volume.</b> Points = PnL% × (1 − e<sup>−Volume/V</sup>
+                  <sub>target</sub>). Return leads; volume unlocks how much of that return counts.
                 </span>
               </span>
             </div>
@@ -572,13 +570,13 @@ export default async function Home() {
               <Icon id="i-lock" />
               <span>
                 <span className="pt">
-                  <b>Trapaça vale zero.</b> Comprar e vender só para inflar volume não pontua nada,
-                  e alavancagem não multiplica ponto. Qualquer pessoa pode conferir a conta — a{" "}
+                  <b>Trapaça vale zero.</b> Volume flat sem PnL não sobe na Artilharia, e
+                  alavancagem não multiplica ponto. Qualquer pessoa pode conferir a conta — a{" "}
                   <a href="/regras">pontuação é código aberto</a>.
                 </span>
                 <span className="en">
-                  <b>Gaming it scores zero.</b> Buying and selling just to inflate volume earns
-                  nothing, and leverage doesn&apos;t multiply points. Anyone can check the math —{" "}
+                  <b>Gaming it scores zero.</b> Flat volume without PnL does not climb the board,
+                  and leverage doesn&apos;t multiply points. Anyone can check the math —{" "}
                   <a href="/regras">scoring is open source</a>.
                 </span>
               </span>

@@ -50,18 +50,19 @@ export default function RulesPage() {
               overflowX: "auto",
             }}
           >
-            <span className="pt">{`pontos = √(seu fluxo LÍQUIDO de compra ou venda, em USD, na janela)
-         × 2 em partidas em destaque
-         × 2 se você está provendo liquidez em vez de tomar`}</span>
-            <span className="en">{`points = √(your NET buying or selling, in USD, during the window)
-         × 2 on featured matches
-         × 2 if you are providing liquidity instead of taking it`}</span>
+            <span className="pt">{`pontos = PnL% × (1 − e^(−Volume / V_alvo))
+         × 2 em partidas em destaque`}</span>
+            <span className="en">{`points = PnL% × (1 − e^(−Volume / V_target))
+         × 2 on featured matches`}</span>
           </pre>
           <p className="gapline" style={{ marginTop: 12 }}>
             <span className="pt">
-              No código: <b>ida-e-volta se anula</b> — compre e venda o mesmo tanto, pontue zero;{" "}
+              No código: <b>retorno primeiro</b> — PnL% é o cash-flow da janela mais a marcação a
+              mercado do que você ainda segura; <b>volume destrava</b> — sem volume, o multiplicador
+              é zero; com volume no alvo, ~63% do seu retorno conta; <b>ida-e-volta flat vale
+              zero</b> — volume sozinho não compra a Artilharia;{" "}
               <b>pontuação por identidade, não por carteira</b> — o fluxo de todas as carteiras de
-              uma mesma pessoa é somado antes da raiz, então dividir entre carteiras próprias não
+              uma mesma pessoa é somado antes da fórmula, então dividir entre carteiras próprias não
               multiplica pontos, e só identidades verificadas dividem o pote; <b>o código é
               público</b> — qualquer pessoa recalcula a Artilharia:{" "}
               <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
@@ -72,11 +73,13 @@ export default function RulesPage() {
               nocional.
             </span>
             <span className="en">
-              In code: <b>round-trips cancel</b> — buy and sell the same amount, score zero;{" "}
-              <b>scoring is per identity, not per wallet</b> — flow from all of one person&apos;s
-              wallets is summed before the square root, so splitting across your own wallets never
-              multiplies points, and only verified identities divide the pot; <b>the code is
-              public</b> — anyone can recompute the leaderboard:{" "}
+              In code: <b>return first</b> — PnL% is window cash-flow plus mark-to-market of what
+              you still hold; <b>volume unlocks</b> — no volume, multiplier is zero; at the target,
+              ~63% of your return counts; <b>flat round-trips score zero</b> — volume alone cannot
+              buy the board; <b>scoring is per identity, not per wallet</b> — flow from all of one
+              person&apos;s wallets is summed before the formula, so splitting across your own
+              wallets never multiplies points, and only verified identities divide the pot;{" "}
+              <b>the code is public</b> — anyone can recompute the leaderboard:{" "}
               <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
                 lib/scoring.ts
               </a>
@@ -175,10 +178,10 @@ export default function RulesPage() {
               você conecta uma vez — sem permissão de saque nem de ordem; a Liga nunca movimenta
               seus fundos. Com a chave, a Liga lê apenas suas execuções dos pares da rodada dentro
               da janela (Binance <span className="mono">myTrades</span>, OKX{" "}
-              <span className="mono">fills</span>) e aplica a mesma fórmula pública: compras menos
-              vendas em USD, raiz quadrada, ida-e-volta vale zero. Uma fórmula, todas as casas. O
-              caminho paralelo é a casa patrocinar a rodada e reportar direto do servidor — os dois
-              modelos estão em conversa com os parceiros.
+              <span className="mono">fills</span>) e aplica a mesma fórmula pública: PnL% × unlock
+              de volume. Uma fórmula, todas as casas. O caminho paralelo é a casa patrocinar a
+              rodada e reportar direto do servidor — os dois modelos estão em conversa com os
+              parceiros.
             </span>
             <span className="en">
               <b>How an exchange trader joins the leaderboard:</b> exchanges don&apos;t publish who
@@ -186,10 +189,9 @@ export default function RulesPage() {
               withdrawal or order permissions; the League never touches your funds. With the key,
               the League reads only your executions on the matchday pairs inside the window
               (Binance <span className="mono">myTrades</span>, OKX{" "}
-              <span className="mono">fills</span>) and applies the same public formula: buys minus
-              sells in USD, square root, round-trips score zero. One formula, every venue. The
-              parallel path is the venue sponsoring the matchday and reporting server-side — both
-              models are in discussion with partners.
+              <span className="mono">fills</span>) and applies the same public formula: PnL% ×
+              volume unlock. One formula, every venue. The parallel path is the venue sponsoring
+              the matchday and reporting server-side — both models are in discussion with partners.
             </span>
           </p>
         </div>
