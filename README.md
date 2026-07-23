@@ -1,6 +1,6 @@
 # Rodada — Fan Token Trading League
 
-Live at **https://trading.brunopessoa.com** (PT/EN).
+Live at **https://trading.brunopessoa.com** (English).
 
 Trade your club's token on match day, wherever you already trade — climb the
 leaderboard, take a share of a pot that grows every day. The league never

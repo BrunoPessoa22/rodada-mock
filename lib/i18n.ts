@@ -1,8 +1,7 @@
 /**
- * EN display names for DB-stored match strings. Matches are seeded/admin-entered
- * in Portuguese (the canonical product language); the EN tab maps known names
- * and falls back to the stored string. Club names (Flamengo, Fluminense…) are
- * identical in both languages and don't need entries.
+ * English display names for DB-stored match strings that may still be entered
+ * in Portuguese (legacy admin seeds). Club names identical in both languages
+ * need no entry.
  */
 const NAME_EN: Record<string, string> = {
   Espanha: "Spain",
@@ -20,6 +19,7 @@ const NAME_EN: Record<string, string> = {
   "Aquecimento — Copa do Mundo": "Warm-up — World Cup",
 };
 
+/** Map a stored match/club/competition name to English for display. */
 export function enName(name: string): string {
   return NAME_EN[name] ?? name;
 }

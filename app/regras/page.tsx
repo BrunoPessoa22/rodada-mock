@@ -1,6 +1,6 @@
 import { Icon } from "@/components/Icons";
 
-export const metadata = { title: "Regras — Rodada" };
+export const metadata = { title: "Rules — Fan Token Trader League" };
 
 export default function RulesPage() {
   return (
@@ -8,36 +8,20 @@ export default function RulesPage() {
       <section style={{ maxWidth: 760, margin: "0 auto" }}>
         <div className="sechead" style={{ marginTop: 40 }}>
           <div>
-            <span className="eyebrow">
-              <span className="pt">Regras</span>
-              <span className="en">Rules</span>
-            </span>
-            <h2>
-              <span className="pt">Uma fórmula, todo mundo</span>
-              <span className="en">One formula, everyone</span>
-            </h2>
+            <span className="eyebrow">Rules</span>
+            <h2>One formula, everyone</h2>
           </div>
         </div>
         <p className="secsub">
-          <span className="pt">
-            Opere o token do seu clube em dia de jogo, onde você já opera — suba na Artilharia e
-            leve uma fatia de um pote que cresce todo dia. A Liga nunca executa ordens, nunca
-            custodia fundos, nunca recomenda. Ela mede, pontua e paga.
-          </span>
-          <span className="en">
-            Trade your club&apos;s token on match day, wherever you already trade — climb the
-            leaderboard and take a share of a pot that grows every day. The League never executes
-            trades, never holds funds, never recommends. It measures, scores, and pays.
-          </span>
+          Trade your club&apos;s token on match day, wherever you already trade — climb the
+          leaderboard and take a share of a pot that grows every day. The League never executes
+          trades, never holds funds, never recommends. It measures, scores, and pays.
         </p>
 
         <div className="panel" style={{ marginTop: 26 }}>
           <div className="ph">
             <Icon id="i-scale" lg />
-            <h3>
-              <span className="pt">A fórmula</span>
-              <span className="en">The formula</span>
-            </h3>
+            <h3>The formula</h3>
           </div>
           <pre
             className="mono"
@@ -50,92 +34,50 @@ export default function RulesPage() {
               overflowX: "auto",
             }}
           >
-            <span className="pt">{`pontos = PnL% × (1 − e^(−Volume / V_alvo))`}</span>
-            <span className="en">{`points = PnL% × (1 − e^(−Volume / V_target))`}</span>
+            {`points = PnL% × (1 − e^(−Volume / V_target))`}
           </pre>
           <p className="gapline" style={{ marginTop: 12 }}>
-            <span className="pt">
-              No código: <b>retorno primeiro</b> — PnL% é o cash-flow da janela mais a marcação a
-              mercado do que você ainda segura; <b>volume destrava</b> — sem volume, o multiplicador
-              é zero; com volume no alvo, ~63% do seu retorno conta; <b>ida-e-volta flat vale
-              zero</b> — volume sozinho não compra a Artilharia;{" "}
-              <b>pontuação por identidade, não por carteira</b> — o fluxo de todas as carteiras de
-              uma mesma pessoa é somado antes da fórmula, então dividir entre carteiras próprias não
-              multiplica pontos, e só identidades verificadas dividem o pote; <b>o código é
-              público</b> — qualquer pessoa recalcula a Artilharia:{" "}
-              <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
-                lib/scoring.ts
-              </a>
-              . Nesta beta contamos só fluxo <b>spot on-chain</b>, que não tem alavancagem por
-              natureza; venues com alavancagem entram depois, sempre por colateral, nunca por
-              nocional.
-            </span>
-            <span className="en">
-              In code: <b>return first</b> — PnL% is window cash-flow plus mark-to-market of what
-              you still hold; <b>volume unlocks</b> — no volume, multiplier is zero; at the target,
-              ~63% of your return counts; <b>flat round-trips score zero</b> — volume alone cannot
-              buy the board; <b>scoring is per identity, not per wallet</b> — flow from all of one
-              person&apos;s wallets is summed before the formula, so splitting across your own
-              wallets never multiplies points, and only verified identities divide the pot;{" "}
-              <b>the code is public</b> — anyone can recompute the leaderboard:{" "}
-              <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
-                lib/scoring.ts
-              </a>
-              . This beta counts <b>on-chain spot flow only</b>, which is unlevered by nature;
-              leveraged venues come later, always by collateral, never notional.
-            </span>
+            In code: <b>return first</b> — PnL% is window cash-flow plus mark-to-market of what you
+            still hold; <b>volume unlocks</b> — no volume, multiplier is zero; at the target, ~63% of
+            your return counts; <b>flat round-trips score zero</b> — volume alone cannot buy the
+            board; <b>scoring is per identity, not per wallet</b> — flow from all of one
+            person&apos;s wallets is summed before the formula, so splitting across your own wallets
+            never multiplies points, and only verified identities divide the pot;{" "}
+            <b>the code is public</b> — anyone can recompute the leaderboard:{" "}
+            <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
+              lib/scoring.ts
+            </a>
+            . This beta counts <b>on-chain spot flow only</b>, which is unlevered by nature;
+            leveraged venues come later, always by collateral, never notional.
           </p>
         </div>
 
         <div className="panel" style={{ marginTop: 18 }}>
           <div className="ph">
             <Icon id="i-shield" lg />
-            <h3>
-              <span className="pt">Três regras que nunca quebramos</span>
-              <span className="en">Three rules we never break</span>
-            </h3>
+            <h3>Three rules we never break</h3>
           </div>
           <div className="rules3" style={{ marginTop: 8 }}>
             <div className="rule">
               <Icon id="i-check" />
               <span>
-                <span className="pt">
-                  <b>Pontos só por operação real e líquida.</b> Nunca damos capital semente a trader
-                  — financiamos prêmios e rebates, não posições.
-                </span>
-                <span className="en">
-                  <b>Points only for real, net trading.</b> No seed money to traders — ever. We fund
-                  prizes and rebates, not positions.
-                </span>
+                <b>Points only for real, net trading.</b> No seed money to traders — ever. We fund
+                prizes and rebates, not positions.
               </span>
             </div>
             <div className="rule">
               <Icon id="i-drop" />
               <span>
-                <span className="pt">
-                  <b>Nada de destaque em token raso.</b> Hoje as partidas em destaque são
-                  escolhidas à mão por profundidade; o piso público de profundidade, checado
-                  on-chain na criação da partida, entra na sequência — protege o usuário de
-                  slippage e o influenciador de acusação de pump.
-                </span>
-                <span className="en">
-                  <b>No featured match on a thin token.</b> Featured matches are hand-picked for
-                  depth today; the public depth threshold, checked on-chain at match creation, is
-                  landing next — it protects users from slippage and KOLs from pump accusations.
-                </span>
+                <b>No featured match on a thin token.</b> Featured matches are hand-picked for depth
+                today; the public depth threshold, checked on-chain at match creation, is landing
+                next — it protects users from slippage and KOLs from pump accusations.
               </span>
             </div>
             <div className="rule">
               <Icon id="i-lock" />
               <span>
-                <span className="pt">
-                  <b>Prêmio segue pontos, nunca palpite.</b> A Liga nunca paga por resultado
-                  esportivo. Competição de habilidade, não aposta.
-                </span>
-                <span className="en">
-                  <b>Prizes follow points, never predictions.</b> The League never pays out on
-                  sporting results. Skill competition, not betting.
-                </span>
+                <b>Prizes follow points, never predictions.</b> The League never pays out on
+                sporting results. Skill competition, not betting.
               </span>
             </div>
           </div>
@@ -144,53 +86,26 @@ export default function RulesPage() {
         <div className="panel" style={{ marginTop: 18 }}>
           <div className="ph">
             <Icon id="i-trend" lg />
-            <h3>
-              <span className="pt">Onde a Liga conta hoje</span>
-              <span className="en">Where the League counts today</span>
-            </h3>
+            <h3>Where the League counts today</h3>
           </div>
           <p className="gapline">
-            <span className="pt">
-              <b>Kayen (Chiliz Chain)</b> — automático, on-chain, ao vivo nesta beta. Swaps líquidos
-              e liquidez adicionada nos pools dos tokens da janela, atribuídos à carteira que
-              assinou a transação. <b>OKX · Binance</b> — a Liga já acompanha, ao vivo, o volume
-              spot dos tokens da rodada nessas casas (candles públicos de cada par listado, somados
-              dentro da janela e convertidos a USD) e mostra o total na página da partida.{" "}
-              <b>Mercado Bitcoin · Paribu</b> — na sequência. <b>Vibe · Socios</b> — integração
-              direta em conversa.
-            </span>
-            <span className="en">
-              <b>Kayen (Chiliz Chain)</b> — automatic, on-chain, live in this beta. Net swaps and
-              added liquidity on the window&apos;s token pools, attributed to the wallet that signed
-              the transaction. <b>OKX · Binance</b> — the League already tracks, live, the
-              matchday tokens&apos; spot volume on these venues (public candles of every listed
-              pair, summed inside the window and converted to USD) and shows the total on the match
-              page. <b>Mercado Bitcoin · Paribu</b> — next. <b>Vibe · Socios</b> — direct
-              integration in discussion.
-            </span>
+            <b>Kayen (Chiliz Chain)</b> — automatic, on-chain, live in this beta. Net swaps and added
+            liquidity on the window&apos;s token pools, attributed to the wallet that signed the
+            transaction. <b>OKX · Binance</b> — the League already tracks, live, the matchday
+            tokens&apos; spot volume on these venues (public candles of every listed pair, summed
+            inside the window and converted to USD) and shows the total on the match page.{" "}
+            <b>Mercado Bitcoin · Paribu</b> — next. <b>Vibe · Socios</b> — direct integration in
+            discussion.
           </p>
           <p className="gapline" style={{ marginTop: 10 }}>
-            <span className="pt">
-              <b>Como um trader de exchange entra na Artilharia:</b> exchanges não publicam quem
-              operou, então a atribuição individual usa uma <b>chave de API somente-leitura</b> que
-              você conecta uma vez — sem permissão de saque nem de ordem; a Liga nunca movimenta
-              seus fundos. Com a chave, a Liga lê apenas suas execuções dos pares da rodada dentro
-              da janela (Binance <span className="mono">myTrades</span>, OKX{" "}
-              <span className="mono">fills</span>) e aplica a mesma fórmula pública: PnL% × unlock
-              de volume. Uma fórmula, todas as casas. O caminho paralelo é a casa patrocinar a
-              rodada e reportar direto do servidor — os dois modelos estão em conversa com os
-              parceiros.
-            </span>
-            <span className="en">
-              <b>How an exchange trader joins the leaderboard:</b> exchanges don&apos;t publish who
-              traded, so individual attribution uses a <b>read-only API key</b> you link once — no
-              withdrawal or order permissions; the League never touches your funds. With the key,
-              the League reads only your executions on the matchday pairs inside the window
-              (Binance <span className="mono">myTrades</span>, OKX{" "}
-              <span className="mono">fills</span>) and applies the same public formula: PnL% ×
-              volume unlock. One formula, every venue. The parallel path is the venue sponsoring
-              the matchday and reporting server-side — both models are in discussion with partners.
-            </span>
+            <b>How an exchange trader joins the leaderboard:</b> exchanges don&apos;t publish who
+            traded, so individual attribution uses a <b>read-only API key</b> you link once — no
+            withdrawal or order permissions; the League never touches your funds. With the key, the
+            League reads only your executions on the matchday pairs inside the window (Binance{" "}
+            <span className="mono">myTrades</span>, OKX <span className="mono">fills</span>) and
+            applies the same public formula: PnL% × volume unlock. One formula, every venue. The
+            parallel path is the venue sponsoring the matchday and reporting server-side — both
+            models are in discussion with partners.
           </p>
         </div>
       </section>

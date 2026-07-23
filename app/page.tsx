@@ -19,11 +19,12 @@ import {
 export const dynamic = "force-dynamic";
 
 function Num({ value, digits = 0 }: { value: number; digits?: number }) {
-  const opts = { minimumFractionDigits: digits, maximumFractionDigits: digits };
   return (
     <>
-      <span className="pt">{value.toLocaleString("pt-BR", opts)}</span>
-      <span className="en">{value.toLocaleString("en-US", opts)}</span>
+      {value.toLocaleString("en-US", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      })}
     </>
   );
 }
@@ -49,23 +50,13 @@ function LeaderboardPanel({
     <div className="panel">
       <div className="ph">
         <Icon id="i-trophy" lg />
-        <h3>
-          <span className="pt">Artilharia — quem está mais perto do pote</span>
-          <span className="en">Top scorers — closest to the pot</span>
-        </h3>
+        <h3>Leaderboard — closest to the pot</h3>
       </div>
       {top.length === 0 ? (
         <p className="gapline">
-          <span className="pt">
-            {windowOpen
-              ? "Janela aberta — a Artilharia conta operações reais na Kayen e as primeiras entradas aparecem em minutos. Seja o primeiro nome desta página."
-              : "A janela ainda não abriu — a Artilharia conta operações reais na Kayen dentro da janela da rodada. Seja o primeiro nome desta página."}
-          </span>
-          <span className="en">
-            {windowOpen
-              ? "Window open — the leaderboard counts real Kayen trades and the first entries appear within minutes. Be the first name on this page."
-              : "The window hasn't opened yet — the leaderboard counts real Kayen trades inside the matchday window. Be the first name on this page."}
-          </span>
+          {windowOpen
+            ? "Window open — the leaderboard counts real Kayen trades and the first entries appear within minutes. Be the first name on this page."
+            : "The window hasn't opened yet — the leaderboard counts real Kayen trades inside the matchday window. Be the first name on this page."}
         </p>
       ) : (
         <table className="lb">
@@ -84,16 +75,9 @@ function LeaderboardPanel({
                   )}
                 </td>
                 <td className="earn">
-                  {entry.projectedChz >= 1 ? (
-                    <>
-                      <span className="pt">
-                        projeção {Math.floor(entry.projectedChz).toLocaleString("pt-BR")} CHZ
-                      </span>
-                      <span className="en">
-                        projected {Math.floor(entry.projectedChz).toLocaleString("en-US")} CHZ
-                      </span>
-                    </>
-                  ) : null}
+                  {entry.projectedChz >= 1
+                    ? `projected ${Math.floor(entry.projectedChz).toLocaleString("en-US")} CHZ`
+                    : null}
                 </td>
                 <td className="pts">
                   <Num value={Math.floor(entry.points)} />
@@ -103,15 +87,11 @@ function LeaderboardPanel({
             ))}
             <tr className="you">
               <td className="pos">—</td>
-              <td className="handle">
-                <span className="pt">você</span>
-                <span className="en">you</span>
-              </td>
+              <td className="handle">you</td>
               <td className="role"></td>
               <td className="earn">
                 <Link href="/entrar" style={{ color: "var(--accent)" }}>
-                  <span className="pt">reivindicar carteira</span>
-                  <span className="en">claim your wallet</span>
+                  claim your wallet
                 </Link>
               </td>
               <td className="pts">0 pts</td>
@@ -121,30 +101,16 @@ function LeaderboardPanel({
       )}
       {top.length > 0 ? (
         <p className="gapline">
-          <span className="pt">
-            <b>Para entrar na briga:</b> o top {top.length} fecha em{" "}
-            {cutoff.toLocaleString("pt-BR")} pts. PnL% × unlock de volume na Kayen durante a janela
-            coloca você nesta página; ida-e-volta flat vale zero.
-          </span>
-          <span className="en">
-            <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")}{" "}
-            pts. PnL% × volume unlock on Kayen during the window puts you on this page; flat
-            round-trips score zero.
-          </span>
+          <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")} pts.
+          PnL% × volume unlock on Kayen during the window puts you on this page; flat round-trips
+          score zero.
         </p>
       ) : null}
       {totalPoints > 0 && match ? (
         <p className="gapline" style={{ marginTop: 4 }}>
-          <span className="pt">
-            {wallets.toLocaleString("pt-BR")} carteiras pontuando ·{" "}
-            {match.pool_chz.toLocaleString("pt-BR")} CHZ na rodada · projeção = sua fatia do pool
-            pelos pontos de agora.
-          </span>
-          <span className="en">
-            {wallets.toLocaleString("en-US")} wallets scoring ·{" "}
-            {match.pool_chz.toLocaleString("en-US")} CHZ this matchday · projection = your current
-            share of the pool by points.
-          </span>
+          {wallets.toLocaleString("en-US")} wallets scoring ·{" "}
+          {match.pool_chz.toLocaleString("en-US")} CHZ this matchday · projection = your current
+          share of the pool by points.
         </p>
       ) : null}
     </div>
@@ -160,9 +126,6 @@ const CLUB_COLORS: Record<string, [string, string]> = {
   PSG: ["#004170", "#DA291C"],
 };
 
-// Colors keyed by the club NAME shown on the card — needed when one side has
-// no token (tokens[] then holds only the other club's symbol, and keying dots
-// off tokens[0]/tokens[1] would paint both sides with the tokenized club).
 const CLUB_NAME_COLORS: Record<string, [string, string]> = {
   Flamengo: ["#C52613", "#0a0a0a"],
   Chapecoense: ["#009846", "#FFFFFF"],
@@ -170,10 +133,11 @@ const CLUB_NAME_COLORS: Record<string, [string, string]> = {
   Fluminense: ["#7A1F3D", "#009E60"],
   Argentina: ["#75AADB", "#FFFFFF"],
   Espanha: ["#AA151B", "#F1BF00"],
+  Spain: ["#AA151B", "#F1BF00"],
 };
 
-function fmtUsd(value: number, locale: string): string {
-  return new Intl.NumberFormat(locale, {
+function fmtUsd(value: number): string {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     notation: "compact",
@@ -192,15 +156,9 @@ function MatchCard({
 }) {
   if (!match) {
     return (
-      <div className="panel bigmatch" id="jogao">
-        <span className="eyebrow">
-          <span className="pt">Próximo jogão</span>
-          <span className="en">Next big match</span>
-        </span>
-        <h4>
-          <span className="pt">Calendário em preparação</span>
-          <span className="en">Calendar being prepared</span>
-        </h4>
+      <div className="panel bigmatch" id="match">
+        <span className="eyebrow">Next match</span>
+        <h4>Calendar being prepared</h4>
       </div>
     );
   }
@@ -211,32 +169,27 @@ function MatchCard({
     CLUB_NAME_COLORS[match.away] ?? CLUB_COLORS[tokens[1] ?? tokens[0]] ?? ["#3f3f46", "#71717a"];
   const okxInsts = venueInstruments(tokens, "okx");
   const binanceInsts = venueInstruments(tokens, "binance");
-  const venueUsd = Object.fromEntries(cexVenues.map((v) => [v.venue, v.quoteUsd])) as Record<string, number>;
+  const venueUsd = Object.fromEntries(cexVenues.map((v) => [v.venue, v.quoteUsd])) as Record<
+    string,
+    number
+  >;
   const hasVolume = onchainUsd > 0 || cexVenues.some((v) => v.quoteUsd > 0);
   const windowOpen =
     new Date(match.window_start_utc).getTime() <= Date.now() &&
     Date.now() < new Date(match.window_end_utc).getTime();
   const kayenUrl = "https://app.kayen.org/";
   return (
-    <div className="panel bigmatch" id="jogao">
+    <div className="panel bigmatch" id="match">
       <span className="eyebrow">
-        <span className="pt">
-          {windowOpen ? "Janela aberta — pontuando agora" : "Próximo jogão — sua porta de entrada"}
-        </span>
-        <span className="en">
-          {windowOpen ? "Window open — scoring live" : "Next big match — your way in"}
-        </span>
+        {windowOpen ? "Window open — scoring live" : "Next match — your way in"}
       </span>
       <h4>
         <span className="clubdots" aria-hidden="true">
           <i style={{ background: homeColors[0] }}></i>
           <i style={{ background: homeColors[1] }}></i>
         </span>
-        <span className="pt">{match.home}</span>
-        <span className="en">{enName(match.home)}</span>{" "}
-        <span style={{ color: "var(--ink3)", fontWeight: 400 }}>×</span>{" "}
-        <span className="pt">{match.away}</span>
-        <span className="en">{enName(match.away)}</span>{" "}
+        {enName(match.home)} <span style={{ color: "var(--ink3)", fontWeight: 400 }}>×</span>{" "}
+        {enName(match.away)}{" "}
         <span className="clubdots" aria-hidden="true">
           <i style={{ background: awayColors[0] }}></i>
           <i style={{ background: awayColors[1] }}></i>
@@ -247,40 +200,22 @@ function MatchCard({
           <Icon id="i-zap" />
           {windowOpen ? (
             <>
-              <span className="pt">janela fecha </span>
-              <span className="en">window closes </span>
-              <Countdown target={match.window_end_utc} />
+              window closes <Countdown target={match.window_end_utc} />
             </>
           ) : (
             <>
-              <span className="pt">bola rola </span>
-              <span className="en">kickoff </span>
-              <Countdown target={match.kickoff_utc} />
-              <span className="pt"> — pontos fecham no apito</span>
-              <span className="en"> — points close at the whistle</span>
+              kickoff <Countdown target={match.kickoff_utc} /> — points close at the whistle
             </>
           )}
         </span>
       </div>
       <div className="carrot">
-        <span className="pt">
-          <b>pontos valendo</b> nesta partida · rodada paga{" "}
-          <b>{match.pool_chz.toLocaleString("pt-BR")} CHZ</b> do pote
-        </span>
-        <span className="en">
-          <b>points live</b> on this match · matchday pays{" "}
-          <b>{match.pool_chz.toLocaleString("en-US")} CHZ</b> from the pot
-        </span>
+        <b>points live</b> on this match · matchday pays{" "}
+        <b>{match.pool_chz.toLocaleString("en-US")} CHZ</b> from the pot
       </div>
       <p className="statline">
-        <span className="pt">
-          Tokens contados nesta janela: <b>{tokens.join(" · ")}</b> — atribuição on-chain automática
-          na Kayen.
-        </span>
-        <span className="en">
-          Tokens counted in this window: <b>{tokens.join(" · ")}</b> — automatic on-chain
-          attribution on Kayen.
-        </span>
+        Tokens counted in this window: <b>{tokens.join(" · ")}</b> — automatic on-chain attribution
+        on Kayen.
       </p>
       <div className="venues">
         <a className="btn primary sm" href={kayenUrl} target="_blank" rel="noopener noreferrer">
@@ -293,13 +228,11 @@ function MatchCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            OKX <span className="pt">(volume contando)</span>
-            <span className="en">(volume counting)</span>
+            OKX (volume counting)
           </a>
         ) : (
           <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-            OKX <span className="pt">(sem par nesta rodada)</span>
-            <span className="en">(no pair this matchday)</span>
+            OKX (no pair this matchday)
           </span>
         )}
         {binanceInsts.length > 0 ? (
@@ -309,47 +242,27 @@ function MatchCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Binance <span className="pt">(volume contando)</span>
-            <span className="en">(volume counting)</span>
+            Binance (volume counting)
           </a>
         ) : (
           <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-            Binance <span className="pt">(sem par nesta rodada)</span>
-            <span className="en">(no pair this matchday)</span>
+            Binance (no pair this matchday)
           </span>
         )}
         <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-          Mercado Bitcoin{" "}
-          <span className="pt">(em breve)</span>
-          <span className="en">(soon)</span>
+          Mercado Bitcoin (soon)
         </span>
         {hasVolume ? (
           <span className="note2">
-            <span className="pt">
-              Volume da janela até agora — Kayen {fmtUsd(onchainUsd, "pt-BR")}
-              {venueUsd.okx !== undefined ? ` · OKX ${fmtUsd(venueUsd.okx, "pt-BR")}` : ""}
-              {venueUsd.binance !== undefined ? ` · Binance ${fmtUsd(venueUsd.binance, "pt-BR")}` : ""}
-              . Na Kayen a contagem é por carteira; nas exchanges, por casa.
-            </span>
-            <span className="en">
-              Window volume so far — Kayen {fmtUsd(onchainUsd, "en-US")}
-              {venueUsd.okx !== undefined ? ` · OKX ${fmtUsd(venueUsd.okx, "en-US")}` : ""}
-              {venueUsd.binance !== undefined ? ` · Binance ${fmtUsd(venueUsd.binance, "en-US")}` : ""}
-              . Kayen counts wallet by wallet; exchanges count by venue.
-            </span>
+            Window volume so far — Kayen {fmtUsd(onchainUsd)}
+            {venueUsd.okx !== undefined ? ` · OKX ${fmtUsd(venueUsd.okx)}` : ""}
+            {venueUsd.binance !== undefined ? ` · Binance ${fmtUsd(venueUsd.binance)}` : ""}. Kayen
+            counts wallet by wallet; exchanges count by venue.
           </span>
         ) : (
           <span className="note2">
-            <span className="pt">
-              Opere onde você já opera — a Liga conta a Kayen carteira a carteira e acompanha o
-              volume de OKX e Binance ao vivo. Pontuação individual nas exchanges chega via chave
-              read-only.
-            </span>
-            <span className="en">
-              Trade where you already trade — the League counts Kayen wallet by wallet and tracks
-              OKX and Binance volume live. Individual scoring on exchanges arrives via read-only
-              keys.
-            </span>
+            Trade where you already trade — the League counts Kayen wallet by wallet and tracks OKX
+            and Binance volume live. Individual scoring on exchanges arrives via read-only keys.
           </span>
         )}
       </div>
@@ -369,66 +282,46 @@ export default async function Home() {
 
   return (
     <>
-      <div className="ticker" aria-label="liga agora">
+      <div className="ticker" aria-label="League now">
         <div className="lane">
           {[0, 1].map((i) => (
             <span key={i} style={{ display: "contents" }}>
               <span className="item">
                 <span className="live-dot"></span>
-                <b>
-                  <span className="pt">Liga ao vivo — contagem on-chain na Kayen.</span>
-                  <span className="en">League live — on-chain counting on Kayen.</span>
-                </b>
+                <b>League live — on-chain counting on Kayen.</b>
               </span>
               {match ? (
                 <span className="item">
-                  <span className="pt">
-                    {match.home} × {match.away}
-                  </span>
-                  <span className="en">
-                    {enName(match.home)} × {enName(match.away)}
-                  </span>{" "}
+                  {enName(match.home)} × {enName(match.away)}{" "}
                   <b>
                     <Countdown target={match.kickoff_utc} />
                   </b>
                 </span>
               ) : null}
               <span className="item">
-                <span className="pt">pote da temporada</span>
-                <span className="en">season pot</span>{" "}
+                season pot{" "}
                 <b>
                   <Num value={Math.floor(pot.potChzNow)} /> CHZ
                 </b>
               </span>
               <span className="item">
-                <span className="pt">ritmo</span>
-                <span className="en">pace</span>{" "}
+                pace{" "}
                 <b>
-                  +<Num value={pot.dailyChz} /> CHZ/
-                  <span className="pt">dia</span>
-                  <span className="en">day</span>
+                  +<Num value={pot.dailyChz} /> CHZ/day
                 </b>
               </span>
               {board.wallets > 0 ? (
                 <span className="item">
-                  <span className="pt">carteiras pontuando</span>
-                  <span className="en">wallets scoring</span> <b>{board.wallets}</b>
+                  wallets scoring <b>{board.wallets}</b>
                 </span>
               ) : null}
               {chz ? (
                 <span className="item">
                   CHZ{" "}
                   <b className={chz.change24h >= 0 ? "up" : "down"}>
-                    <span className="pt">
-                      R$ {chz.brl.toLocaleString("pt-BR", { maximumFractionDigits: 4 })} (
-                      {chz.change24h >= 0 ? "+" : ""}
-                      {chz.change24h.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%)
-                    </span>
-                    <span className="en">
-                      ${chz.usd.toLocaleString("en-US", { maximumFractionDigits: 4 })} (
-                      {chz.change24h >= 0 ? "+" : ""}
-                      {chz.change24h.toLocaleString("en-US", { maximumFractionDigits: 1 })}%)
-                    </span>
+                    ${chz.usd.toLocaleString("en-US", { maximumFractionDigits: 4 })} (
+                    {chz.change24h >= 0 ? "+" : ""}
+                    {chz.change24h.toLocaleString("en-US", { maximumFractionDigits: 1 })}%)
                   </b>
                 </span>
               ) : null}
@@ -438,63 +331,39 @@ export default async function Home() {
       </div>
 
       <main className="wrap">
-        <div className="jack" id="pote">
-          <span className="eyebrow">
-            <span className="pt">Liga do Trader de Fan Tokens · Temporada 2026</span>
-            <span className="en">Fan Token Trader League · 2026 Season</span>
-          </span>
+        <div className="jack" id="pot">
+          <span className="eyebrow">Fan Token Trader League · 2026 Season</span>
           <div className="potline">
             <PotCounter potChz={pot.potChzNow} dailyChz={pot.dailyChz} asOf={pot.asOf} />
             <span className="potchz">CHZ</span>
           </div>
-          <div className="potlab">
-            <span className="pt">pote-alvo da temporada — beta piloto</span>
-            <span className="en">season target pot — pilot beta</span>
-          </div>
+          <div className="potlab">season target pot — pilot beta</div>
           <p className="potsub">
-            <span className="pt">
-              Cresce <b>+{pot.dailyChz.toLocaleString("pt-BR")} CHZ por dia</b> — fundo comunitário +
-              patrocínio dos parceiros de execução.
-            </span>
-            <span className="en">
-              Grows <b>+{pot.dailyChz.toLocaleString("en-US")} CHZ per day</b> — community fund +
-              sponsorship from execution partners.
-            </span>
+            Grows <b>+{pot.dailyChz.toLocaleString("en-US")} CHZ per day</b> — community fund +
+            sponsorship from execution partners.
           </p>
           <div className="chips">
             {match ? (
               <span className="ptschip">
                 <Icon id="i-trophy" />
-                <span className="pt">
-                  {match.competition} paga {match.pool_chz.toLocaleString("pt-BR")} CHZ
-                </span>
-                <span className="en">
-                  {enName(match.competition)} pays {match.pool_chz.toLocaleString("en-US")} CHZ
-                </span>
+                {enName(match.competition)} pays {match.pool_chz.toLocaleString("en-US")} CHZ
               </span>
             ) : null}
             {match ? (
               <span className="countchip">
                 <Icon id="i-zap" />
-                <span className="pt">janela fecha </span>
-                <span className="en">window closes </span>
-                <Countdown target={match.window_end_utc} />
+                window closes <Countdown target={match.window_end_utc} />
               </span>
             ) : null}
-            <span className="achip">
-              <span className="pt">entrada grátis — pontue operando onde você já opera</span>
-              <span className="en">free entry — score by trading where you already trade</span>
-            </span>
+            <span className="achip">free entry — score by trading where you already trade</span>
           </div>
           <div className="ctas">
-            <a className="btn primary" href="#jogao">
-              <span className="pt">Entrar na rodada</span>
-              <span className="en">Join the matchday</span>
+            <a className="btn primary" href="#match">
+              Join the matchday
               <Icon id="i-arrow" />
             </a>
             <Link className="btn secondary" href="/regras">
-              <span className="pt">Como pontuar</span>
-              <span className="en">How scoring works</span>
+              How scoring works
             </Link>
           </div>
         </div>
@@ -509,75 +378,40 @@ export default async function Home() {
           <MatchCard match={match} cexVenues={cexVenues} onchainUsd={onchainUsd} />
         </div>
 
-        <section id="pontuar">
+        <section id="scoring">
           <div className="sechead">
             <div>
-              <span className="eyebrow">
-                <span className="pt">Regras</span>
-                <span className="en">Rules</span>
-              </span>
-              <h2>
-                <span className="pt">Como pontuar</span>
-                <span className="en">How scoring works</span>
-              </h2>
+              <span className="eyebrow">Rules</span>
+              <h2>How scoring works</h2>
             </div>
-            <span className="note">
-              <span className="pt">scoring código aberto · uma fórmula para todos</span>
-              <span className="en">open-source scoring · one formula for everyone</span>
-            </span>
+            <span className="note">open-source scoring · one formula for everyone</span>
           </div>
           <p className="secsub">
-            <span className="pt">
-              Pontos por operar de verdade no dia do jogo — nunca por palpite. Isto não é aposta: a
-              Liga não paga por resultado de partida.
-            </span>
-            <span className="en">
-              Points for really trading on match day — never for predictions. This is not betting:
-              the League doesn&apos;t pay out on match results.
-            </span>
+            Points for really trading on match day — never for predictions. This is not betting: the
+            League doesn&apos;t pay out on match results.
           </p>
           <div className="rules3">
             <div className="rule">
               <Icon id="i-check" />
               <span>
-                <span className="pt">
-                  <b>Opere no dia do jogo.</b> Compre ou venda o token do seu clube durante a
-                  janela da rodada. Só conta o que você movimenta de verdade — e a contagem vem
-                  direto da blockchain, sem instalar nada.
-                </span>
-                <span className="en">
-                  <b>Trade on match day.</b> Buy or sell your club&apos;s token during the matchday
-                  window. Only what you really move counts — read straight from the blockchain,
-                  nothing to install.
-                </span>
+                <b>Trade on match day.</b> Buy or sell your club&apos;s token during the matchday
+                window. Only what you really move counts — read straight from the blockchain,
+                nothing to install.
               </span>
             </div>
             <div className="rule">
               <Icon id="i-drop" />
               <span>
-                <span className="pt">
-                  <b>Retorno × volume.</b> Pontos = PnL% × (1 − e<sup>−Volume/V</sup>
-                  <sub>alvo</sub>). O retorno manda; o volume destrava quanto desse retorno conta.
-                </span>
-                <span className="en">
-                  <b>Return × volume.</b> Points = PnL% × (1 − e<sup>−Volume/V</sup>
-                  <sub>target</sub>). Return leads; volume unlocks how much of that return counts.
-                </span>
+                <b>Return × volume.</b> Points = PnL% × (1 − e<sup>−Volume/V</sup>
+                <sub>target</sub>). Return leads; volume unlocks how much of that return counts.
               </span>
             </div>
             <div className="rule">
               <Icon id="i-lock" />
               <span>
-                <span className="pt">
-                  <b>Trapaça vale zero.</b> Volume flat sem PnL não sobe na Artilharia, e
-                  alavancagem não multiplica ponto. Qualquer pessoa pode conferir a conta — a{" "}
-                  <a href="/regras">pontuação é código aberto</a>.
-                </span>
-                <span className="en">
-                  <b>Gaming it scores zero.</b> Flat volume without PnL does not climb the board,
-                  and leverage doesn&apos;t multiply points. Anyone can check the math —{" "}
-                  <a href="/regras">scoring is open source</a>.
-                </span>
+                <b>Gaming it scores zero.</b> Flat volume without PnL does not climb the board, and
+                leverage doesn&apos;t multiply points. Anyone can check the math —{" "}
+                <a href="/regras">scoring is open source</a>.
               </span>
             </div>
           </div>

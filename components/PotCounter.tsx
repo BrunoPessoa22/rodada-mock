@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Animates the season pot at its HONEST pace: count-up on load, then the real
+ * Animates the season pot at its honest pace: count-up on load, then the real
  * per-second accrual (dailyChz / 86400). Server passes the exact pot value and
  * its timestamp; the client extrapolates the same linear function.
  */
@@ -27,8 +27,7 @@ export function PotCounter({
     const potNow = () => potChz + (Date.now() - t0) * perMs;
 
     const fmt = (value: number) => {
-      const en = document.documentElement.getAttribute("data-lang") === "en";
-      el.textContent = Math.floor(value).toLocaleString(en ? "en-US" : "pt-BR");
+      el.textContent = Math.floor(value).toLocaleString("en-US");
     };
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -55,18 +54,15 @@ export function PotCounter({
       raf = requestAnimationFrame(ease);
     }
 
-    const onLang = () => fmt(potNow());
-    window.addEventListener("rodada-lang", onLang);
     return () => {
       cancelAnimationFrame(raf);
       if (interval) clearInterval(interval);
-      window.removeEventListener("rodada-lang", onLang);
     };
   }, [potChz, dailyChz, asOf]);
 
   return (
     <span className="potnum" ref={ref}>
-      {Math.floor(potChz).toLocaleString("pt-BR")}
+      {Math.floor(potChz).toLocaleString("en-US")}
     </span>
   );
 }
