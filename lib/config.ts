@@ -28,11 +28,17 @@ const rawCooldown = Number(process.env.MAKER_COOLDOWN_S ?? 6 * 3600);
 export const MAKER_COOLDOWN_S =
   Number.isFinite(rawCooldown) && rawCooldown >= 0 ? Math.floor(rawCooldown) : 6 * 3600;
 
-// Volume unlock target for Points = PnL% × (1 − e^(−Volume / V_target)).
+// Volume unlock target for Points = SkillScore × (1 − e^(−Volume / V_target)).
 // At V = V_target the multiplier is ≈ 63%; at 3× ≈ 95%. Default $1,000.
 const rawVolumeTarget = Number(process.env.VOLUME_TARGET_USD ?? 1000);
 export const VOLUME_TARGET_USD =
   Number.isFinite(rawVolumeTarget) && rawVolumeTarget > 0 ? rawVolumeTarget : 1000;
+
+// Skill floor F: SkillScore = max(PnL% + F, 0). With F = 100, a total loss
+// (−100%) is the zero point; break-even scores 100; +20% scores 120.
+const rawSkillFloor = Number(process.env.SKILL_FLOOR_PCT ?? 100);
+export const SKILL_FLOOR_PCT =
+  Number.isFinite(rawSkillFloor) && rawSkillFloor >= 0 ? rawSkillFloor : 100;
 
 // Season pot: base amount at an anchor date + daily accrual. Values live in the
 // settings table (admin-editable); these are the seed defaults.

@@ -13,14 +13,12 @@ and pays.
   FanX/Kayen AMM pools on Chiliz Chain for every match window and attributes
   flow to the wallet that signed the transaction.
 - **One public formula** — [`lib/scoring.ts`](lib/scoring.ts):
-  `Points = PnL% × (1 − e^(−Volume / V_target))`.
-  PnL% is window cash-flow plus mark-to-market of remaining inventory; volume
-  unlocks how much of that return counts (`VOLUME_TARGET_USD`, default 1000).
-  Flat wash scores ~0. Flows net **per KYC identity before the formula**, so
-  splitting across your own wallets cannot farm the board; only verified
-  identities divide the pool. Anyone can recompute the on-chain leaderboard.
-  (Beta scope: on-chain spot only — unlevered by nature; residual defense
-  against two *distinct* colluding identities is manual review + clustering.)
+  `SkillScore = max(PnL% + F, 0)` then
+  `Points = SkillScore × (1 − e^(−Volume / V_target))` (F = 100 by default).
+  A total loss is the zero point; break-even scores 100; volume unlocks how
+  much skill counts (`VOLUME_TARGET_USD`, `SKILL_FLOOR_PCT`). Flows net **per
+  KYC identity before the formula**; only verified identities divide the pool.
+  Anyone can recompute the on-chain leaderboard.
 - **Claim your wallet** — unclaimed addresses appear truncated; claiming puts
   your handle on the leaderboard after manual verification (beta).
 - **CEX venue volume** — [`lib/cex.ts`](lib/cex.ts) tracks live spot volume of
@@ -51,6 +49,7 @@ npm run score -- <match-slug>   # manual scoring run
 Env: `ADMIN_TOKEN` (admin API + /admin console), `RUN_INDEXER=1` (indexer loop,
 prod only), `DATA_DIR`, `CHILIZ_RPC_URL`, `LOG_CHUNK_BLOCKS`,
 `VOLUME_TARGET_USD` (volume unlock target; default 1000),
+`SKILL_FLOOR_PCT` (PnL shift so −F% is zero skill; default 100),
 `MAKER_COOLDOWN_S` (anti-JIT: liquidity must persist this long past the whistle
 to keep counting toward the volume unlock; default 6h — the board finalizes
 only after it elapses).

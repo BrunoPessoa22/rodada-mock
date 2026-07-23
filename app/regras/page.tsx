@@ -34,15 +34,16 @@ export default function RulesPage() {
               overflowX: "auto",
             }}
           >
-            {`points = PnL% × (1 − e^(−Volume / V_target))`}
+            {`SkillScore = max(PnL% + F, 0)     // F = 100 (total loss is zero)
+points     = SkillScore × (1 − e^(−Volume / V_target))`}
           </pre>
           <p className="gapline" style={{ marginTop: 12 }}>
-            In code: <b>return first</b> — PnL% is window cash-flow plus mark-to-market of what you
-            still hold; <b>volume unlocks</b> — no volume, multiplier is zero; at the target, ~63% of
-            your return counts; <b>flat round-trips score zero</b> — volume alone cannot buy the
-            board; <b>scoring is per identity, not per wallet</b> — flow from all of one
-            person&apos;s wallets is summed before the formula, so splitting across your own wallets
-            never multiplies points, and only verified identities divide the pot;{" "}
+            In code: <b>skill is shifted</b> — a total loss (−100%) is the floor at zero;
+            break-even scores F (100); profits score above that; <b>volume unlocks</b> — no volume,
+            multiplier is zero; at the target, ~63% of your skill score counts;{" "}
+            <b>scoring is per identity, not per wallet</b> — flow from all of one person&apos;s
+            wallets is summed before the formula, so splitting across your own wallets never
+            multiplies points, and only verified identities divide the pot;{" "}
             <b>the code is public</b> — anyone can recompute the leaderboard:{" "}
             <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
               lib/scoring.ts
@@ -103,7 +104,7 @@ export default function RulesPage() {
             withdrawal or order permissions; the League never touches your funds. With the key, the
             League reads only your executions on the matchday pairs inside the window (Binance{" "}
             <span className="mono">myTrades</span>, OKX <span className="mono">fills</span>) and
-            applies the same public formula: PnL% × volume unlock. One formula, every venue. The
+            applies the same public formula: SkillScore × volume unlock. One formula, every venue. The
             parallel path is the venue sponsoring the matchday and reporting server-side — both
             models are in discussion with partners.
           </p>

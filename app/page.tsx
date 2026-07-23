@@ -102,8 +102,7 @@ function LeaderboardPanel({
       {top.length > 0 ? (
         <p className="gapline">
           <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")} pts.
-          PnL% × volume unlock on Kayen during the window puts you on this page; flat round-trips
-          score zero.
+          Skill (PnL% from a total-loss floor) × volume unlock on Kayen puts you on this page.
         </p>
       ) : null}
       {totalPoints > 0 && match ? (
@@ -402,15 +401,16 @@ export default async function Home() {
             <div className="rule">
               <Icon id="i-drop" />
               <span>
-                <b>Return × volume.</b> Points = PnL% × (1 − e<sup>−Volume/V</sup>
-                <sub>target</sub>). Return leads; volume unlocks how much of that return counts.
+                <b>Skill × volume.</b> SkillScore = max(PnL% + 100, 0); points = SkillScore × (1 −
+                e<sup>−Volume/V</sup>
+                <sub>target</sub>). A total loss is zero; volume unlocks how much skill counts.
               </span>
             </div>
             <div className="rule">
               <Icon id="i-lock" />
               <span>
-                <b>Gaming it scores zero.</b> Flat volume without PnL does not climb the board, and
-                leverage doesn&apos;t multiply points. Anyone can check the math —{" "}
+                <b>Total loss scores zero.</b> Skill floors at a wipeout (−100%); leverage
+                doesn&apos;t multiply points. Anyone can check the math —{" "}
                 <a href="/regras">scoring is open source</a>.
               </span>
             </div>
