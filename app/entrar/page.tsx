@@ -24,16 +24,22 @@ export default function JoinPage() {
   const [state, setState] = useState<FormState>("idle");
   const [error, setError] = useState<string>("");
   const [hasWallet, setHasWallet] = useState(false);
+  const [walletChecked, setWalletChecked] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [sigState, setSigState] = useState<SigState>("idle");
   const [sigError, setSigError] = useState<string>("");
   const [sigHandle, setSigHandle] = useState<string>("");
   const [verifiedAs, setVerifiedAs] = useState<{ handle: string; address: string } | null>(null);
 
   useEffect(() => {
-    setHasWallet(typeof window !== "undefined" && !!window.ethereum);
+    const walletAvailable = typeof window !== "undefined" && !!window.ethereum;
+    setHasWallet(walletAvailable);
+    setManualOpen(!walletAvailable);
+    setWalletChecked(true);
   }, []);
 
-  async function claimWithSignature() {
+  async function claimWithSignature(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (!window.ethereum || sigHandle.trim().length < 2) {
       setSigError("handle");
       setSigState("error");
@@ -90,6 +96,11 @@ export default function JoinPage() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (sigHandle.trim().length < 2) {
+      setError("choose a username first");
+      setState("error");
+      return;
+    }
     const form = new FormData(event.currentTarget);
     setState("sending");
     setError("");
@@ -98,7 +109,7 @@ export default function JoinPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          handle: form.get("handle"),
+          handle: sigHandle.trim(),
           address: (form.get("address") as string)?.trim(),
           venue: form.get("venue"),
           contact: form.get("contact"),
@@ -134,36 +145,32 @@ export default function JoinPage() {
         </div>
         <p className="secsub">
           <span className="pt">
-            A Liga já conta toda operação na Kayen dentro das janelas de rodada — sua carteira
-            provavelmente já está pontuando. Reivindique-a para aparecer com seu nome na Artilharia
-            e receber prêmios. Assine com a carteira para entrar na hora; o formulário manual fica
-            como alternativa.
+            Escolha seu nome, assine uma mensagem grátis e apareça na Artilharia na hora com zero
+            pontos. Depois, opere dentro da janela da partida para subir na tabela.
           </span>
           <span className="en">
-            The League already counts every Kayen trade inside matchday windows — your wallet is
-            probably already scoring. Claim it to appear under your name on the leaderboard and
-            receive prizes. Sign with your wallet to join instantly; the manual form remains as a
-            fallback.
+            Choose your username, sign one free message, and appear on the leaderboard instantly at
+            zero points. Then trade inside the match window to move up.
           </span>
         </p>
 
         {sigState === "verified" && verifiedAs ? (
-          <div className="panel" style={{ marginTop: 24 }}>
+          <div className="panel join-success" aria-live="polite">
             <div className="ph">
               <Icon id="i-check" lg />
               <h3>
-                <span className="pt">Carteira verificada</span>
-                <span className="en">Wallet verified</span>
+                <span className="pt">Você entrou na Artilharia</span>
+                <span className="en">You&apos;re on the leaderboard</span>
               </h3>
             </div>
             <p className="gapline">
               <span className="pt">
-                Assinatura confirmada — <b>{verifiedAs.handle}</b> agora é o nome desta carteira na
-                Artilharia. Você começa com zero pontos e sobe ao operar dentro da janela.
+                <b>{verifiedAs.handle}</b> está ao vivo com zero pontos. Suas operações dentro da
+                próxima janela fazem você subir na tabela.
               </span>
               <span className="en">
-                Signature confirmed — <b>{verifiedAs.handle}</b> is now this wallet&apos;s name on
-                the leaderboard. You start at zero and move up by trading inside the match window.
+                <b>{verifiedAs.handle}</b> is live at zero points. Your trades inside the next match
+                window move you up the table.
               </span>
             </p>
             <a className="btn primary" href="/#leaderboard">
@@ -171,63 +178,8 @@ export default function JoinPage() {
               <span className="en">View my name on the leaderboard</span>
             </a>
           </div>
-        ) : hasWallet && state !== "done" ? (
-          <div className="panel" style={{ marginTop: 24 }}>
-            <div className="ph">
-              <Icon id="i-wallet" lg />
-              <h3>
-                <span className="pt">Verificação instantânea — assine com a carteira</span>
-                <span className="en">Instant verification — sign with your wallet</span>
-              </h3>
-            </div>
-            <p className="gapline">
-              <span className="pt">
-                Sem transação, sem custo: sua carteira assina uma mensagem e pronto — só quem tem a
-                chave consegue. Nome na Artilharia na hora.
-              </span>
-              <span className="en">
-                No transaction, no cost: your wallet signs a message and that&apos;s it — only the
-                key holder can. Your name goes up instantly.
-              </span>
-            </p>
-            <div className="adminform" style={{ maxWidth: 420 }}>
-              <input
-                placeholder="mengotrader10"
-                value={sigHandle}
-                minLength={2}
-                maxLength={40}
-                aria-label="Leaderboard username"
-                onChange={(e) => setSigHandle(e.target.value)}
-              />
-              {sigState === "error" ? (
-                <p className="formerror">
-                  <span className="pt">Não deu: {sigError}</span>
-                  <span className="en">Failed: {sigError}</span>
-                </p>
-              ) : null}
-              <button
-                className="btn primary"
-                onClick={claimWithSignature}
-                disabled={sigState === "signing"}
-              >
-                <Icon id="i-wallet" />
-                <span className="pt">
-                  {sigState === "signing" ? "Aguardando assinatura…" : "Assinar e verificar"}
-                </span>
-                <span className="en">
-                  {sigState === "signing" ? "Waiting for signature…" : "Sign and verify"}
-                </span>
-              </button>
-            </div>
-            <p className="gapline" style={{ marginTop: 14 }}>
-              <span className="pt">Carteira em outro lugar (Socios, celular)? Use o formulário abaixo — verificação manual.</span>
-              <span className="en">Wallet elsewhere (Socios, mobile)? Use the form below — manual verification.</span>
-            </p>
-          </div>
-        ) : null}
-
-        {sigState === "verified" ? null : state === "done" ? (
-          <div className="panel" style={{ marginTop: 24 }}>
+        ) : state === "done" ? (
+          <div className="panel join-success" aria-live="polite">
             <div className="ph">
               <Icon id="i-check" lg />
               <h3>
@@ -237,65 +189,189 @@ export default function JoinPage() {
             </div>
             <p className="gapline">
               <span className="pt">
-                Vamos confirmar que a carteira é sua e seu nome entra na Artilharia. Enquanto isso,
-                toda operação na janela já pontua — a contagem é retroativa à janela inteira.
+                Vamos confirmar que a carteira é sua. Depois da aprovação, <b>{sigHandle}</b> entra
+                na Artilharia; suas operações na janela continuam sendo contadas.
               </span>
               <span className="en">
-                We&apos;ll confirm the wallet is yours and your name goes up on the leaderboard.
-                Meanwhile every trade in the window already scores — counting covers the whole
-                window retroactively.
+                We&apos;ll confirm that the wallet is yours. Once approved, <b>{sigHandle}</b> joins
+                the leaderboard; your in-window trades keep counting.
               </span>
             </p>
           </div>
         ) : (
-          <form className="joinform" onSubmit={submit}>
-            <label>
-              <span className="pt">Como você quer aparecer na Artilharia</span>
-              <span className="en">How you want to appear on the leaderboard</span>
-              <input name="handle" required minLength={2} maxLength={40} placeholder="mengotrader10" />
-            </label>
-            <label>
-              <span className="pt">Sua carteira na Chiliz Chain (0x…)</span>
-              <span className="en">Your Chiliz Chain wallet (0x…)</span>
-              <input
-                name="address"
-                required
-                pattern="0x[0-9a-fA-F]{40}"
-                placeholder="0x…"
-                className="mono"
-              />
-            </label>
-            <label>
-              <span className="pt">Onde você opera hoje (opcional)</span>
-              <span className="en">Where you trade today (optional)</span>
-              <select name="venue" defaultValue="">
-                <option value="">—</option>
-                <option value="kayen">Kayen</option>
-                <option value="socios">Socios</option>
-                <option value="mercado-bitcoin">Mercado Bitcoin</option>
-                <option value="okx">OKX</option>
-                <option value="binance">Binance</option>
-                <option value="paribu">Paribu</option>
-                <option value="outro">Outro / other</option>
-              </select>
-            </label>
-            <label>
-              <span className="pt">Contato — WhatsApp ou Telegram (opcional, para prêmios)</span>
-              <span className="en">Contact — WhatsApp or Telegram (optional, for prizes)</span>
-              <input name="contact" maxLength={80} placeholder="+55 …" />
-            </label>
-            {state === "error" ? (
-              <p className="formerror">
-                <span className="pt">Não deu: {error}</span>
-                <span className="en">Failed: {error}</span>
-              </p>
+          <>
+            <div className="panel join-primary">
+              <div className="ph">
+                <Icon id="i-wallet" lg />
+                <h3>
+                  <span className="pt">Escolha seu nome. Entre na tabela.</span>
+                  <span className="en">Choose your name. Join the table.</span>
+                </h3>
+              </div>
+
+              <div className="join-loop" aria-label="Join flow">
+                <span>
+                  <span className="pt">Nome</span>
+                  <span className="en">Username</span>
+                </span>
+                <i aria-hidden="true">→</i>
+                <span>
+                  <span className="pt">Assine uma vez</span>
+                  <span className="en">Sign once</span>
+                </span>
+                <i aria-hidden="true">→</i>
+                <strong>
+                  <span className="pt">Ao vivo · 0 pts</span>
+                  <span className="en">Live · 0 pts</span>
+                </strong>
+              </div>
+
+              <form className="join-action" onSubmit={claimWithSignature}>
+                <label>
+                  <span className="pt">Seu nome na Artilharia</span>
+                  <span className="en">Your leaderboard username</span>
+                  <input
+                    placeholder="mengotrader10"
+                    value={sigHandle}
+                    required
+                    minLength={2}
+                    maxLength={40}
+                    autoComplete="nickname"
+                    onChange={(event) => setSigHandle(event.target.value)}
+                  />
+                </label>
+
+                {sigState === "error" ? (
+                  <p className="formerror" aria-live="polite">
+                    <span className="pt">Não foi possível entrar: {sigError}</span>
+                    <span className="en">Couldn&apos;t join: {sigError}</span>
+                  </p>
+                ) : null}
+
+                {walletChecked && hasWallet ? (
+                  <button
+                    className="btn primary"
+                    type="submit"
+                    disabled={sigState === "signing"}
+                  >
+                    <Icon id="i-wallet" />
+                    <span className="pt">
+                      {sigState === "signing"
+                        ? "Confirme na carteira…"
+                        : "Entrar na Liga e aparecer na tabela"}
+                    </span>
+                    <span className="en">
+                      {sigState === "signing"
+                        ? "Confirm in your wallet…"
+                        : "Join league & appear on leaderboard"}
+                    </span>
+                  </button>
+                ) : walletChecked ? (
+                  <div className="wallet-missing">
+                    <span className="pt">
+                      Carteira não detectada. Abra esta página no navegador da sua carteira ou use a
+                      verificação manual abaixo.
+                    </span>
+                    <span className="en">
+                      Wallet not detected. Open this page in your wallet browser or use manual
+                      verification below.
+                    </span>
+                  </div>
+                ) : (
+                  <p className="join-proof">
+                    <span className="pt">Procurando sua carteira…</span>
+                    <span className="en">Checking for your wallet…</span>
+                  </p>
+                )}
+
+                <p className="join-proof">
+                  <span className="pt">Uma assinatura grátis · sem transação · sem gas</span>
+                  <span className="en">One free signature · no transaction · no gas</span>
+                </p>
+              </form>
+            </div>
+
+            {walletChecked ? (
+              <details
+                className="manual-claim"
+                open={manualOpen}
+                onToggle={(event) => setManualOpen(event.currentTarget.open)}
+              >
+                <summary>
+                  <span>
+                    <span className="pt">Não consegue assinar esta carteira?</span>
+                    <span className="en">Can&apos;t sign with this wallet?</span>
+                  </span>
+                  <span className="badge low">
+                    <span className="pt">análise manual</span>
+                    <span className="en">manual review</span>
+                  </span>
+                </summary>
+                <div className="manual-claim-body">
+                  <p>
+                    <span className="pt">
+                      Use só para carteiras em outro app ou custodiante. Você já escolheu o nome
+                      acima; envie o endereço para comprovarmos a posse.
+                    </span>
+                    <span className="en">
+                      Use this only for wallets held in another app or custodian. Your username
+                      above carries over; send the address so we can confirm ownership.
+                    </span>
+                  </p>
+                  <form className="joinform" onSubmit={submit}>
+                    <label>
+                      <span className="pt">Sua carteira na Chiliz Chain (0x…)</span>
+                      <span className="en">Your Chiliz Chain wallet (0x…)</span>
+                      <input
+                        name="address"
+                        required
+                        pattern="0x[0-9a-fA-F]{40}"
+                        placeholder="0x…"
+                        className="mono"
+                      />
+                    </label>
+                    <label>
+                      <span className="pt">Onde você opera hoje (opcional)</span>
+                      <span className="en">Where you trade today (optional)</span>
+                      <select name="venue" defaultValue="">
+                        <option value="">—</option>
+                        <option value="kayen">Kayen</option>
+                        <option value="socios">Socios</option>
+                        <option value="mercado-bitcoin">Mercado Bitcoin</option>
+                        <option value="okx">OKX</option>
+                        <option value="binance">Binance</option>
+                        <option value="paribu">Paribu</option>
+                        <option value="outro">Outro / other</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span className="pt">
+                        Contato — WhatsApp ou Telegram (opcional, para prêmios)
+                      </span>
+                      <span className="en">
+                        Contact — WhatsApp or Telegram (optional, for prizes)
+                      </span>
+                      <input name="contact" maxLength={80} placeholder="+55 …" />
+                    </label>
+                    {state === "error" ? (
+                      <p className="formerror" aria-live="polite">
+                        <span className="pt">Não foi possível enviar: {error}</span>
+                        <span className="en">Couldn&apos;t submit: {error}</span>
+                      </p>
+                    ) : null}
+                    <button className="btn secondary" type="submit" disabled={state === "sending"}>
+                      <span className="pt">
+                        {state === "sending" ? "Enviando…" : "Enviar para análise manual"}
+                      </span>
+                      <span className="en">
+                        {state === "sending" ? "Sending…" : "Submit for manual review"}
+                      </span>
+                    </button>
+                  </form>
+                </div>
+              </details>
             ) : null}
-            <button className="btn primary" type="submit" disabled={state === "sending"}>
-              <Icon id="i-wallet" />
-              <span className="pt">{state === "sending" ? "Enviando…" : "Reivindicar carteira"}</span>
-              <span className="en">{state === "sending" ? "Sending…" : "Claim wallet"}</span>
-            </button>
-          </form>
+          </>
         )}
 
         <p className="gapline" style={{ marginTop: 28 }}>
