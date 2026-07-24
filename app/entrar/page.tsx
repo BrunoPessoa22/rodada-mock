@@ -27,16 +27,22 @@ export default function JoinPage() {
   const [state, setState] = useState<FormState>("idle");
   const [error, setError] = useState<string>("");
   const [hasWallet, setHasWallet] = useState(false);
+  const [walletChecked, setWalletChecked] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [sigState, setSigState] = useState<SigState>("idle");
   const [sigError, setSigError] = useState<string>("");
   const [sigHandle, setSigHandle] = useState<string>("");
   const [verifiedAs, setVerifiedAs] = useState<{ handle: string; address: string } | null>(null);
 
   useEffect(() => {
-    setHasWallet(typeof window !== "undefined" && !!window.ethereum);
+    const walletAvailable = typeof window !== "undefined" && !!window.ethereum;
+    setHasWallet(walletAvailable);
+    setManualOpen(!walletAvailable);
+    setWalletChecked(true);
   }, []);
 
-  async function claimWithSignature() {
+  async function claimWithSignature(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (!window.ethereum || sigHandle.trim().length < 2) {
       setSigError("handle");
       setSigState("error");
@@ -93,6 +99,11 @@ export default function JoinPage() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (sigHandle.trim().length < 2) {
+      setError("choose a username first");
+      setState("error");
+      return;
+    }
     const form = new FormData(event.currentTarget);
     setState("sending");
     setError("");
@@ -101,7 +112,7 @@ export default function JoinPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          handle: form.get("handle"),
+          handle: sigHandle.trim(),
           address: (form.get("address") as string)?.trim(),
           venue: form.get("venue"),
           contact: form.get("contact"),
@@ -130,106 +141,147 @@ export default function JoinPage() {
           </div>
         </div>
         <p className="secsub">
-          Rodada already counts every Kayen trade inside matchday windows — your wallet is probably
-          already scoring. Claim it to appear under your name on the leaderboard and receive prizes.
-          Every claim is verified manually during the beta.
+          Choose your username, sign one free message, and appear on the leaderboard instantly at
+          zero points. Then trade inside the match window to move up.
         </p>
 
         {sigState === "verified" && verifiedAs ? (
-          <div className="panel" style={{ marginTop: 24 }}>
+          <div className="panel join-success" aria-live="polite">
             <div className="ph">
               <Icon id="i-check" lg />
-              <h3>Wallet verified</h3>
+              <h3>You&apos;re on the leaderboard</h3>
             </div>
             <p className="gapline">
-              Signature confirmed — <b>{verifiedAs.handle}</b> is now this wallet&apos;s name on the
-              leaderboard. Every trade you make in the window already scores.
+              <b>{verifiedAs.handle}</b> is live at zero points. Your trades inside the next match
+              window move you up the table.
             </p>
+            <a className="btn primary" href="/#board" style={{ marginTop: 16 }}>
+              View my name on the leaderboard
+            </a>
           </div>
-        ) : hasWallet && state !== "done" ? (
-          <div className="panel" style={{ marginTop: 24 }}>
-            <div className="ph">
-              <Icon id="i-wallet" lg />
-              <h3>Instant verification — sign with your wallet</h3>
-            </div>
-            <p className="gapline">
-              No transaction, no cost: your wallet signs a message and that&apos;s it — only the key
-              holder can. Your name goes up instantly.
-            </p>
-            <div className="adminform" style={{ maxWidth: 420 }}>
-              <input
-                placeholder="mengotrader10"
-                value={sigHandle}
-                maxLength={40}
-                onChange={(e) => setSigHandle(e.target.value)}
-              />
-              {sigState === "error" ? <p className="formerror">Failed: {sigError}</p> : null}
-              <button
-                className="btn primary"
-                onClick={claimWithSignature}
-                disabled={sigState === "signing"}
-              >
-                <Icon id="i-wallet" />
-                {sigState === "signing" ? "Waiting for signature…" : "Sign and verify"}
-              </button>
-            </div>
-            <p className="gapline" style={{ marginTop: 14 }}>
-              Wallet elsewhere (Socios, mobile)? Use the form below — manual verification.
-            </p>
-          </div>
-        ) : null}
-
-        {sigState === "verified" ? null : state === "done" ? (
-          <div className="panel" style={{ marginTop: 24 }}>
+        ) : state === "done" ? (
+          <div className="panel join-success" aria-live="polite">
             <div className="ph">
               <Icon id="i-check" lg />
               <h3>Claim received</h3>
             </div>
             <p className="gapline">
-              We&apos;ll confirm the wallet is yours and your name goes up on the leaderboard.
-              Meanwhile every trade in the window already scores — counting covers the whole window
-              retroactively.
+              We&apos;ll confirm that the wallet is yours. Once approved, <b>{sigHandle}</b> joins
+              the leaderboard; your in-window trades keep counting.
             </p>
           </div>
         ) : (
-          <form className="joinform" onSubmit={submit}>
-            <label>
-              How you want to appear on the leaderboard
-              <input name="handle" required minLength={2} maxLength={40} placeholder="mengotrader10" />
-            </label>
-            <label>
-              Your Chiliz Chain wallet (0x…)
-              <input
-                name="address"
-                required
-                pattern="0x[0-9a-fA-F]{40}"
-                placeholder="0x…"
-                className="mono"
-              />
-            </label>
-            <label>
-              Where you trade today (optional)
-              <select name="venue" defaultValue="">
-                <option value="">—</option>
-                <option value="kayen">Kayen</option>
-                <option value="socios">Socios</option>
-                <option value="mercado-bitcoin">Mercado Bitcoin</option>
-                <option value="okx">OKX</option>
-                <option value="binance">Binance</option>
-                <option value="paribu">Paribu</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-            <label>
-              Contact — WhatsApp or Telegram (optional, for prizes)
-              <input name="contact" maxLength={80} placeholder="+1 …" />
-            </label>
-            {state === "error" ? <p className="formerror">Failed: {error}</p> : null}
-            <button className="btn primary" type="submit" disabled={state === "sending"}>
-              <Icon id="i-wallet" />
-              {state === "sending" ? "Sending…" : "Claim wallet"}
-            </button>
-          </form>
+          <>
+            <div className="panel join-primary">
+              <div className="ph">
+                <Icon id="i-wallet" lg />
+                <h3>Choose your name. Join the table.</h3>
+              </div>
+
+              <div className="join-loop" aria-label="Join flow">
+                <span>Username</span>
+                <i aria-hidden="true">→</i>
+                <span>Sign once</span>
+                <i aria-hidden="true">→</i>
+                <strong>Live · 0 pts</strong>
+              </div>
+
+              <form className="join-action" onSubmit={claimWithSignature}>
+                <label>
+                  Your leaderboard username
+                  <input
+                    placeholder="mengotrader10"
+                    value={sigHandle}
+                    required
+                    minLength={2}
+                    maxLength={40}
+                    autoComplete="nickname"
+                    onChange={(event) => setSigHandle(event.target.value)}
+                  />
+                </label>
+
+                {sigState === "error" ? (
+                  <p className="formerror" aria-live="polite">
+                    Couldn&apos;t join: {sigError}
+                  </p>
+                ) : null}
+
+                {walletChecked && hasWallet ? (
+                  <button className="btn primary" type="submit" disabled={sigState === "signing"}>
+                    <Icon id="i-wallet" />
+                    {sigState === "signing"
+                      ? "Confirm in your wallet…"
+                      : "Join league & appear on leaderboard"}
+                  </button>
+                ) : walletChecked ? (
+                  <div className="wallet-missing">
+                    Wallet not detected. Open this page in your wallet browser or use manual
+                    verification below.
+                  </div>
+                ) : (
+                  <p className="join-proof">Checking for your wallet…</p>
+                )}
+
+                <p className="join-proof">One free signature · no transaction · no gas</p>
+              </form>
+            </div>
+
+            {walletChecked ? (
+              <details
+                className="manual-claim"
+                open={manualOpen}
+                onToggle={(event) => setManualOpen(event.currentTarget.open)}
+              >
+                <summary>
+                  <span>Can&apos;t sign with this wallet?</span>
+                  <span className="badge low">manual review</span>
+                </summary>
+                <div className="manual-claim-body">
+                  <p>
+                    Use this only for wallets held in another app or custodian. Your username above
+                    carries over; send the address so we can confirm ownership.
+                  </p>
+                  <form className="joinform" onSubmit={submit}>
+                    <label>
+                      Your Chiliz Chain wallet (0x…)
+                      <input
+                        name="address"
+                        required
+                        pattern="0x[0-9a-fA-F]{40}"
+                        placeholder="0x…"
+                        className="mono"
+                      />
+                    </label>
+                    <label>
+                      Where you trade today (optional)
+                      <select name="venue" defaultValue="">
+                        <option value="">—</option>
+                        <option value="kayen">Kayen</option>
+                        <option value="socios">Socios</option>
+                        <option value="mercado-bitcoin">Mercado Bitcoin</option>
+                        <option value="okx">OKX</option>
+                        <option value="binance">Binance</option>
+                        <option value="paribu">Paribu</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                    <label>
+                      Contact — WhatsApp or Telegram (optional, for prizes)
+                      <input name="contact" maxLength={80} placeholder="+1 …" />
+                    </label>
+                    {state === "error" ? (
+                      <p className="formerror" aria-live="polite">
+                        Couldn&apos;t submit: {error}
+                      </p>
+                    ) : null}
+                    <button className="btn secondary" type="submit" disabled={state === "sending"}>
+                      {state === "sending" ? "Sending…" : "Submit for manual review"}
+                    </button>
+                  </form>
+                </div>
+              </details>
+            ) : null}
+          </>
         )}
 
         <div className="panel dark" style={{ marginTop: 28 }}>
@@ -248,7 +300,15 @@ export default function JoinPage() {
           <h3 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 700 }}>
             Choose how Rodada verifies your trades
           </h3>
-          <p style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,.6)", margin: "0 0 18px", lineHeight: 1.55 }}>
+          <p
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "rgba(255,255,255,.6)",
+              margin: "0 0 18px",
+              lineHeight: 1.55,
+            }}
+          >
             No deposit and no entry fee. Connect once, then keep trading where you already trade.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -274,7 +334,9 @@ export default function JoinPage() {
                 opacity: 0.8,
               }}
             >
-              <div style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>Connect a CEX account</div>
+              <div style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>
+                Connect a CEX account
+              </div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
                 Read-only API — OKX · Binance next
               </div>

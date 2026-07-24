@@ -67,7 +67,9 @@ function StandingsTable({
   wallets: number;
 }) {
   const top = entries.slice(0, 8);
-  const totalPoints = top.reduce((s, e) => s + e.points, 0);
+  const scoring = top.filter((e) => e.points > 0);
+  const totalPoints = scoring.reduce((s, e) => s + e.points, 0);
+  const newcomers = top.length - scoring.length;
 
   return (
     <div
@@ -77,6 +79,7 @@ function StandingsTable({
         border: "1px solid var(--border)",
         borderRadius: 16,
         padding: "24px 28px",
+        scrollMarginTop: 18,
       }}
     >
       <div
@@ -91,9 +94,11 @@ function StandingsTable({
       >
         <div style={{ fontWeight: 700, fontSize: 18 }}>Live leaderboard</div>
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-muted)" }}>
-          {wallets > 0
-            ? `${wallets.toLocaleString("en-US")} connected · ${Math.floor(totalPoints).toLocaleString("en-US")} eligible points`
-            : "Waiting for the window"}
+          {scoring.length > 0
+            ? `${wallets.toLocaleString("en-US")} scoring · ${Math.floor(totalPoints).toLocaleString("en-US")} eligible points`
+            : top.length > 0
+              ? `${top.length} verified · waiting for first trades`
+              : "Open entry — claim a wallet to appear"}
         </span>
       </div>
 
@@ -129,14 +134,18 @@ function StandingsTable({
             lineHeight: 1.55,
           }}
         >
-          The matchday window hasn&apos;t produced scored trades yet. Trade on Kayen inside the
-          window to appear here.
+          <b style={{ color: "var(--fg)" }}>Open entry:</b> verified names appear here instantly.
+          Trade during the match window to move up the table.{" "}
+          <Link href="/entrar" style={{ color: "var(--brand)", fontWeight: 600 }}>
+            Join this week
+          </Link>
         </div>
       ) : (
         top.map((entry, i) => {
+          const isNewcomer = entry.points <= 0;
           const isMaker = entry.makerNetAddUsd > Math.abs(entry.netTakerUsd);
           const initial = (entry.display.replace(/^0x/, "")[0] || "?").toUpperCase();
-          const avatarBg = AVATAR_COLORS[i % AVATAR_COLORS.length];
+          const avatarBg = isNewcomer ? "var(--brand)" : AVATAR_COLORS[i % AVATAR_COLORS.length];
           return (
             <div
               key={entry.address}
@@ -148,6 +157,7 @@ function StandingsTable({
                 padding: "14px 8px",
                 borderRadius: 8,
                 borderBottom: "1px solid var(--border)",
+                background: isNewcomer ? "var(--blue-50)" : "transparent",
               }}
             >
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--fg-muted)" }}>
@@ -179,7 +189,7 @@ function StandingsTable({
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
                   }}
-                  title={entry.address}
+                  title={`${entry.display} · ${entry.address}`}
                 >
                   {entry.display}
                 </span>
@@ -188,11 +198,11 @@ function StandingsTable({
                 style={{
                   textAlign: "right",
                   fontWeight: 600,
-                  fontSize: 13,
-                  color: "var(--ink-soft)",
+                  fontSize: 12,
+                  color: isNewcomer ? "var(--brand)" : "var(--ink-soft)",
                 }}
               >
-                {isMaker ? "Maker" : "Taker"}
+                {isNewcomer ? "Ready" : isMaker ? "Maker" : "Taker"}
               </div>
               <div
                 style={{
@@ -202,7 +212,7 @@ function StandingsTable({
                   color: "var(--ink-soft)",
                 }}
               >
-                {entry.swaps}
+                {isNewcomer ? "—" : entry.swaps}
               </div>
               <div style={{ textAlign: "right", fontWeight: 700, fontSize: 14 }}>
                 {Math.floor(entry.points).toLocaleString("en-US")}
@@ -211,13 +221,15 @@ function StandingsTable({
                 style={{
                   textAlign: "right",
                   fontWeight: 600,
-                  fontSize: 14,
-                  color: "var(--fg)",
+                  fontSize: 13,
+                  color: isNewcomer ? "var(--fg-muted)" : "var(--fg)",
                 }}
               >
-                {entry.projectedChz >= 1
-                  ? `${Math.floor(entry.projectedChz).toLocaleString("en-US")} CHZ`
-                  : "—"}
+                {isNewcomer
+                  ? "waiting for first match"
+                  : entry.projectedChz >= 1
+                    ? `${Math.floor(entry.projectedChz).toLocaleString("en-US")} CHZ`
+                    : "—"}
               </div>
             </div>
           );
@@ -278,7 +290,9 @@ function StandingsTable({
           padding: "0 8px",
         }}
       >
-        Estimated payout updates as the pot and leaderboard change.
+        {newcomers > 0 && scoring.length === 0
+          ? "Open entry: verified names appear here instantly. Trade during the match window to move up."
+          : "Estimated payout updates as the pot and leaderboard change."}
       </div>
     </div>
   );
@@ -289,7 +303,7 @@ export default async function Home() {
   const match = getCurrentMatch() ?? null;
   const board = match
     ? getLeaderboard({ matchId: match.id, poolChz: match.pool_chz })
-    : { entries: [], totalPoints: 0, payablePoints: 0, wallets: 0 };
+    : getLeaderboard({ poolChz: 0 });
   const cexVenues = match ? getCexVolume(match.id) : [];
   const onchainUsd = match ? getOnchainVolume(match.id) : 0;
   const totalVenueUsd =

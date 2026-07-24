@@ -98,6 +98,7 @@ interface ScoreAggRow {
   handle: string | null;
   wallet_status: string | null;
   venue: string | null;
+  created_at: string | null;
 }
 
 export function getLeaderboard(opts: {
@@ -108,14 +109,14 @@ export function getLeaderboard(opts: {
   const db = getDb();
   const where = opts.matchId ? "WHERE s.match_id = ?" : "";
   const params = opts.matchId ? [opts.matchId] : [];
-  const rows = db
+  const scoreRows = db
     .prepare(
       `SELECT s.address,
               SUM(s.points) AS points,
               SUM(s.net_taker_usd) AS net_taker_usd,
               SUM(s.maker_add_usd) AS maker_add_usd,
               SUM(s.swaps) AS swaps,
-              w.handle, w.status AS wallet_status, w.venue
+              w.handle, w.status AS wallet_status, w.venue, w.created_at
          FROM scores s
          LEFT JOIN wallets w ON w.address = s.address
          ${where}
@@ -126,6 +127,35 @@ export function getLeaderboard(opts: {
     .all(...params) as ScoreAggRow[];
 
   const isVerified = (r: ScoreAggRow) => r.wallet_status === "verified" && !!r.handle;
+  const scoredAddresses = new Set(scoreRows.map((row) => row.address));
+  const verifiedWallets = db
+    .prepare(
+      `SELECT w.address,
+              0 AS points,
+              0 AS net_taker_usd,
+              0 AS maker_add_usd,
+              0 AS swaps,
+              w.handle, w.status AS wallet_status, w.venue, w.created_at
+         FROM wallets w
+        WHERE w.status = 'verified'
+          AND w.handle IS NOT NULL
+          AND TRIM(w.handle) <> ''`
+    )
+    .all() as ScoreAggRow[];
+
+  // Scorers first; verified signups with zero points appear next (newest first)
+  // so claiming a wallet shows you on the board before the first trade.
+  const rows = [
+    ...scoreRows,
+    ...verifiedWallets.filter((row) => !scoredAddresses.has(row.address)),
+  ].sort(
+    (a, b) =>
+      b.points - a.points ||
+      Number(isVerified(b)) - Number(isVerified(a)) ||
+      (b.created_at ?? "").localeCompare(a.created_at ?? "") ||
+      a.address.localeCompare(b.address)
+  );
+
   const totalPoints = rows.reduce((sum, r) => sum + r.points, 0);
   // Only verified identities are payable, so only their points divide the pool.
   // Unverified/bot wallets still appear on the board but neither earn a share
@@ -149,5 +179,5 @@ export function getLeaderboard(opts: {
     };
   });
 
-  return { entries, totalPoints, payablePoints, wallets: rows.length };
+  return { entries, totalPoints, payablePoints, wallets: scoreRows.length };
 }

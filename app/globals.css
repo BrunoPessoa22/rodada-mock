@@ -398,3 +398,56 @@ button { font-family: inherit; }
   .rd-h1 { font-size:36px !important; }
   .wrap { padding:0 20px; }
 }
+
+/* ---- Join flow (Altug signup unification) ---- */
+.join-primary, .join-success { margin-top: 24px; }
+.join-loop {
+  display: flex; align-items: center; gap: 9px; margin-top: 16px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg-muted);
+  font-size: 11px; font-weight: 600; color: var(--fg-muted); letter-spacing: .04em;
+}
+.join-loop i { font-style: normal; color: var(--border-strong); }
+.join-loop strong { color: var(--brand); font-weight: 700; }
+.join-action { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; max-width: 460px; }
+.join-action label {
+  display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--fg-muted);
+  font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+}
+.join-action input {
+  background: #fff; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  color: var(--fg); font-family: inherit; font-size: 14px; font-weight: 500; padding: 11px 13px;
+  text-transform: none; letter-spacing: normal;
+}
+.join-action input:focus {
+  border-color: var(--brand); outline: none;
+  box-shadow: 0 0 0 3px rgba(0,118,244,.12);
+}
+.join-action .btn { width: 100%; justify-content: center; }
+.join-proof { font-size: 12px; font-weight: 500; color: var(--fg-muted); }
+.wallet-missing {
+  border: 1px solid rgba(255,138,0,.3); border-radius: 8px; padding: 10px 12px;
+  background: var(--orange-50); color: var(--ink-soft); font-size: 13px; line-height: 1.55; font-weight: 500;
+}
+.manual-claim {
+  margin-top: 14px; border: 1px solid var(--border); border-radius: 12px; background: #fff;
+}
+.manual-claim summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px;
+  list-style: none; cursor: pointer; color: var(--ink-soft); font-size: 13px; font-weight: 600;
+}
+.manual-claim summary::-webkit-details-marker { display: none; }
+.manual-claim summary:hover { color: var(--fg); }
+.manual-claim[open] summary { border-bottom: 1px solid var(--border); }
+.manual-claim-body { padding: 16px; }
+.manual-claim-body > p { font-size: 13px; line-height: 1.6; color: var(--fg-muted); font-weight: 500; margin: 0; }
+.manual-claim-body .joinform { margin-top: 16px; }
+.manual-claim-body .btn { justify-content: center; }
+.badge.low {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; border-radius: 9999px; padding: 3px 8px;
+  color: var(--fg-muted); background: var(--bg-muted); border: 1px solid var(--border);
+}
+@media (max-width: 480px) {
+  .join-loop { gap: 6px; padding: 9px 10px; font-size: 10px; }
+  .manual-claim summary { align-items: flex-start; flex-wrap: wrap; }
+}
