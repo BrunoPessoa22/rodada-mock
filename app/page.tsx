@@ -29,93 +29,6 @@ function Num({ value, digits = 0 }: { value: number; digits?: number }) {
   );
 }
 
-function LeaderboardPanel({
-  entries,
-  totalPoints,
-  wallets,
-  match,
-}: {
-  entries: LeaderboardEntry[];
-  totalPoints: number;
-  wallets: number;
-  match: MatchRow | null;
-}) {
-  const top = entries.slice(0, 8);
-  const cutoff = top.length > 0 ? Math.floor(top[top.length - 1].points) : 0;
-  const windowOpen = match
-    ? new Date(match.window_start_utc).getTime() <= Date.now() &&
-      Date.now() < new Date(match.window_end_utc).getTime()
-    : false;
-  return (
-    <div className="panel">
-      <div className="ph">
-        <Icon id="i-trophy" lg />
-        <h3>Leaderboard — closest to the pot</h3>
-      </div>
-      {top.length === 0 ? (
-        <p className="gapline">
-          {windowOpen
-            ? "Window open — the leaderboard counts real Kayen trades and the first entries appear within minutes. Be the first name on this page."
-            : "The window hasn't opened yet — the leaderboard counts real Kayen trades inside the matchday window. Be the first name on this page."}
-        </p>
-      ) : (
-        <table className="lb">
-          <tbody>
-            {top.map((entry) => (
-              <tr key={entry.address}>
-                <td className="pos">{entry.rank}</td>
-                <td className="handle" title={entry.address}>
-                  {entry.display}
-                </td>
-                <td className="role">
-                  {entry.makerNetAddUsd > Math.abs(entry.netTakerUsd) ? (
-                    <span className="badge mid">Maker</span>
-                  ) : (
-                    <span className="badge low">Taker</span>
-                  )}
-                </td>
-                <td className="earn">
-                  {entry.projectedChz >= 1
-                    ? `projected ${Math.floor(entry.projectedChz).toLocaleString("en-US")} CHZ`
-                    : null}
-                </td>
-                <td className="pts">
-                  <Num value={Math.floor(entry.points)} />
-                  {" pts"}
-                </td>
-              </tr>
-            ))}
-            <tr className="you">
-              <td className="pos">—</td>
-              <td className="handle">you</td>
-              <td className="role"></td>
-              <td className="earn">
-                <Link href="/entrar" style={{ color: "var(--accent)" }}>
-                  claim your wallet
-                </Link>
-              </td>
-              <td className="pts">0 pts</td>
-            </tr>
-          </tbody>
-        </table>
-      )}
-      {top.length > 0 ? (
-        <p className="gapline">
-          <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")} pts.
-          Skill (PnL% from a total-loss floor) × volume unlock on Kayen puts you on this page.
-        </p>
-      ) : null}
-      {totalPoints > 0 && match ? (
-        <p className="gapline" style={{ marginTop: 4 }}>
-          {wallets.toLocaleString("en-US")} wallets scoring ·{" "}
-          {match.pool_chz.toLocaleString("en-US")} CHZ this matchday · projection = your current
-          share of the pool by points.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 const CLUB_COLORS: Record<string, [string, string]> = {
   ARG: ["#75AADB", "#FFFFFF"],
   SPAIN: ["#AA151B", "#F1BF00"],
@@ -144,7 +57,97 @@ function fmtUsd(value: number): string {
   }).format(value);
 }
 
-function MatchCard({
+function LeaderboardPanel({
+  entries,
+  totalPoints,
+  wallets,
+  match,
+}: {
+  entries: LeaderboardEntry[];
+  totalPoints: number;
+  wallets: number;
+  match: MatchRow | null;
+}) {
+  const top = entries.slice(0, 8);
+  const cutoff = top.length > 0 ? Math.floor(top[top.length - 1].points) : 0;
+  const windowOpen = match
+    ? new Date(match.window_start_utc).getTime() <= Date.now() &&
+      Date.now() < new Date(match.window_end_utc).getTime()
+    : false;
+
+  return (
+    <div className="panel" id="board">
+      <div className="ph">
+        <Icon id="i-trophy" lg />
+        <h3>Every point increases your share</h3>
+      </div>
+      <p className="secsub" style={{ marginBottom: 0, marginTop: 4 }}>
+        Rank by skill × volume on match day. Projection is your current share of this matchday
+        pool.
+      </p>
+      {top.length === 0 ? (
+        <p className="gapline">
+          {windowOpen
+            ? "Window open — Rodada counts real Kayen trades and the first entries appear within minutes. Be the first name on this board."
+            : "The window hasn't opened yet — Rodada counts real Kayen trades inside the matchday window. Be the first name on this board."}
+        </p>
+      ) : (
+        <table className="lb">
+          <tbody>
+            {top.map((entry) => (
+              <tr key={entry.address}>
+                <td className="pos">{entry.rank}</td>
+                <td className="handle" title={entry.address}>
+                  {entry.display}
+                </td>
+                <td className="role">
+                  {entry.makerNetAddUsd > Math.abs(entry.netTakerUsd) ? (
+                    <span className="badge mid">Maker</span>
+                  ) : (
+                    <span className="badge low">Taker</span>
+                  )}
+                </td>
+                <td className="earn">
+                  {entry.projectedChz >= 1
+                    ? `~${Math.floor(entry.projectedChz).toLocaleString("en-US")} CHZ`
+                    : null}
+                </td>
+                <td className="pts">
+                  <Num value={Math.floor(entry.points)} />
+                  {" pts"}
+                </td>
+              </tr>
+            ))}
+            <tr className="you">
+              <td className="pos">—</td>
+              <td className="handle">you</td>
+              <td className="role"></td>
+              <td className="earn">
+                <Link href="/entrar">claim wallet</Link>
+              </td>
+              <td className="pts">0 pts</td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+      {top.length > 0 ? (
+        <p className="gapline">
+          <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")} pts.
+          Skill (PnL% from a total-loss floor) × volume unlock on Kayen puts you on this board.
+        </p>
+      ) : null}
+      {totalPoints > 0 && match ? (
+        <p className="gapline" style={{ marginTop: 4 }}>
+          {wallets.toLocaleString("en-US")} wallets scoring ·{" "}
+          {match.pool_chz.toLocaleString("en-US")} CHZ this matchday · projection = your current
+          share of the pool by points.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function FixtureCard({
   match,
   cexVenues,
   onchainUsd,
@@ -155,17 +158,21 @@ function MatchCard({
 }) {
   if (!match) {
     return (
-      <div className="panel bigmatch" id="match">
+      <div className="fixture-card" id="match">
         <span className="eyebrow">Next match</span>
-        <h4>Calendar being prepared</h4>
+        <h3>Calendar being prepared</h3>
+        <p className="fixture-note" style={{ marginTop: 12 }}>
+          Featured fixtures land here as soon as the next matchday window is set.
+        </p>
       </div>
     );
   }
+
   const tokens = JSON.parse(match.tokens) as string[];
   const homeColors =
-    CLUB_NAME_COLORS[match.home] ?? CLUB_COLORS[tokens[0]] ?? ["#3f3f46", "#71717a"];
+    CLUB_NAME_COLORS[match.home] ?? CLUB_COLORS[tokens[0]] ?? ["#3B5BFF", "#E4E8F1"];
   const awayColors =
-    CLUB_NAME_COLORS[match.away] ?? CLUB_COLORS[tokens[1] ?? tokens[0]] ?? ["#3f3f46", "#71717a"];
+    CLUB_NAME_COLORS[match.away] ?? CLUB_COLORS[tokens[1] ?? tokens[0]] ?? ["#0B1220", "#E4E8F1"];
   const okxInsts = venueInstruments(tokens, "okx");
   const binanceInsts = venueInstruments(tokens, "binance");
   const venueUsd = Object.fromEntries(cexVenues.map((v) => [v.venue, v.quoteUsd])) as Record<
@@ -177,24 +184,24 @@ function MatchCard({
     new Date(match.window_start_utc).getTime() <= Date.now() &&
     Date.now() < new Date(match.window_end_utc).getTime();
   const kayenUrl = "https://app.kayen.org/";
+
   return (
-    <div className="panel bigmatch" id="match">
+    <div className="fixture-card" id="match">
       <span className="eyebrow">
-        {windowOpen ? "Window open — scoring live" : "Next match — your way in"}
+        {windowOpen ? "Window open — scoring live" : "Next fixture — your way in"}
       </span>
-      <h4>
+      <h3>
         <span className="clubdots" aria-hidden="true">
           <i style={{ background: homeColors[0] }}></i>
           <i style={{ background: homeColors[1] }}></i>
         </span>
-        {enName(match.home)} <span style={{ color: "var(--ink3)", fontWeight: 400 }}>×</span>{" "}
-        {enName(match.away)}{" "}
+        {enName(match.home)} <span className="vs">×</span> {enName(match.away)}{" "}
         <span className="clubdots" aria-hidden="true">
           <i style={{ background: awayColors[0] }}></i>
           <i style={{ background: awayColors[1] }}></i>
         </span>
-      </h4>
-      <div className="kick">
+      </h3>
+      <div className="fixture-kick">
         <span className="countchip">
           <Icon id="i-zap" />
           {windowOpen ? (
@@ -207,18 +214,18 @@ function MatchCard({
             </>
           )}
         </span>
+        <span className="achip">{enName(match.competition)}</span>
       </div>
-      <div className="carrot">
-        <b>points live</b> on this match · matchday pays{" "}
+      <div className="fixture-pool">
+        <b>Points live</b> on this match · matchday pays{" "}
         <b>{match.pool_chz.toLocaleString("en-US")} CHZ</b> from the pot
       </div>
-      <p className="statline">
-        Tokens counted in this window: <b>{tokens.join(" · ")}</b> — automatic on-chain attribution
-        on Kayen.
+      <p className="fixture-tokens">
+        Tokens counted: <b>{tokens.join(" · ")}</b> — automatic on-chain attribution on Kayen.
       </p>
-      <div className="venues">
+      <div className="fixture-venues">
         <a className="btn primary sm" href={kayenUrl} target="_blank" rel="noopener noreferrer">
-          Kayen
+          Trade on Kayen
         </a>
         {okxInsts.length > 0 ? (
           <a
@@ -227,11 +234,11 @@ function MatchCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            OKX (volume counting)
+            OKX
           </a>
         ) : (
           <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-            OKX (no pair this matchday)
+            OKX
           </span>
         )}
         {binanceInsts.length > 0 ? (
@@ -241,27 +248,24 @@ function MatchCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Binance (volume counting)
+            Binance
           </a>
         ) : (
           <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-            Binance (no pair this matchday)
+            Binance
           </span>
         )}
-        <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-          Mercado Bitcoin (soon)
-        </span>
         {hasVolume ? (
-          <span className="note2">
-            Window volume so far — Kayen {fmtUsd(onchainUsd)}
+          <span className="fixture-note">
+            Window volume — Kayen {fmtUsd(onchainUsd)}
             {venueUsd.okx !== undefined ? ` · OKX ${fmtUsd(venueUsd.okx)}` : ""}
-            {venueUsd.binance !== undefined ? ` · Binance ${fmtUsd(venueUsd.binance)}` : ""}. Kayen
-            counts wallet by wallet; exchanges count by venue.
+            {venueUsd.binance !== undefined ? ` · Binance ${fmtUsd(venueUsd.binance)}` : ""}.
+            Kayen counts wallet by wallet; exchanges count by venue.
           </span>
         ) : (
-          <span className="note2">
-            Trade where you already trade — the League counts Kayen wallet by wallet and tracks OKX
-            and Binance volume live. Individual scoring on exchanges arrives via read-only keys.
+          <span className="fixture-note">
+            Keep trading where you trade — Rodada counts Kayen wallet by wallet and tracks OKX /
+            Binance volume live.
           </span>
         )}
       </div>
@@ -278,16 +282,20 @@ export default async function Home() {
   const cexVenues = match ? getCexVolume(match.id) : [];
   const onchainUsd = match ? getOnchainVolume(match.id) : 0;
   const chz = await getChzPrice();
+  const venueUsd = Object.fromEntries(cexVenues.map((v) => [v.venue, v.quoteUsd])) as Record<
+    string,
+    number
+  >;
 
   return (
     <>
-      <div className="ticker" aria-label="League now">
+      <div className="ticker" aria-label="Matchday now">
         <div className="lane">
           {[0, 1].map((i) => (
             <span key={i} style={{ display: "contents" }}>
               <span className="item">
                 <span className="live-dot"></span>
-                <b>League live — on-chain counting on Kayen.</b>
+                <b>Rodada live — on-chain counting on Kayen.</b>
               </span>
               {match ? (
                 <span className="item">
@@ -330,71 +338,195 @@ export default async function Home() {
       </div>
 
       <main className="wrap">
-        <div className="jack" id="pot">
-          <span className="eyebrow">Fan Token Trader League · 2026 Season</span>
-          <div className="potline">
-            <PotCounter potChz={pot.potChzNow} dailyChz={pot.dailyChz} asOf={pot.asOf} />
-            <span className="potchz">CHZ</span>
+        <section className="hero" id="pot">
+          <div className="hero-copy">
+            <span className="eyebrow">Matchday Markets · 2026 season</span>
+            <h1>Trade the match. Share the pot.</h1>
+            <p className="lede">
+              Score points by trading your club&apos;s fan token on match day — on Kayen, OKX, or
+              Binance. Rodada measures skill, ranks the board, and pays from a pot that grows every
+              day.
+            </p>
+            <div className="hero-actions">
+              <a className="btn primary" href="#match">
+                Join this matchday
+                <Icon id="i-arrow" />
+              </a>
+              <Link className="btn secondary" href="/regras">
+                How scoring works
+              </Link>
+            </div>
           </div>
-          <div className="potlab">season target pot — pilot beta</div>
-          <p className="potsub">
-            Grows <b>+{pot.dailyChz.toLocaleString("en-US")} CHZ per day</b> — community fund +
-            sponsorship from execution partners.
-          </p>
-          <div className="chips">
-            {match ? (
-              <span className="ptschip">
-                <Icon id="i-trophy" />
-                {enName(match.competition)} pays {match.pool_chz.toLocaleString("en-US")} CHZ
-              </span>
-            ) : null}
-            {match ? (
-              <span className="countchip">
-                <Icon id="i-zap" />
-                window closes <Countdown target={match.window_end_utc} />
-              </span>
-            ) : null}
-            <span className="achip">free entry — score by trading where you already trade</span>
-          </div>
-          <div className="ctas">
-            <a className="btn primary" href="#match">
-              Join the matchday
-              <Icon id="i-arrow" />
-            </a>
-            <Link className="btn secondary" href="/regras">
-              How scoring works
-            </Link>
-          </div>
-        </div>
 
-        <div className="compete">
+          <div className="hero-grid">
+            <div className="pot-card">
+              <span className="eyebrow">Season target pot · pilot beta</span>
+              <div className="pot-label">Growing every second</div>
+              <PotCounter potChz={pot.potChzNow} dailyChz={pot.dailyChz} asOf={pot.asOf} />
+              <div className="pot-meta">
+                <div className="pot-stat">
+                  <div className="k">Daily pace</div>
+                  <div className="v">+{pot.dailyChz.toLocaleString("en-US")} CHZ</div>
+                </div>
+                {match ? (
+                  <div className="pot-stat">
+                    <div className="k">This matchday</div>
+                    <div className="v">{match.pool_chz.toLocaleString("en-US")} CHZ</div>
+                  </div>
+                ) : (
+                  <div className="pot-stat">
+                    <div className="k">Entry</div>
+                    <div className="v">Free</div>
+                  </div>
+                )}
+              </div>
+              <div className="pot-cta">
+                <Link className="btn gold" href="/entrar">
+                  Claim your wallet
+                </Link>
+                <a className="btn ghost" href="#board">
+                  View board
+                </a>
+              </div>
+            </div>
+
+            <FixtureCard match={match} cexVenues={cexVenues} onchainUsd={onchainUsd} />
+          </div>
+        </section>
+
+        <section className="venue-strip">
+          <div className="sechead">
+            <div>
+              <span className="eyebrow">Venues</span>
+              <h2>Keep trading where you trade</h2>
+            </div>
+            <span className="note">Rodada counts · venues execute</span>
+          </div>
+          <div className="venue-grid">
+            <div className="venue-card">
+              <div className="vh">
+                <span className="logo">K</span>
+                <span className="name">Kayen</span>
+                <span className="status">
+                  <span className="badge ok">Live</span>
+                </span>
+              </div>
+              <p>On-chain swaps &amp; liquidity on Chiliz Chain — wallet-by-wallet scoring.</p>
+              <div className="vol">{onchainUsd > 0 ? fmtUsd(onchainUsd) : "—"} window vol</div>
+            </div>
+            <div className="venue-card">
+              <div className="vh">
+                <span className="logo okx">OKX</span>
+                <span className="name">OKX</span>
+                <span className="status">
+                  <span className="badge mid">Volume</span>
+                </span>
+              </div>
+              <p>Live venue volume on matchday pairs. Per-trader keys land next.</p>
+              <div className="vol">
+                {venueUsd.okx !== undefined ? fmtUsd(venueUsd.okx) : "—"} window vol
+              </div>
+            </div>
+            <div className="venue-card">
+              <div className="vh">
+                <span className="logo bin">BN</span>
+                <span className="name">Binance</span>
+                <span className="status">
+                  <span className="badge mid">Volume</span>
+                </span>
+              </div>
+              <p>Spot volume tracked in the window. Individual scoring via read-only API soon.</p>
+              <div className="vol">
+                {venueUsd.binance !== undefined ? fmtUsd(venueUsd.binance) : "—"} window vol
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="share-band">
           <LeaderboardPanel
             entries={board.entries}
             totalPoints={board.totalPoints}
             wallets={board.wallets}
             match={match}
           />
-          <MatchCard match={match} cexVenues={cexVenues} onchainUsd={onchainUsd} />
-        </div>
+
+          <div className="panel dark">
+            <div className="ph">
+              <Icon id="i-shield" lg />
+              <h3>Choose how Rodada verifies your trades</h3>
+            </div>
+            <p style={{ fontSize: 13.5, marginTop: 6, lineHeight: 1.55 }}>
+              No custody. No order execution. Link once — we only measure what you already trade.
+            </p>
+            <div className="verify-list">
+              <div className="verify-item">
+                <span className="mark">0x</span>
+                <div className="t">
+                  <b>Wallet signature</b>
+                  <span>Instant · Kayen / Chiliz Chain</span>
+                </div>
+              </div>
+              <div className="verify-item">
+                <span className="mark">API</span>
+                <div className="t">
+                  <b>Read-only exchange key</b>
+                  <span>OKX · Binance — coming next</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link className="btn gold" href="/entrar">
+                Claim &amp; verify
+              </Link>
+              <Link className="btn secondary" href="/regras">
+                Scoring rules
+              </Link>
+            </div>
+          </div>
+        </section>
 
         <section id="scoring">
           <div className="sechead">
             <div>
-              <span className="eyebrow">Rules</span>
-              <h2>How scoring works</h2>
+              <span className="eyebrow">Matchday Ledger</span>
+              <h2>Open access. Earned status.</h2>
             </div>
-            <span className="note">open-source scoring · one formula for everyone</span>
+            <span className="note">one formula · everyone</span>
           </div>
           <p className="secsub">
-            Points for really trading on match day — never for predictions. This is not betting: the
-            League doesn&apos;t pay out on match results.
+            Points for really trading on match day — never for predictions. This is not betting:
+            Rodada doesn&apos;t pay out on match results.
           </p>
-          <div className="rules3">
+
+          <div className="ladder">
+            <div className="ladder-step active">
+              <div className="k">Step 01</div>
+              <div className="t">Open entry</div>
+              <div className="d">Free. No deposit. Claim a wallet or wait for exchange keys.</div>
+            </div>
+            <div className="ladder-step">
+              <div className="k">Step 02</div>
+              <div className="t">Trade the fixture</div>
+              <div className="d">Buy or sell your club token inside the matchday window.</div>
+            </div>
+            <div className="ladder-step">
+              <div className="k">Step 03</div>
+              <div className="t">Skill × volume</div>
+              <div className="d">PnL skill score unlocked by real volume. Wipeouts score zero.</div>
+            </div>
+            <div className="ladder-step">
+              <div className="k">Step 04</div>
+              <div className="t">Share the pot</div>
+              <div className="d">Matchday pool + season pot. Points only — never match results.</div>
+            </div>
+          </div>
+
+          <div className="rules3" style={{ marginTop: 16 }}>
             <div className="rule">
               <Icon id="i-check" />
               <span>
-                <b>Trade on match day.</b> Buy or sell your club&apos;s token during the matchday
-                window. Only what you really move counts — read straight from the blockchain,
+                <b>Trade on match day.</b> Only what you really move counts — read from the chain,
                 nothing to install.
               </span>
             </div>
@@ -403,15 +535,14 @@ export default async function Home() {
               <span>
                 <b>Skill × volume.</b> SkillScore = max(PnL% + 100, 0); points = SkillScore × (1 −
                 e<sup>−Volume/V</sup>
-                <sub>target</sub>). A total loss is zero; volume unlocks how much skill counts.
+                <sub>target</sub>). Volume unlocks how much skill counts.
               </span>
             </div>
             <div className="rule">
               <Icon id="i-lock" />
               <span>
-                <b>Total loss scores zero.</b> Skill floors at a wipeout (−100%); leverage
-                doesn&apos;t multiply points. Anyone can check the math —{" "}
-                <a href="/regras">scoring is open source</a>.
+                <b>Total loss scores zero.</b> Skill floors at a wipeout (−100%). Anyone can check
+                the math — <Link href="/regras">scoring is open source</Link>.
               </span>
             </div>
           </div>

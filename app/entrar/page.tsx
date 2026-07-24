@@ -126,11 +126,11 @@ export default function JoinPage() {
         <div className="sechead" style={{ marginTop: 40 }}>
           <div>
             <span className="eyebrow">Free entry</span>
-            <h2>Join the League</h2>
+            <h2>Join Rodada</h2>
           </div>
         </div>
         <p className="secsub">
-          The League already counts every Kayen trade inside matchday windows — your wallet is
+          Matchday Markets already counts every Kayen trade inside matchday windows — your wallet is
           probably already scoring. Claim it to appear under your name on the leaderboard and
           receive prizes. Every claim is verified manually during the beta.
         </p>
@@ -231,6 +231,29 @@ export default function JoinPage() {
             </button>
           </form>
         )}
+
+        <div className="panel dark" style={{ marginTop: 28 }}>
+          <div className="ph">
+            <Icon id="i-shield" lg />
+            <h3>Choose how Rodada verifies your trades</h3>
+          </div>
+          <div className="verify-list">
+            <div className="verify-item">
+              <span className="mark">0x</span>
+              <div className="t">
+                <b>Wallet signature</b>
+                <span>Live now · Kayen / Chiliz Chain</span>
+              </div>
+            </div>
+            <div className="verify-item">
+              <span className="mark">API</span>
+              <div className="t">
+                <b>Read-only exchange key</b>
+                <span>OKX · Binance — no withdrawal rights, ever</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <p className="gapline" style={{ marginTop: 28 }}>
           <b>Privacy:</b> the leaderboard shows only your chosen name. Unclaimed addresses appear
