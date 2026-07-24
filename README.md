@@ -20,8 +20,9 @@ and pays.
   on-chain spot only — unlevered by nature; residual defense against two
   *distinct* colluding identities is manual review + clustering, not the
   formula.)
-- **Claim your wallet** — unclaimed addresses appear truncated; claiming puts
-  your handle on the leaderboard after manual verification (beta).
+- **Claim your wallet** — choose a username and sign a one-time message so your
+  verified name appears on the leaderboard immediately. Manual review remains
+  available as a fallback.
 - **CEX venue volume** — [`lib/cex.ts`](lib/cex.ts) tracks live spot volume of
   each matchday token on **OKX** and **Binance** (public candles per listed
   pair, summed inside the window, converted to USD) and shows it next to the

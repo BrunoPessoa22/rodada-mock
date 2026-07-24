@@ -137,6 +137,7 @@
   .badge.low{color:var(--ink3);border:1px solid var(--border);}
   .badge.ok{color:var(--up);border:1px solid rgba(74,222,128,.35);}
   .badge.gate{color:var(--down);border:1px solid rgba(248,113,113,.35);}
+  .badge.ready{color:var(--accent);border:1px solid rgba(217,119,87,.35);}
 
   /* ---------- jackpot ---------- */
   .jack{
@@ -321,14 +322,17 @@
 
   /* ---------- liga ---------- */
   .liga{display:grid;grid-template-columns:1fr .84fr;gap:24px;align-items:start;}
-  table.lb{width:100%;border-collapse:collapse;margin-top:14px;}
+  #leaderboard{scroll-margin-top:18px;}
+  table.lb{width:100%;border-collapse:collapse;margin-top:14px;table-layout:fixed;}
   table.lb td{padding:10px 10px;border-bottom:1px solid #18181b;font-size:13px;}
   table.lb tr:last-child td{border-bottom:none;}
   table.lb .pos{font-family:var(--mono);font-weight:700;color:var(--ink3);width:38px;font-size:12px;}
   table.lb tr:first-child .pos{color:var(--accent);}
-  table.lb .handle{font-weight:600;}
-  table.lb .pts{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;}
-  table.lb .role{text-align:right;}
+  table.lb .handle{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  table.lb .pts{width:78px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;}
+  table.lb .role{width:102px;text-align:right;}
+  table.lb .earn{width:168px;}
+  table.lb tr.newcomer .earn{color:var(--ink3);}
   .rulechips{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
   .rule{
     display:flex;gap:11px;align-items:flex-start;border:1px solid var(--border);
@@ -378,6 +382,13 @@
     .vaults{grid-template-columns:1fr;}
     .bigmatch h4{font-size:19px;}
     nav.mainnav{display:none;}
+  }
+
+  @media (max-width:640px){
+    table.lb td{padding:10px 6px;}
+    table.lb .pos{width:32px;}
+    table.lb .role,table.lb .earn{display:none;}
+    table.lb .pts{width:70px;}
   }
 
   /* ---------- forms (entrar / admin) ---------- */

@@ -40,13 +40,15 @@ function LeaderboardPanel({
   match: MatchRow | null;
 }) {
   const top = entries.slice(0, 8);
-  const cutoff = top.length > 0 ? Math.floor(top[top.length - 1].points) : 0;
+  const scoring = top.filter((entry) => entry.points > 0);
+  const cutoff =
+    scoring.length > 0 ? Math.floor(scoring[scoring.length - 1].points) : 0;
   const windowOpen = match
     ? new Date(match.window_start_utc).getTime() <= Date.now() &&
       Date.now() < new Date(match.window_end_utc).getTime()
     : false;
   return (
-    <div className="panel">
+    <div className="panel" id="leaderboard">
       <div className="ph">
         <Icon id="i-trophy" lg />
         <h3>
@@ -71,20 +73,36 @@ function LeaderboardPanel({
         <table className="lb">
           <tbody>
             {top.map((entry) => (
-              <tr key={entry.address}>
+              <tr
+                key={entry.address}
+                className={entry.points > 0 ? undefined : "newcomer"}
+              >
                 <td className="pos">{entry.rank}</td>
-                <td className="handle" title={entry.address}>
+                <td
+                  className="handle"
+                  title={`${entry.display} · ${entry.address}`}
+                >
                   {entry.display}
                 </td>
                 <td className="role">
-                  {entry.makerNetAddUsd > Math.abs(entry.netTakerUsd) ? (
+                  {entry.points <= 0 ? (
+                    <span className="badge ready">
+                      <span className="pt">Inscrito</span>
+                      <span className="en">Ready</span>
+                    </span>
+                  ) : entry.makerNetAddUsd > Math.abs(entry.netTakerUsd) ? (
                     <span className="badge mid">Maker</span>
                   ) : (
                     <span className="badge low">Taker</span>
                   )}
                 </td>
                 <td className="earn">
-                  {entry.projectedChz >= 1 ? (
+                  {entry.points <= 0 ? (
+                    <>
+                      <span className="pt">aguardando a primeira rodada</span>
+                      <span className="en">waiting for first match</span>
+                    </>
+                  ) : entry.projectedChz >= 1 ? (
                     <>
                       <span className="pt">
                         projeção {Math.floor(entry.projectedChz).toLocaleString("pt-BR")} CHZ
@@ -121,17 +139,33 @@ function LeaderboardPanel({
       )}
       {top.length > 0 ? (
         <p className="gapline">
-          <span className="pt">
-            <b>Para entrar na briga:</b> o top {top.length} fecha em{" "}
-            {cutoff.toLocaleString("pt-BR")} pts
-            {match?.featured ? " — e nesta rodada os pontos valem 2×" : ""}. Fluxo líquido real na
-            Kayen durante a janela coloca você nesta página; ida-e-volta vale zero.
-          </span>
-          <span className="en">
-            <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")}{" "}
-            pts{match?.featured ? " — and this matchday pays 2× points" : ""}. Real net flow on
-            Kayen during the window puts you on this page; round-trips score zero.
-          </span>
+          {cutoff > 0 ? (
+            <>
+              <span className="pt">
+                <b>Para entrar na briga:</b> o top {scoring.length} fecha em{" "}
+                {cutoff.toLocaleString("pt-BR")} pts
+                {match?.featured ? " — e nesta rodada os pontos valem 2×" : ""}. Fluxo líquido
+                real na Kayen durante a janela faz você subir; ida-e-volta vale zero.
+              </span>
+              <span className="en">
+                <b>To get in the race:</b> top {scoring.length} closes at{" "}
+                {cutoff.toLocaleString("en-US")} pts
+                {match?.featured ? " — and this matchday pays 2× points" : ""}. Real net flow on
+                Kayen during the window moves you up; round-trips score zero.
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="pt">
+                <b>Inscrições abertas:</b> nomes verificados aparecem aqui na hora. Opere durante a
+                janela da partida para subir na tabela.
+              </span>
+              <span className="en">
+                <b>Open entry:</b> verified names appear here instantly. Trade during the match
+                window to move up the table.
+              </span>
+            </>
+          )}
         </p>
       ) : null}
       {totalPoints > 0 && match ? (
@@ -363,7 +397,7 @@ export default async function Home() {
   const match = getCurrentMatch() ?? null;
   const board = match
     ? getLeaderboard({ matchId: match.id, poolChz: match.pool_chz })
-    : { entries: [], totalPoints: 0, payablePoints: 0, wallets: 0 };
+    : getLeaderboard({ poolChz: 0 });
   const cexVenues = match ? getCexVolume(match.id) : [];
   const onchainUsd = match ? getOnchainVolume(match.id) : 0;
   const chz = await getChzPrice();

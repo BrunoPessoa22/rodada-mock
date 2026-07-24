@@ -136,12 +136,14 @@ export default function JoinPage() {
           <span className="pt">
             A Liga já conta toda operação na Kayen dentro das janelas de rodada — sua carteira
             provavelmente já está pontuando. Reivindique-a para aparecer com seu nome na Artilharia
-            e receber prêmios. Verificamos cada pedido manualmente nesta beta.
+            e receber prêmios. Assine com a carteira para entrar na hora; o formulário manual fica
+            como alternativa.
           </span>
           <span className="en">
             The League already counts every Kayen trade inside matchday windows — your wallet is
             probably already scoring. Claim it to appear under your name on the leaderboard and
-            receive prizes. Every claim is verified manually during the beta.
+            receive prizes. Sign with your wallet to join instantly; the manual form remains as a
+            fallback.
           </span>
         </p>
 
@@ -157,13 +159,17 @@ export default function JoinPage() {
             <p className="gapline">
               <span className="pt">
                 Assinatura confirmada — <b>{verifiedAs.handle}</b> agora é o nome desta carteira na
-                Artilharia. Toda operação sua na janela já pontua.
+                Artilharia. Você começa com zero pontos e sobe ao operar dentro da janela.
               </span>
               <span className="en">
                 Signature confirmed — <b>{verifiedAs.handle}</b> is now this wallet&apos;s name on
-                the leaderboard. Every trade you make in the window already scores.
+                the leaderboard. You start at zero and move up by trading inside the match window.
               </span>
             </p>
+            <a className="btn primary" href="/#leaderboard">
+              <span className="pt">Ver meu nome na tabela</span>
+              <span className="en">View my name on the leaderboard</span>
+            </a>
           </div>
         ) : hasWallet && state !== "done" ? (
           <div className="panel" style={{ marginTop: 24 }}>
@@ -188,7 +194,9 @@ export default function JoinPage() {
               <input
                 placeholder="mengotrader10"
                 value={sigHandle}
+                minLength={2}
                 maxLength={40}
+                aria-label="Leaderboard username"
                 onChange={(e) => setSigHandle(e.target.value)}
               />
               {sigState === "error" ? (
