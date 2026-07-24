@@ -3,19 +3,17 @@
 import { useEffect, useState } from "react";
 
 /**
- * Flip-clock season pot: count-up on load, then real per-second accrual
- * (dailyChz / 86400). Server passes pot value + timestamp; client extrapolates.
+ * Flip-clock pot from the Matchday Markets design:
+ * digit tiles + commas, live accrual at dailyChz / 86400.
  */
 export function PotCounter({
   potChz,
   dailyChz,
   asOf,
-  digits = 7,
 }: {
   potChz: number;
   dailyChz: number;
   asOf: string;
-  digits?: number;
 }) {
   const [value, setValue] = useState(Math.floor(potChz));
 
@@ -55,20 +53,48 @@ export function PotCounter({
     };
   }, [potChz, dailyChz, asOf]);
 
-  const padded = Math.max(0, Math.floor(value))
-    .toString()
-    .padStart(digits, "0")
-    .slice(-digits);
-  const chars = padded.split("");
+  const formatted = Math.max(0, Math.floor(value)).toLocaleString("en-US");
+  const chars = formatted.split("");
 
   return (
-    <div className="flip-clock" aria-label={`${value.toLocaleString("en-US")} CHZ`}>
-      {chars.map((ch, i) => (
-        <span className="flip-digit" key={`${i}-${ch}`}>
-          {ch}
-        </span>
-      ))}
-      <span className="flip-unit">CHZ</span>
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 5 }}
+      aria-label={`${value.toLocaleString("en-US")} CHZ`}
+    >
+      {chars.map((c, i) =>
+        c === "," ? (
+          <span
+            key={`c-${i}`}
+            style={{
+              fontSize: 46,
+              fontWeight: 800,
+              color: "rgba(255,255,255,.5)",
+              lineHeight: 1,
+            }}
+          >
+            ,
+          </span>
+        ) : (
+          <span
+            key={`d-${i}-${c}`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 44,
+              height: 60,
+              borderRadius: 10,
+              background: "rgba(255,255,255,.07)",
+              border: "1px solid rgba(255,255,255,.1)",
+              fontSize: 38,
+              fontWeight: 800,
+              color: "#fff",
+            }}
+          >
+            {c}
+          </span>
+        )
+      )}
     </div>
   );
 }

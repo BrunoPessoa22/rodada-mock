@@ -1,42 +1,18 @@
 import Link from "next/link";
 import { Countdown } from "@/components/Countdown";
-import { Icon } from "@/components/Icons";
 import { PotCounter } from "@/components/PotCounter";
 import { enName } from "@/lib/i18n";
 import { getPot } from "@/lib/pot";
-import { getChzPrice } from "@/lib/prices";
-import { venueInstruments, VENUE_TRADE_URL } from "@/lib/cex";
 import {
   getCexVolume,
   getCurrentMatch,
   getLeaderboard,
   getOnchainVolume,
-  type CexVenueVolume,
   type LeaderboardEntry,
   type MatchRow,
 } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
-
-function Num({ value, digits = 0 }: { value: number; digits?: number }) {
-  return (
-    <>
-      {value.toLocaleString("en-US", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-      })}
-    </>
-  );
-}
-
-const CLUB_COLORS: Record<string, [string, string]> = {
-  ARG: ["#75AADB", "#FFFFFF"],
-  SPAIN: ["#AA151B", "#F1BF00"],
-  MENGO: ["#C52613", "#0a0a0a"],
-  FLU: ["#7A1F3D", "#009E60"],
-  BAR: ["#A50044", "#004D98"],
-  PSG: ["#004170", "#DA291C"],
-};
 
 const CLUB_NAME_COLORS: Record<string, [string, string]> = {
   Flamengo: ["#C52613", "#0a0a0a"],
@@ -48,226 +24,261 @@ const CLUB_NAME_COLORS: Record<string, [string, string]> = {
   Spain: ["#AA151B", "#F1BF00"],
 };
 
-function fmtUsd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
-}
+const AVATAR_COLORS = [
+  "var(--blue-800)",
+  "var(--green-500)",
+  "var(--orange-500)",
+  "var(--blue-500)",
+  "var(--lime-700)",
+];
 
-function LeaderboardPanel({
-  entries,
-  totalPoints,
-  wallets,
-  match,
-}: {
-  entries: LeaderboardEntry[];
-  totalPoints: number;
-  wallets: number;
-  match: MatchRow | null;
-}) {
-  const top = entries.slice(0, 8);
-  const cutoff = top.length > 0 ? Math.floor(top[top.length - 1].points) : 0;
-  const windowOpen = match
-    ? new Date(match.window_start_utc).getTime() <= Date.now() &&
-      Date.now() < new Date(match.window_end_utc).getTime()
-    : false;
-
+function ClubBadge({ name, colors }: { name: string; colors: [string, string] }) {
   return (
-    <div className="panel" id="board">
-      <div className="ph">
-        <Icon id="i-trophy" lg />
-        <h3>Every point increases your share</h3>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+      <div
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: 9999,
+          background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`,
+          border: "2px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#fff",
+          fontWeight: 800,
+          fontSize: 14,
+          letterSpacing: "-.02em",
+        }}
+        aria-hidden
+      >
+        {name.slice(0, 2).toUpperCase()}
       </div>
-      <p className="secsub" style={{ marginBottom: 0, marginTop: 4 }}>
-        Rank by skill × volume on match day. Projection is your current share of this matchday
-        pool.
-      </p>
-      {top.length === 0 ? (
-        <p className="gapline">
-          {windowOpen
-            ? "Window open — Rodada counts real Kayen trades and the first entries appear within minutes. Be the first name on this board."
-            : "The window hasn't opened yet — Rodada counts real Kayen trades inside the matchday window. Be the first name on this board."}
-        </p>
-      ) : (
-        <table className="lb">
-          <tbody>
-            {top.map((entry) => (
-              <tr key={entry.address}>
-                <td className="pos">{entry.rank}</td>
-                <td className="handle" title={entry.address}>
-                  {entry.display}
-                </td>
-                <td className="role">
-                  {entry.makerNetAddUsd > Math.abs(entry.netTakerUsd) ? (
-                    <span className="badge mid">Maker</span>
-                  ) : (
-                    <span className="badge low">Taker</span>
-                  )}
-                </td>
-                <td className="earn">
-                  {entry.projectedChz >= 1
-                    ? `~${Math.floor(entry.projectedChz).toLocaleString("en-US")} CHZ`
-                    : null}
-                </td>
-                <td className="pts">
-                  <Num value={Math.floor(entry.points)} />
-                  {" pts"}
-                </td>
-              </tr>
-            ))}
-            <tr className="you">
-              <td className="pos">—</td>
-              <td className="handle">you</td>
-              <td className="role"></td>
-              <td className="earn">
-                <Link href="/entrar">claim wallet</Link>
-              </td>
-              <td className="pts">0 pts</td>
-            </tr>
-          </tbody>
-        </table>
-      )}
-      {top.length > 0 ? (
-        <p className="gapline">
-          <b>To get in the race:</b> top {top.length} closes at {cutoff.toLocaleString("en-US")} pts.
-          Skill (PnL% from a total-loss floor) × volume unlock on Kayen puts you on this board.
-        </p>
-      ) : null}
-      {totalPoints > 0 && match ? (
-        <p className="gapline" style={{ marginTop: 4 }}>
-          {wallets.toLocaleString("en-US")} wallets scoring ·{" "}
-          {match.pool_chz.toLocaleString("en-US")} CHZ this matchday · projection = your current
-          share of the pool by points.
-        </p>
-      ) : null}
+      <div style={{ fontWeight: 600, fontSize: 14 }}>{name}</div>
     </div>
   );
 }
 
-function FixtureCard({
-  match,
-  cexVenues,
-  onchainUsd,
+function StandingsTable({
+  entries,
+  wallets,
 }: {
-  match: MatchRow | null;
-  cexVenues: CexVenueVolume[];
-  onchainUsd: number;
+  entries: LeaderboardEntry[];
+  wallets: number;
 }) {
-  if (!match) {
-    return (
-      <div className="fixture-card" id="match">
-        <span className="eyebrow">Next match</span>
-        <h3>Calendar being prepared</h3>
-        <p className="fixture-note" style={{ marginTop: 12 }}>
-          Featured fixtures land here as soon as the next matchday window is set.
-        </p>
-      </div>
-    );
-  }
-
-  const tokens = JSON.parse(match.tokens) as string[];
-  const homeColors =
-    CLUB_NAME_COLORS[match.home] ?? CLUB_COLORS[tokens[0]] ?? ["#3B5BFF", "#E4E8F1"];
-  const awayColors =
-    CLUB_NAME_COLORS[match.away] ?? CLUB_COLORS[tokens[1] ?? tokens[0]] ?? ["#0B1220", "#E4E8F1"];
-  const okxInsts = venueInstruments(tokens, "okx");
-  const binanceInsts = venueInstruments(tokens, "binance");
-  const venueUsd = Object.fromEntries(cexVenues.map((v) => [v.venue, v.quoteUsd])) as Record<
-    string,
-    number
-  >;
-  const hasVolume = onchainUsd > 0 || cexVenues.some((v) => v.quoteUsd > 0);
-  const windowOpen =
-    new Date(match.window_start_utc).getTime() <= Date.now() &&
-    Date.now() < new Date(match.window_end_utc).getTime();
-  const kayenUrl = "https://app.kayen.org/";
+  const top = entries.slice(0, 8);
+  const totalPoints = top.reduce((s, e) => s + e.points, 0);
 
   return (
-    <div className="fixture-card" id="match">
-      <span className="eyebrow">
-        {windowOpen ? "Window open — scoring live" : "Next fixture — your way in"}
-      </span>
-      <h3>
-        <span className="clubdots" aria-hidden="true">
-          <i style={{ background: homeColors[0] }}></i>
-          <i style={{ background: homeColors[1] }}></i>
+    <div
+      id="board"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        padding: "24px 28px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 18,
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ fontWeight: 700, fontSize: 18 }}>Live leaderboard</div>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-muted)" }}>
+          {wallets > 0
+            ? `${wallets.toLocaleString("en-US")} connected · ${Math.floor(totalPoints).toLocaleString("en-US")} eligible points`
+            : "Waiting for the window"}
         </span>
-        {enName(match.home)} <span className="vs">×</span> {enName(match.away)}{" "}
-        <span className="clubdots" aria-hidden="true">
-          <i style={{ background: awayColors[0] }}></i>
-          <i style={{ background: awayColors[1] }}></i>
-        </span>
-      </h3>
-      <div className="fixture-kick">
-        <span className="countchip">
-          <Icon id="i-zap" />
-          {windowOpen ? (
-            <>
-              window closes <Countdown target={match.window_end_utc} />
-            </>
-          ) : (
-            <>
-              kickoff <Countdown target={match.kickoff_utc} /> — points close at the whistle
-            </>
-          )}
-        </span>
-        <span className="achip">{enName(match.competition)}</span>
       </div>
-      <div className="fixture-pool">
-        <b>Points live</b> on this match · matchday pays{" "}
-        <b>{match.pool_chz.toLocaleString("en-US")} CHZ</b> from the pot
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "28px 1.4fr 68px 84px 52px 108px",
+          gap: 10,
+          padding: "0 8px 12px",
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: ".05em",
+          textTransform: "uppercase",
+          color: "var(--fg-muted)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <div>#</div>
+        <div>Trader</div>
+        <div style={{ textAlign: "right" }}>Role</div>
+        <div style={{ textAlign: "right" }}>Swaps</div>
+        <div style={{ textAlign: "right" }}>Points</div>
+        <div style={{ textAlign: "right" }}>Est. payout</div>
       </div>
-      <p className="fixture-tokens">
-        Tokens counted: <b>{tokens.join(" · ")}</b> — automatic on-chain attribution on Kayen.
-      </p>
-      <div className="fixture-venues">
-        <a className="btn primary sm" href={kayenUrl} target="_blank" rel="noopener noreferrer">
-          Trade on Kayen
-        </a>
-        {okxInsts.length > 0 ? (
-          <a
-            className="btn secondary sm"
-            href={VENUE_TRADE_URL.okx(okxInsts[0])}
-            target="_blank"
-            rel="noopener noreferrer"
+
+      {top.length === 0 ? (
+        <div
+          style={{
+            padding: "28px 8px",
+            fontSize: 14,
+            fontWeight: 500,
+            color: "var(--ink-soft)",
+            lineHeight: 1.55,
+          }}
+        >
+          The matchday window hasn&apos;t produced scored trades yet. Trade on Kayen inside the
+          window to appear here.
+        </div>
+      ) : (
+        top.map((entry, i) => {
+          const isMaker = entry.makerNetAddUsd > Math.abs(entry.netTakerUsd);
+          const initial = (entry.display.replace(/^0x/, "")[0] || "?").toUpperCase();
+          const avatarBg = AVATAR_COLORS[i % AVATAR_COLORS.length];
+          return (
+            <div
+              key={entry.address}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "28px 1.4fr 68px 84px 52px 108px",
+                gap: 10,
+                alignItems: "center",
+                padding: "14px 8px",
+                borderRadius: 8,
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--fg-muted)" }}>
+                {String(entry.rank).padStart(2, "0")}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 9999,
+                    background: avatarBg,
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    flex: "none",
+                  }}
+                >
+                  {initial}
+                </div>
+                <span
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 14,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={entry.address}
+                >
+                  {entry.display}
+                </span>
+              </div>
+              <div
+                style={{
+                  textAlign: "right",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {isMaker ? "Maker" : "Taker"}
+              </div>
+              <div
+                style={{
+                  textAlign: "right",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {entry.swaps}
+              </div>
+              <div style={{ textAlign: "right", fontWeight: 700, fontSize: 14 }}>
+                {Math.floor(entry.points).toLocaleString("en-US")}
+              </div>
+              <div
+                style={{
+                  textAlign: "right",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  color: "var(--fg)",
+                }}
+              >
+                {entry.projectedChz >= 1
+                  ? `${Math.floor(entry.projectedChz).toLocaleString("en-US")} CHZ`
+                  : "—"}
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "28px 1.4fr 68px 84px 52px 108px",
+          gap: 10,
+          alignItems: "center",
+          padding: "14px 8px",
+          borderRadius: 8,
+          background: "var(--blue-50)",
+          marginTop: top.length > 0 ? 0 : 8,
+        }}
+      >
+        <div style={{ fontWeight: 700, fontSize: 14, color: "var(--brand)" }}>—</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 9999,
+              background: "var(--brand)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 700,
+              flex: "none",
+            }}
           >
-            OKX
-          </a>
-        ) : (
-          <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-            OKX
-          </span>
-        )}
-        {binanceInsts.length > 0 ? (
-          <a
-            className="btn secondary sm"
-            href={VENUE_TRADE_URL.binance(binanceInsts[0])}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Binance
-          </a>
-        ) : (
-          <span className="btn secondary sm" aria-disabled="true" style={{ opacity: 0.55, cursor: "default" }}>
-            Binance
-          </span>
-        )}
-        {hasVolume ? (
-          <span className="fixture-note">
-            Window volume — Kayen {fmtUsd(onchainUsd)}
-            {venueUsd.okx !== undefined ? ` · OKX ${fmtUsd(venueUsd.okx)}` : ""}
-            {venueUsd.binance !== undefined ? ` · Binance ${fmtUsd(venueUsd.binance)}` : ""}.
-            Kayen counts wallet by wallet; exchanges count by venue.
-          </span>
-        ) : (
-          <span className="fixture-note">
-            Keep trading where you trade — Rodada counts Kayen wallet by wallet and tracks OKX /
-            Binance volume live.
-          </span>
-        )}
+            Y
+          </div>
+          <span style={{ fontWeight: 600, fontSize: 14, color: "var(--brand)" }}>You</span>
+        </div>
+        <div />
+        <div />
+        <div style={{ textAlign: "right", fontWeight: 700, fontSize: 14, color: "var(--brand)" }}>
+          0
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <Link href="/entrar" style={{ fontWeight: 600, fontSize: 13, color: "var(--brand)" }}>
+            Claim wallet
+          </Link>
+        </div>
+      </div>
+
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 500,
+          color: "var(--fg-muted)",
+          marginTop: 14,
+          padding: "0 8px",
+        }}
+      >
+        Estimated payout updates as the pot and leaderboard change.
       </div>
     </div>
   );
@@ -281,273 +292,916 @@ export default async function Home() {
     : { entries: [], totalPoints: 0, payablePoints: 0, wallets: 0 };
   const cexVenues = match ? getCexVolume(match.id) : [];
   const onchainUsd = match ? getOnchainVolume(match.id) : 0;
-  const chz = await getChzPrice();
-  const venueUsd = Object.fromEntries(cexVenues.map((v) => [v.venue, v.quoteUsd])) as Record<
-    string,
-    number
-  >;
+  const totalVenueUsd =
+    onchainUsd + cexVenues.reduce((s, v) => s + (Number.isFinite(v.quoteUsd) ? v.quoteUsd : 0), 0);
+
+  const homeName = match ? enName(match.home) : "—";
+  const awayName = match ? enName(match.away) : "—";
+  const homeColors = (match && CLUB_NAME_COLORS[match.home]) || ["#0076F4", "#16212E"];
+  const awayColors = (match && CLUB_NAME_COLORS[match.away]) || ["#C52613", "#0a0a0a"];
+  const tokens = match ? (JSON.parse(match.tokens) as string[]) : [];
+  const windowOpen = match
+    ? new Date(match.window_start_utc).getTime() <= Date.now() &&
+      Date.now() < new Date(match.window_end_utc).getTime()
+    : false;
+
+  const eligiblePoints = Math.floor(board.totalPoints);
 
   return (
-    <>
-      <div className="ticker" aria-label="Matchday now">
-        <div className="lane">
-          {[0, 1].map((i) => (
-            <span key={i} style={{ display: "contents" }}>
-              <span className="item">
-                <span className="live-dot"></span>
-                <b>Rodada live — on-chain counting on Kayen.</b>
-              </span>
-              {match ? (
-                <span className="item">
-                  {enName(match.home)} × {enName(match.away)}{" "}
-                  <b>
-                    <Countdown target={match.kickoff_utc} />
-                  </b>
-                </span>
-              ) : null}
-              <span className="item">
-                season pot{" "}
-                <b>
-                  <Num value={Math.floor(pot.potChzNow)} /> CHZ
-                </b>
-              </span>
-              <span className="item">
-                pace{" "}
-                <b>
-                  +<Num value={pot.dailyChz} /> CHZ/day
-                </b>
-              </span>
-              {board.wallets > 0 ? (
-                <span className="item">
-                  wallets scoring <b>{board.wallets}</b>
-                </span>
-              ) : null}
-              {chz ? (
-                <span className="item">
-                  CHZ{" "}
-                  <b className={chz.change24h >= 0 ? "up" : "down"}>
-                    ${chz.usd.toLocaleString("en-US", { maximumFractionDigits: 4 })} (
-                    {chz.change24h >= 0 ? "+" : ""}
-                    {chz.change24h.toLocaleString("en-US", { maximumFractionDigits: 1 })}%)
-                  </b>
-                </span>
-              ) : null}
-            </span>
-          ))}
+    <main>
+      {/* Hero copy */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 40px 36px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 40,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ maxWidth: 680 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: ".08em",
+                textTransform: "uppercase",
+                color: "var(--brand)",
+                marginBottom: 16,
+              }}
+            >
+              Open weekly league · Free entry
+            </div>
+            <h1
+              className="rd-h1"
+              style={{
+                fontSize: 52,
+                lineHeight: 1.03,
+                fontWeight: 800,
+                letterSpacing: "-.02em",
+                margin: "0 0 16px",
+                textTransform: "uppercase",
+              }}
+            >
+              Trade the match.
+              <br />
+              Share the pot.
+            </h1>
+            <p
+              style={{
+                fontSize: 18,
+                lineHeight: 1.6,
+                fontWeight: 500,
+                color: "var(--ink-soft)",
+                margin: 0,
+                maxWidth: 560,
+              }}
+            >
+              Connect once, trade eligible Fan Tokens inside published match windows, and earn a
+              share of Sunday&apos;s reward pool.
+            </p>
+          </div>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              padding: "8px 15px",
+              borderRadius: 9999,
+              background: "var(--green-50)",
+              color: "var(--green-500)",
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 9999,
+                background: "var(--green-500)",
+                animation: "rd-pulse 1.6s ease-in-out infinite",
+              }}
+            />
+            {board.wallets > 0
+              ? `${board.wallets.toLocaleString("en-US")} traders scoring`
+              : "Live on-chain counting"}
+          </span>
         </div>
-      </div>
+      </section>
 
-      <main className="wrap">
-        <section className="hero" id="pot">
-          <div className="hero-copy">
-            <span className="eyebrow">Matchday Markets · 2026 season</span>
-            <h1>Trade the match. Share the pot.</h1>
-            <p className="lede">
-              Score points by trading your club&apos;s fan token on match day — on Kayen, OKX, or
-              Binance. Rodada measures skill, ranks the board, and pays from a pot that grows every
-              day.
-            </p>
-            <div className="hero-actions">
-              <a className="btn primary" href="#match">
-                Join this matchday
-                <Icon id="i-arrow" />
-              </a>
-              <Link className="btn secondary" href="/regras">
-                How scoring works
-              </Link>
+      {/* Pot + fixture */}
+      <section
+        id="pot"
+        className="rd-hero-grid"
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "0 40px 24px",
+          display: "grid",
+          gridTemplateColumns: "1.5fr 1fr",
+          gap: 24,
+          alignItems: "stretch",
+        }}
+      >
+        {/* Navy pot card */}
+        <div
+          style={{
+            background: "var(--blue-ink)",
+            borderRadius: 16,
+            padding: 32,
+            color: "#fff",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              marginBottom: 28,
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 9,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: ".08em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,.65)",
+              }}
+            >
+              <span
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: 2,
+                  background: "var(--lime-500)",
+                  transform: "rotate(45deg)",
+                }}
+              />
+              Weekly reward pool
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: ".04em",
+                  padding: "5px 11px",
+                  borderRadius: 9999,
+                  border: "1px solid rgba(255,255,255,.16)",
+                  color: "rgba(255,255,255,.75)",
+                }}
+              >
+                Funding verified
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: ".04em",
+                  padding: "5px 11px",
+                  borderRadius: 9999,
+                  border: "1px solid rgba(255,255,255,.16)",
+                  color: "rgba(255,255,255,.75)",
+                }}
+              >
+                Free entry
+              </span>
             </div>
           </div>
 
-          <div className="hero-grid">
-            <div className="pot-card">
-              <span className="eyebrow">Season target pot · pilot beta</span>
-              <div className="pot-label">Growing every second</div>
-              <PotCounter potChz={pot.potChzNow} dailyChz={pot.dailyChz} asOf={pot.asOf} />
-              <div className="pot-meta">
-                <div className="pot-stat">
-                  <div className="k">Daily pace</div>
-                  <div className="v">+{pot.dailyChz.toLocaleString("en-US")} CHZ</div>
-                </div>
-                {match ? (
-                  <div className="pot-stat">
-                    <div className="k">This matchday</div>
-                    <div className="v">{match.pool_chz.toLocaleString("en-US")} CHZ</div>
-                  </div>
-                ) : (
-                  <div className="pot-stat">
-                    <div className="k">Entry</div>
-                    <div className="v">Free</div>
-                  </div>
-                )}
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "rgba(255,255,255,.6)",
+              marginBottom: 18,
+            }}
+          >
+            The pot keeps growing until the weekly close.
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: 14,
+              marginBottom: 20,
+              flexWrap: "wrap",
+            }}
+          >
+            <PotCounter potChz={pot.potChzNow} dailyChz={pot.dailyChz} asOf={pot.asOf} />
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: "var(--lime-500)",
+                paddingBottom: 6,
+              }}
+            >
+              CHZ
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              paddingBottom: 24,
+              marginBottom: 24,
+              borderBottom: "1px solid rgba(255,255,255,.12)",
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--green-300)",
+              }}
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 19V5" />
+                <path d="m5 12 7-7 7 7" />
+              </svg>
+              +{pot.dailyChz.toLocaleString("en-US")} CHZ today
+            </span>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: ".06em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,.5)",
+              }}
+            >
+              {match ? (
+                <>
+                  {windowOpen ? "Window closes · " : "Kickoff · "}
+                  <Countdown target={windowOpen ? match.window_end_utc : match.kickoff_utc} />
+                </>
+              ) : (
+                "Season pot · pilot beta"
+              )}
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: 20,
+              alignItems: "center",
+              marginTop: "auto",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,.5)",
+                  marginBottom: 8,
+                }}
+              >
+                {match
+                  ? `This matchday pool · ${match.pool_chz.toLocaleString("en-US")} CHZ`
+                  : "Season target pot"}
               </div>
-              <div className="pot-cta">
-                <Link className="btn gold" href="/entrar">
-                  Claim your wallet
-                </Link>
-                <a className="btn ghost" href="#board">
-                  View board
+              <div
+                style={{
+                  fontSize: 32,
+                  fontWeight: 800,
+                  letterSpacing: "-.01em",
+                  lineHeight: 1,
+                  marginBottom: 8,
+                }}
+              >
+                {match ? match.pool_chz.toLocaleString("en-US") : Math.floor(pot.potChzNow).toLocaleString("en-US")}{" "}
+                <span style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>
+                  CHZ
+                </span>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,.5)" }}>
+                {eligiblePoints > 0
+                  ? `${eligiblePoints.toLocaleString("en-US")} eligible points on the board`
+                  : "Free entry — score by trading where you already trade"}
+              </div>
+            </div>
+            <Link
+              href="/entrar"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                background: "var(--lime-500)",
+                color: "var(--lime-ink)",
+                borderRadius: 12,
+                padding: "16px 20px",
+                minWidth: 180,
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 700 }}>Get into this week&apos;s payout</span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  opacity: 0.8,
+                }}
+              >
+                Join the weekly pot{" "}
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Fixture card */}
+        <div
+          id="match"
+          style={{
+            background: "#fff",
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            padding: 28,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 6,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: ".08em",
+                textTransform: "uppercase",
+                color: "var(--fg-muted)",
+              }}
+            >
+              {windowOpen ? "Window open — scoring live" : "Next eligible fixture"}
+            </div>
+            {match ? (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
+                  color: "var(--fg-subtle)",
+                  border: "1px solid var(--border)",
+                  padding: "3px 8px",
+                  borderRadius: 9999,
+                }}
+              >
+                {enName(match.competition)}
+              </span>
+            ) : null}
+          </div>
+
+          {match ? (
+            <>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--ink-soft)",
+                  marginBottom: 24,
+                }}
+              >
+                {enName(match.competition)}{" "}
+                <span style={{ color: "var(--fg-muted)", fontWeight: 500 }}>
+                  · Kickoff <Countdown target={match.kickoff_utc} />
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto 1fr",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 24,
+                }}
+              >
+                <ClubBadge name={homeName} colors={homeColors} />
+                <div
+                  style={{
+                    color: "var(--fg-muted)",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    letterSpacing: ".1em",
+                  }}
+                >
+                  VS
+                </div>
+                <ClubBadge name={awayName} colors={awayColors} />
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <div
+                  style={{
+                    height: 6,
+                    borderRadius: 9999,
+                    background: "var(--neutral-100)",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: windowOpen ? "55%" : "22%",
+                      borderRadius: 9999,
+                      background: "var(--brand)",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: windowOpen ? "55%" : "22%",
+                      top: "50%",
+                      transform: "translate(-50%,-50%)",
+                      width: 12,
+                      height: 12,
+                      borderRadius: 9999,
+                      background: "#fff",
+                      boxShadow: "0 0 0 3px var(--brand)",
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginTop: 9,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: ".08em",
+                    textTransform: "uppercase",
+                    color: "var(--fg-muted)",
+                  }}
+                >
+                  <span>Pre-match</span>
+                  <span style={{ color: "var(--brand)" }}>Trade window</span>
+                  <span>Post-match</span>
+                </div>
+              </div>
+              <div
+                style={{
+                  marginTop: "auto",
+                  background: "var(--bg-muted)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 11,
+                  padding: "14px 16px",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  fontWeight: 500,
+                  color: "var(--ink-soft)",
+                }}
+              >
+                Only trades placed inside the blue window count toward points.
+                {tokens.length > 0 ? (
+                  <>
+                    {" "}
+                    Tokens: <b style={{ color: "var(--fg)" }}>{tokens.join(" · ")}</b>.
+                  </>
+                ) : null}
+                {totalVenueUsd > 0 ? (
+                  <> Window volume so far: <b style={{ color: "var(--fg)" }}>
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      notation: "compact",
+                      maximumFractionDigits: 1,
+                    }).format(totalVenueUsd)}
+                  </b>.</>
+                ) : null}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+                <a
+                  className="btn primary sm"
+                  href="https://app.kayen.org/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Trade on Kayen
                 </a>
+                <Link className="btn secondary sm" href="/entrar">
+                  Claim wallet
+                </Link>
               </div>
+            </>
+          ) : (
+            <div style={{ marginTop: 24, fontSize: 15, fontWeight: 500, color: "var(--ink-soft)" }}>
+              Calendar being prepared. Featured fixtures land here as soon as the next matchday
+              window is set.
             </div>
+          )}
+        </div>
+      </section>
 
-            <FixtureCard match={match} cexVenues={cexVenues} onchainUsd={onchainUsd} />
+      {/* Standings + verify */}
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 40px" }}>
+        <div style={{ marginBottom: 32 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              textTransform: "uppercase",
+              color: "var(--brand)",
+              marginBottom: 12,
+            }}
+          >
+            Live weekly standings
           </div>
-        </section>
+          <h2
+            style={{
+              fontSize: 34,
+              fontWeight: 700,
+              letterSpacing: "-.01em",
+              lineHeight: 1.1,
+              margin: 0,
+              textTransform: "uppercase",
+            }}
+          >
+            Every point increases your share
+          </h2>
+        </div>
 
-        <section className="venue-strip">
-          <div className="sechead">
-            <div>
-              <span className="eyebrow">Venues</span>
-              <h2>Keep trading where you trade</h2>
-            </div>
-            <span className="note">Rodada counts · venues execute</span>
-          </div>
-          <div className="venue-grid">
-            <div className="venue-card">
-              <div className="vh">
-                <span className="logo">K</span>
-                <span className="name">Kayen</span>
-                <span className="status">
-                  <span className="badge ok">Live</span>
-                </span>
-              </div>
-              <p>On-chain swaps &amp; liquidity on Chiliz Chain — wallet-by-wallet scoring.</p>
-              <div className="vol">{onchainUsd > 0 ? fmtUsd(onchainUsd) : "—"} window vol</div>
-            </div>
-            <div className="venue-card">
-              <div className="vh">
-                <span className="logo okx">OKX</span>
-                <span className="name">OKX</span>
-                <span className="status">
-                  <span className="badge mid">Volume</span>
-                </span>
-              </div>
-              <p>Live venue volume on matchday pairs. Per-trader keys land next.</p>
-              <div className="vol">
-                {venueUsd.okx !== undefined ? fmtUsd(venueUsd.okx) : "—"} window vol
-              </div>
-            </div>
-            <div className="venue-card">
-              <div className="vh">
-                <span className="logo bin">BN</span>
-                <span className="name">Binance</span>
-                <span className="status">
-                  <span className="badge mid">Volume</span>
-                </span>
-              </div>
-              <p>Spot volume tracked in the window. Individual scoring via read-only API soon.</p>
-              <div className="vol">
-                {venueUsd.binance !== undefined ? fmtUsd(venueUsd.binance) : "—"} window vol
-              </div>
-            </div>
-          </div>
-        </section>
+        <div
+          className="rd-standings-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.55fr 1fr",
+            gap: 24,
+            alignItems: "start",
+          }}
+        >
+          <StandingsTable entries={board.entries} wallets={board.wallets} />
 
-        <section className="share-band">
-          <LeaderboardPanel
-            entries={board.entries}
-            totalPoints={board.totalPoints}
-            wallets={board.wallets}
-            match={match}
-          />
-
-          <div className="panel dark">
-            <div className="ph">
-              <Icon id="i-shield" lg />
-              <h3>Choose how Rodada verifies your trades</h3>
+          <div
+            style={{
+              background: "var(--blue-ink)",
+              borderRadius: 16,
+              padding: 28,
+              color: "#fff",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: ".08em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,.55)",
+                marginBottom: 14,
+              }}
+            >
+              Open to everyone
             </div>
-            <p style={{ fontSize: 13.5, marginTop: 6, lineHeight: 1.55 }}>
-              No custody. No order execution. Link once — we only measure what you already trade.
+            <h3 style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, margin: "0 0 12px" }}>
+              Choose how Rodada verifies your trades
+            </h3>
+            <p
+              style={{
+                fontSize: 14,
+                lineHeight: 1.6,
+                fontWeight: 500,
+                color: "rgba(255,255,255,.6)",
+                margin: "0 0 24px",
+              }}
+            >
+              No deposit and no entry fee. Connect once, then keep trading where you already trade.
             </p>
-            <div className="verify-list">
-              <div className="verify-item">
-                <span className="mark">0x</span>
-                <div className="t">
-                  <b>Wallet signature</b>
-                  <span>Instant · Kayen / Chiliz Chain</span>
-                </div>
-              </div>
-              <div className="verify-item">
-                <span className="mark">API</span>
-                <div className="t">
-                  <b>Read-only exchange key</b>
-                  <span>OKX · Binance — coming next</span>
-                </div>
-              </div>
-            </div>
-            <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link className="btn gold" href="/entrar">
-                Claim &amp; verify
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Link
+                href="/entrar"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  background: "rgba(255,255,255,.06)",
+                  border: "1px solid rgba(255,255,255,.1)",
+                  borderRadius: 12,
+                  padding: 16,
+                  color: "#fff",
+                }}
+              >
+                <span
+                  style={{
+                    width: 40,
+                    height: 40,
+                    flex: "none",
+                    borderRadius: 10,
+                    background: "rgba(255,255,255,.08)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 3 5 5.9v4.8c0 4.2 2.9 6.9 7 8.3 4.1-1.4 7-4.1 7-8.3V5.9L12 3Z" />
+                    <path d="m9 11.6 2.1 2.1L15.2 9" />
+                  </svg>
+                </span>
+                <span style={{ flex: 1 }}>
+                  <span style={{ display: "block", fontWeight: 600, fontSize: 15, color: "#fff" }}>
+                    Verify a wallet
+                  </span>
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      color: "rgba(255,255,255,.55)",
+                      marginTop: 2,
+                    }}
+                  >
+                    Sign a message. No approval.
+                  </span>
+                </span>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="rgba(255,255,255,.5)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
               </Link>
-              <Link className="btn secondary" href="/regras">
-                Scoring rules
-              </Link>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  background: "rgba(255,255,255,.06)",
+                  border: "1px solid rgba(255,255,255,.1)",
+                  borderRadius: 12,
+                  padding: 16,
+                  opacity: 0.75,
+                }}
+              >
+                <span
+                  style={{
+                    width: 40,
+                    height: 40,
+                    flex: "none",
+                    borderRadius: 10,
+                    background: "rgba(255,255,255,.08)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                  }}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M2.4 12S5.8 6 12 6s9.6 6 9.6 6-3.4 6-9.6 6S2.4 12 2.4 12Z" />
+                    <circle cx="12" cy="12" r="2.4" />
+                  </svg>
+                </span>
+                <span style={{ flex: 1 }}>
+                  <span style={{ display: "block", fontWeight: 600, fontSize: 15, color: "#fff" }}>
+                    Connect a CEX account
+                  </span>
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      color: "rgba(255,255,255,.55)",
+                      marginTop: 2,
+                    }}
+                  >
+                    Read-only API access — OKX · Binance next.
+                  </span>
+                </span>
+              </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section id="scoring">
-          <div className="sechead">
-            <div>
-              <span className="eyebrow">Matchday Ledger</span>
-              <h2>Open access. Earned status.</h2>
-            </div>
-            <span className="note">one formula · everyone</span>
+      {/* Math strip */}
+      <section
+        className="rd-math-grid"
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "0 40px 72px",
+          display: "grid",
+          gridTemplateColumns: "1.55fr 1fr",
+          gap: 24,
+          alignItems: "stretch",
+        }}
+      >
+        <div
+          style={{
+            background: "var(--bg-muted)",
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            padding: 28,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              textTransform: "uppercase",
+              color: "var(--fg-muted)",
+              marginBottom: 22,
+            }}
+          >
+            How the weekly payout is calculated
           </div>
-          <p className="secsub">
-            Points for really trading on match day — never for predictions. This is not betting:
-            Rodada doesn&apos;t pay out on match results.
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 120,
+                background: "#fff",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                padding: 18,
+              }}
+            >
+              <div style={{ fontSize: 30, fontWeight: 800, color: "var(--fg)" }}>pts</div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: ".05em",
+                  textTransform: "uppercase",
+                  color: "var(--fg-muted)",
+                  marginTop: 4,
+                }}
+              >
+                Your points
+              </div>
+            </div>
+            <span style={{ fontSize: 22, fontWeight: 700, color: "var(--fg-muted)" }}>÷</span>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 120,
+                background: "#fff",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                padding: 18,
+              }}
+            >
+              <div style={{ fontSize: 30, fontWeight: 800, color: "var(--fg)" }}>
+                {eligiblePoints > 0 ? eligiblePoints.toLocaleString("en-US") : "Σ"}
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: ".05em",
+                  textTransform: "uppercase",
+                  color: "var(--fg-muted)",
+                  marginTop: 4,
+                }}
+              >
+                All points
+              </div>
+            </div>
+            <span style={{ fontSize: 22, fontWeight: 700, color: "var(--fg-muted)" }}>×</span>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 120,
+                background: "#fff",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                padding: 18,
+              }}
+            >
+              <div style={{ fontSize: 30, fontWeight: 800, color: "var(--fg)" }}>
+                {match
+                  ? match.pool_chz >= 1000
+                    ? `${(match.pool_chz / 1000).toFixed(match.pool_chz % 1000 === 0 ? 0 : 1)}k`
+                    : match.pool_chz.toLocaleString("en-US")
+                  : `${(pot.potChzNow / 1_000_000).toFixed(2)}M`}
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: ".05em",
+                  textTransform: "uppercase",
+                  color: "var(--fg-muted)",
+                  marginTop: 4,
+                }}
+              >
+                Current pot
+              </div>
+            </div>
+          </div>
+          <div style={{ marginTop: 20, fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>
+            ={" "}
+            <span style={{ color: "var(--brand)" }}>
+              share of the pool by points
+            </span>{" "}
+            · skill × volume unlock
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "var(--brand)",
+            borderRadius: 16,
+            padding: 28,
+            color: "#fff",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}
+        >
+          <h3 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 12px" }}>Simple by design</h3>
+          <p
+            style={{
+              fontSize: 15,
+              lineHeight: 1.6,
+              fontWeight: 500,
+              color: "rgba(255,255,255,.9)",
+              margin: 0,
+            }}
+          >
+            No closed league, no assigned opponent, no lockout. Your verified trades inside the match
+            window are your result — that&apos;s the whole game.
           </p>
-
-          <div className="ladder">
-            <div className="ladder-step active">
-              <div className="k">Step 01</div>
-              <div className="t">Open entry</div>
-              <div className="d">Free. No deposit. Claim a wallet or wait for exchange keys.</div>
-            </div>
-            <div className="ladder-step">
-              <div className="k">Step 02</div>
-              <div className="t">Trade the fixture</div>
-              <div className="d">Buy or sell your club token inside the matchday window.</div>
-            </div>
-            <div className="ladder-step">
-              <div className="k">Step 03</div>
-              <div className="t">Skill × volume</div>
-              <div className="d">PnL skill score unlocked by real volume. Wipeouts score zero.</div>
-            </div>
-            <div className="ladder-step">
-              <div className="k">Step 04</div>
-              <div className="t">Share the pot</div>
-              <div className="d">Matchday pool + season pot. Points only — never match results.</div>
-            </div>
-          </div>
-
-          <div className="rules3" style={{ marginTop: 16 }}>
-            <div className="rule">
-              <Icon id="i-check" />
-              <span>
-                <b>Trade on match day.</b> Only what you really move counts — read from the chain,
-                nothing to install.
-              </span>
-            </div>
-            <div className="rule">
-              <Icon id="i-drop" />
-              <span>
-                <b>Skill × volume.</b> SkillScore = max(PnL% + 100, 0); points = SkillScore × (1 −
-                e<sup>−Volume/V</sup>
-                <sub>target</sub>). Volume unlocks how much skill counts.
-              </span>
-            </div>
-            <div className="rule">
-              <Icon id="i-lock" />
-              <span>
-                <b>Total loss scores zero.</b> Skill floors at a wipeout (−100%). Anyone can check
-                the math — <Link href="/regras">scoring is open source</Link>.
-              </span>
-            </div>
-          </div>
-        </section>
-      </main>
-    </>
+        </div>
+      </section>
+    </main>
   );
 }

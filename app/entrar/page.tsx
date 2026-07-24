@@ -122,17 +122,17 @@ export default function JoinPage() {
 
   return (
     <main className="wrap">
-      <section style={{ maxWidth: 640, margin: "0 auto" }}>
-        <div className="sechead" style={{ marginTop: 40 }}>
+      <section style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 72 }}>
+        <div className="sechead" style={{ marginTop: 48 }}>
           <div>
             <span className="eyebrow">Free entry</span>
-            <h2>Join Rodada</h2>
+            <h2>Join this week</h2>
           </div>
         </div>
         <p className="secsub">
-          Matchday Markets already counts every Kayen trade inside matchday windows — your wallet is
-          probably already scoring. Claim it to appear under your name on the leaderboard and
-          receive prizes. Every claim is verified manually during the beta.
+          Rodada already counts every Kayen trade inside matchday windows — your wallet is probably
+          already scoring. Claim it to appear under your name on the leaderboard and receive prizes.
+          Every claim is verified manually during the beta.
         </p>
 
         {sigState === "verified" && verifiedAs ? (
@@ -233,23 +233,50 @@ export default function JoinPage() {
         )}
 
         <div className="panel dark" style={{ marginTop: 28 }}>
-          <div className="ph">
-            <Icon id="i-shield" lg />
-            <h3>Choose how Rodada verifies your trades</h3>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,.55)",
+              marginBottom: 12,
+            }}
+          >
+            Open to everyone
           </div>
-          <div className="verify-list">
-            <div className="verify-item">
-              <span className="mark">0x</span>
-              <div className="t">
-                <b>Wallet signature</b>
-                <span>Live now · Kayen / Chiliz Chain</span>
+          <h3 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 700 }}>
+            Choose how Rodada verifies your trades
+          </h3>
+          <p style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,.6)", margin: "0 0 18px", lineHeight: 1.55 }}>
+            No deposit and no entry fee. Connect once, then keep trading where you already trade.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div
+              style={{
+                background: "rgba(255,255,255,.06)",
+                border: "1px solid rgba(255,255,255,.1)",
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>Verify a wallet</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
+                Live now · Kayen / Chiliz Chain · sign a message, no approval
               </div>
             </div>
-            <div className="verify-item">
-              <span className="mark">API</span>
-              <div className="t">
-                <b>Read-only exchange key</b>
-                <span>OKX · Binance — no withdrawal rights, ever</span>
+            <div
+              style={{
+                background: "rgba(255,255,255,.06)",
+                border: "1px solid rgba(255,255,255,.1)",
+                borderRadius: 12,
+                padding: 16,
+                opacity: 0.8,
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>Connect a CEX account</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
+                Read-only API — OKX · Binance next
               </div>
             </div>
           </div>
