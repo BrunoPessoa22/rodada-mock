@@ -57,40 +57,14 @@ export function PotCounter({
   const chars = formatted.split("");
 
   return (
-    <div
-      style={{ display: "flex", alignItems: "center", gap: 5 }}
-      aria-label={`${value.toLocaleString("en-US")} CHZ`}
-    >
+    <div className="rd-digits" aria-label={`${value.toLocaleString("en-US")} CHZ`}>
       {chars.map((c, i) =>
         c === "," ? (
-          <span
-            key={`c-${i}`}
-            style={{
-              fontSize: 46,
-              fontWeight: 800,
-              color: "rgba(255,255,255,.5)",
-              lineHeight: 1,
-            }}
-          >
+          <span key={`c-${i}`} className="rd-comma">
             ,
           </span>
         ) : (
-          <span
-            key={`d-${i}-${c}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 44,
-              height: 60,
-              borderRadius: 10,
-              background: "rgba(255,255,255,.07)",
-              border: "1px solid rgba(255,255,255,.1)",
-              fontSize: 38,
-              fontWeight: 800,
-              color: "#fff",
-            }}
-          >
+          <span key={`d-${i}-${c}`} className="rd-digit">
             {c}
           </span>
         )

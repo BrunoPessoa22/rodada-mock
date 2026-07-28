@@ -40,8 +40,9 @@ function ClubBadge({ name, colors }: { name: string; colors: [string, string] })
           width: 54,
           height: 54,
           borderRadius: 9999,
-          background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`,
-          border: "2px solid var(--border)",
+          background: colors[0],
+          border: `3px solid ${colors[1]}`,
+          boxShadow: "0 0 0 1px var(--border)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -103,6 +104,7 @@ function StandingsTable({
       </div>
 
       <div
+        className="rd-board-row"
         style={{
           display: "grid",
           gridTemplateColumns: "28px 1.4fr 68px 84px 52px 108px",
@@ -118,8 +120,8 @@ function StandingsTable({
       >
         <div>#</div>
         <div>Trader</div>
-        <div style={{ textAlign: "right" }}>Role</div>
-        <div style={{ textAlign: "right" }}>Swaps</div>
+        <div className="rd-col-role" style={{ textAlign: "right" }}>Role</div>
+        <div className="rd-col-swaps" style={{ textAlign: "right" }}>Swaps</div>
         <div style={{ textAlign: "right" }}>Points</div>
         <div style={{ textAlign: "right" }}>Est. payout</div>
       </div>
@@ -149,6 +151,7 @@ function StandingsTable({
           return (
             <div
               key={entry.address}
+              className="rd-board-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "28px 1.4fr 68px 84px 52px 108px",
@@ -195,6 +198,7 @@ function StandingsTable({
                 </span>
               </div>
               <div
+                className="rd-col-role"
                 style={{
                   textAlign: "right",
                   fontWeight: 600,
@@ -205,6 +209,7 @@ function StandingsTable({
                 {isNewcomer ? "Ready" : isMaker ? "Maker" : "Taker"}
               </div>
               <div
+                className="rd-col-swaps"
                 style={{
                   textAlign: "right",
                   fontWeight: 600,
@@ -237,6 +242,7 @@ function StandingsTable({
       )}
 
       <div
+        className="rd-board-row"
         style={{
           display: "grid",
           gridTemplateColumns: "28px 1.4fr 68px 84px 52px 108px",
@@ -269,8 +275,8 @@ function StandingsTable({
           </div>
           <span style={{ fontWeight: 600, fontSize: 14, color: "var(--brand)" }}>You</span>
         </div>
-        <div />
-        <div />
+        <div className="rd-col-role" />
+        <div className="rd-col-swaps" />
         <div style={{ textAlign: "right", fontWeight: 700, fontSize: 14, color: "var(--brand)" }}>
           0
         </div>
@@ -324,7 +330,7 @@ export default async function Home() {
   return (
     <main>
       {/* Hero copy */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 40px 36px" }}>
+      <section className="rd-section" style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 40px 36px" }}>
         <div
           style={{
             display: "flex",
@@ -408,7 +414,7 @@ export default async function Home() {
       {/* Pot + fixture */}
       <section
         id="pot"
-        className="rd-hero-grid"
+        className="rd-hero-grid rd-section"
         style={{
           maxWidth: 1200,
           margin: "0 auto",
@@ -863,7 +869,7 @@ export default async function Home() {
       </section>
 
       {/* Standings + verify */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 40px" }}>
+      <section className="rd-section" style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 40px" }}>
         <div style={{ marginBottom: 32 }}>
           <div
             style={{
@@ -878,6 +884,7 @@ export default async function Home() {
             Live weekly standings
           </div>
           <h2
+            className="rd-h2"
             style={{
               fontSize: 34,
               fontWeight: 700,
@@ -1066,7 +1073,7 @@ export default async function Home() {
 
       {/* Math strip */}
       <section
-        className="rd-math-grid"
+        className="rd-math-grid rd-section"
         style={{
           maxWidth: 1200,
           margin: "0 auto",
@@ -1214,6 +1221,432 @@ export default async function Home() {
             No closed league, no assigned opponent, no lockout. Your verified trades inside the match
             window are your result — that&apos;s the whole game.
           </p>
+        </div>
+      </section>
+
+      {/* Connect band */}
+      <section
+        style={{
+          background: "var(--bg-muted)",
+          borderTop: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <div className="rd-section" style={{ maxWidth: 1200, margin: "0 auto", padding: "72px 40px" }}>
+          <div style={{ maxWidth: 640, marginBottom: 40 }}>
+            <div className="eyebrow" style={{ marginBottom: 14 }}>
+              Join once
+            </div>
+            <h2
+              className="rd-h2"
+              style={{
+                fontSize: 36,
+                fontWeight: 700,
+                letterSpacing: "-.01em",
+                lineHeight: 1.1,
+                margin: "0 0 14px",
+              }}
+            >
+              Keep trading where you already trade
+            </h2>
+            <p
+              style={{
+                fontSize: 16,
+                lineHeight: 1.6,
+                fontWeight: 500,
+                color: "var(--ink-soft)",
+                margin: 0,
+              }}
+            >
+              Connect a wallet or link a read-only exchange — you can disconnect at any time. Rodada
+              reads verified activity; it never executes trades or holds funds.
+            </p>
+          </div>
+          <div
+            className="rd-connect-grid"
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.1fr", gap: 16 }}
+          >
+            <div
+              style={{
+                background: "#fff",
+                border: "1px solid var(--border)",
+                borderRadius: 16,
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  background: "#fff",
+                  border: "1px solid var(--border-strong)",
+                  color: "var(--fg)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 18,
+                }}
+              >
+                <svg
+                  width="21"
+                  height="21"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3 5 5.9v4.8c0 4.2 2.9 6.9 7 8.3 4.1-1.4 7-4.1 7-8.3V5.9L12 3Z" />
+                  <path d="m9 11.6 2.1 2.1L15.2 9" />
+                </svg>
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
+                  color: "var(--fg-muted)",
+                  marginBottom: 6,
+                }}
+              >
+                DEX Wallet
+              </div>
+              <h3 style={{ fontSize: 19, fontWeight: 700, margin: "0 0 8px" }}>Verify a wallet</h3>
+              <p
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                  color: "var(--ink-soft)",
+                  margin: "0 0 18px",
+                }}
+              >
+                Sign a message to prove ownership. No transaction, no gas fee, no token approval.
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "5px 11px",
+                    borderRadius: 9999,
+                    background: "var(--bg-muted)",
+                    border: "1px solid var(--border)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  Chiliz Chain
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "5px 11px",
+                    borderRadius: 9999,
+                    background: "var(--bg-muted)",
+                    border: "1px solid var(--border)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  Live now
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "#fff",
+                border: "1px solid var(--border)",
+                borderRadius: 16,
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  background: "#fff",
+                  border: "1px solid var(--border-strong)",
+                  color: "var(--fg)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 18,
+                }}
+              >
+                <svg
+                  width="21"
+                  height="21"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2.4 12S5.8 6 12 6s9.6 6 9.6 6-3.4 6-9.6 6S2.4 12 2.4 12Z" />
+                  <circle cx="12" cy="12" r="2.4" />
+                </svg>
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
+                  color: "var(--fg-muted)",
+                  marginBottom: 6,
+                }}
+              >
+                CEX Account
+              </div>
+              <h3 style={{ fontSize: 19, fontWeight: 700, margin: "0 0 8px" }}>Link an exchange</h3>
+              <p
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                  color: "var(--ink-soft)",
+                  margin: "0 0 18px",
+                }}
+              >
+                Create a read-only connection. We only inspect verified trades — never withdraw or
+                move funds.
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "5px 11px",
+                    borderRadius: 9999,
+                    background: "var(--bg-muted)",
+                    border: "1px solid var(--border)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  OKX · Binance
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "5px 11px",
+                    borderRadius: 9999,
+                    background: "var(--bg-muted)",
+                    border: "1px solid var(--border)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  Next up
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "var(--blue-ink)",
+                borderRadius: 16,
+                padding: 24,
+                color: "#fff",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,.55)",
+                  marginBottom: 18,
+                }}
+              >
+                How the league works
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {[
+                  {
+                    n: "1",
+                    title: "Connect once",
+                    desc: "Verify ownership or set safe read-only permissions.",
+                  },
+                  {
+                    n: "2",
+                    title: "Trade the window",
+                    desc: "Only listed tokens inside published match windows count.",
+                  },
+                  {
+                    n: "3",
+                    title: "Score with profit",
+                    desc: "Volume qualifies you; verified P&L creates the result.",
+                  },
+                ].map((step) => (
+                  <div key={step.n} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        flex: "none",
+                        borderRadius: 9999,
+                        background: "rgba(255,255,255,.1)",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {step.n}
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 15,
+                          color: "#fff",
+                          marginBottom: 3,
+                        }}
+                      >
+                        {step.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          fontWeight: 500,
+                          color: "rgba(255,255,255,.6)",
+                        }}
+                      >
+                        {step.desc}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* League pathway */}
+      <section className="rd-section" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 40px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 40,
+            flexWrap: "wrap",
+            marginBottom: 40,
+          }}
+        >
+          <div style={{ maxWidth: 560 }}>
+            <div className="eyebrow" style={{ marginBottom: 14 }}>
+              Your route to the top division
+            </div>
+            <h2
+              className="rd-h2"
+              style={{
+                fontSize: 36,
+                fontWeight: 700,
+                letterSpacing: "-.01em",
+                lineHeight: 1.1,
+                margin: 0,
+              }}
+            >
+              Anyone can enter. Premier status is earned.
+            </h2>
+          </div>
+          <p
+            style={{
+              maxWidth: 400,
+              fontSize: 15,
+              lineHeight: 1.6,
+              fontWeight: 500,
+              color: "var(--ink-soft)",
+              margin: 0,
+            }}
+          >
+            The Open Arena keeps entry free. The 18-seat Premier League creates the rivalries,
+            promotion and sponsor-ready fixtures.
+          </p>
+        </div>
+        <div
+          className="rd-pathway-grid"
+          style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}
+        >
+          {[
+            {
+              kicker: "Open now",
+              title: "Open Arena",
+              desc: "Enter every eligible match window. Free, always on.",
+              dark: true,
+            },
+            {
+              kicker: "Qualify",
+              title: "Challenger Rank",
+              desc: "Build a verified performance record over matchdays.",
+              dark: false,
+            },
+            {
+              kicker: "18 seats",
+              title: "Premier League",
+              desc: "Weekly head-to-heads and a live season table.",
+              dark: false,
+            },
+            {
+              kicker: "Featured",
+              title: "Battle Nights",
+              desc: "Rivalries, teams and broadcast-ready moments.",
+              dark: false,
+            },
+          ].map((stage) => (
+            <div
+              key={stage.title}
+              style={{
+                borderRadius: 16,
+                padding: 22,
+                border: stage.dark ? "1px solid var(--blue-ink)" : "1px solid var(--border)",
+                background: stage.dark ? "var(--blue-ink)" : "#fff",
+                color: stage.dark ? "#fff" : "var(--fg)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                minHeight: 172,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: ".09em",
+                  textTransform: "uppercase",
+                  color: stage.dark ? "var(--lime-500)" : "var(--fg-muted)",
+                }}
+              >
+                {stage.kicker}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-.01em" }}>
+                {stage.title}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  fontWeight: 500,
+                  color: stage.dark ? "rgba(255,255,255,.6)" : "var(--ink-soft)",
+                  marginTop: "auto",
+                }}
+              >
+                {stage.desc}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </main>

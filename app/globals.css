@@ -1,13 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap');
-
 /* ============================================================
    FanTokens.com — Colors & Type
    Source of truth: fantokens.com UI Kit.fig (/colors, /branding)
-   Primary font: Poppins (local .ttf files in /fonts).
+   Primary font: Poppins (self-hosted woff2, /public/fonts).
    Atyp Display / Galano Grotesque in Figma fall back to Poppins.
    ============================================================ */
 
 /* --- Fonts: Poppins (self-hosted) ---------------------------- */
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/fonts/poppins-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/fonts/poppins-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("/fonts/poppins-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("/fonts/poppins-500-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("/fonts/poppins-600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("/fonts/poppins-600-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/fonts/poppins-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/fonts/poppins-700-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 800; font-display: swap;
+  src: url("/fonts/poppins-800-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 800; font-display: swap;
+  src: url("/fonts/poppins-800-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 
 :root {
   /* =========================================================
@@ -305,13 +333,6 @@
 .ft-typo a:hover { color:var(--link-hover); text-decoration:underline; }
 .ft-typo code { font-family:var(--font-mono); font-size:0.9em; background:var(--bg-muted); padding:1px 6px; border-radius:4px; }
 
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); font-family: var(--font-sans); color: var(--fg); -webkit-font-smoothing: antialiased; }
-  a { color: var(--link); text-decoration: none; }
-  a:hover { color: var(--link-hover); }
-  @keyframes rd-pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-
-
 html, body { margin: 0; padding: 0; }
 body {
   background: var(--bg);
@@ -391,12 +412,53 @@ button { font-family: inherit; }
   background: var(--blue-ink); color:#E8ECF5; border-radius:12px;
   padding:14px 16px; font-size:13px; overflow-x:auto; font-family:var(--font-mono); line-height:1.55;
 }
+
+/* ---- Pot digit tiles (split-flap from the Weekly Pot design) ---- */
+.rd-digits { display:flex; align-items:center; gap:5px; }
+.rd-digit {
+  display:flex; align-items:center; justify-content:center;
+  width:44px; height:60px; border-radius:10px;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1);
+  font-size:38px; font-weight:800; color:#fff;
+}
+.rd-comma { font-size:46px; font-weight:800; color:rgba(255,255,255,.5); line-height:1; }
+
+/* ---- Mobile header (hamburger + panel, from the Mobile design) ---- */
+.rd-burger {
+  display:none; width:38px; height:38px; border-radius:10px;
+  border:1px solid var(--border); background:#fff;
+  align-items:center; justify-content:center; cursor:pointer; padding:0; color:var(--fg);
+}
+.rd-mobile-panel {
+  display:none; position:absolute; top:100%; left:0; right:0;
+  background:#fff; border-bottom:1px solid var(--border); box-shadow:var(--shadow-lg);
+  padding:4px 20px 20px;
+}
+.rd-mobile-panel.open { display:block; }
+.rd-mlink {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:15px 0; border-bottom:1px solid var(--border);
+  color:var(--fg); font-weight:600; font-size:15px;
+}
+.rd-mlink:hover { color:var(--brand); }
+
 @media (max-width:960px){
   .rules3 { grid-template-columns:1fr; }
-  .rd-hero-grid, .rd-standings-grid, .rd-math-grid { grid-template-columns:1fr !important; }
-  .rd-nav { display:none !important; }
+  .rd-hero-grid, .rd-standings-grid, .rd-math-grid, .rd-connect-grid, .rd-pathway-grid { grid-template-columns:1fr !important; }
+  .rd-nav, .rd-actions { display:none !important; }
+  .rd-burger { display:flex; }
   .rd-h1 { font-size:36px !important; }
+  .rd-h2 { font-size:26px !important; }
+  .rd-header-inner { padding:0 20px !important; height:64px !important; }
+  .rd-section { padding-left:20px !important; padding-right:20px !important; }
+  .rd-digit { width:26px; height:38px; border-radius:7px; font-size:22px; }
+  .rd-comma { font-size:26px; }
   .wrap { padding:0 20px; }
+}
+
+@media (max-width:700px){
+  .rd-board-row { grid-template-columns:24px 1.3fr 44px 92px !important; }
+  .rd-col-role, .rd-col-swaps { display:none !important; }
 }
 
 /* ---- Join flow (Altug signup unification) ---- */

@@ -1,12 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { IconSprite } from "@/components/Icons";
+import { MobileNav } from "@/components/MobileNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Rodada — Fan Token Trading League",
   description:
     "Trade the match. Share the pot. Connect once, trade eligible Fan Tokens inside published match windows, and earn a share of the weekly reward pool.",
+  openGraph: {
+    title: "Rodada — Fan Token Trading League",
+    description:
+      "Trade the match. Share the pot. Connect once, trade eligible Fan Tokens inside published match windows, and earn a share of the weekly reward pool.",
+    siteName: "Rodada",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#16212E",
 };
 
 function BrandMark() {
@@ -51,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         >
           <div
+            className="rd-header-inner"
             style={{
               maxWidth: 1200,
               margin: "0 auto",
@@ -98,7 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 How it works
               </Link>
             </nav>
-            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div className="rd-actions" style={{ display: "flex", alignItems: "center", gap: 20 }}>
               <Link href="/entrar" style={{ color: "var(--fg)", fontSize: 14, fontWeight: 500 }}>
                 Sign in
               </Link>
@@ -123,6 +136,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </svg>
               </Link>
             </div>
+            <MobileNav />
           </div>
         </header>
         {children}
