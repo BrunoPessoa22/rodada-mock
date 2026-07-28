@@ -5,14 +5,14 @@ import { MobileNav } from "@/components/MobileNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Rodada — Fan Token Trading League",
+  title: "Trading League — Fan Tokens on Chiliz",
   description:
     "Trade the match. Share the pot. Connect once, trade eligible Fan Tokens inside published match windows, and earn a share of the weekly reward pool.",
   openGraph: {
-    title: "Rodada — Fan Token Trading League",
+    title: "Trading League — Fan Tokens on Chiliz",
     description:
       "Trade the match. Share the pot. Connect once, trade eligible Fan Tokens inside published match windows, and earn a share of the weekly reward pool.",
-    siteName: "Rodada",
+    siteName: "Trading League",
     type: "website",
   },
 };
@@ -78,7 +78,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, color: "inherit" }}>
               <BrandMark />
               <div style={{ lineHeight: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: ".01em" }}>Rodada</div>
+                <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: ".01em" }}>
+                  Trading League
+                </div>
                 <div
                   style={{
                     fontWeight: 600,
@@ -89,7 +91,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     marginTop: 3,
                   }}
                 >
-                  Fan Token Trading League
+                  Chiliz Fan Tokens
                 </div>
               </div>
             </Link>
@@ -176,7 +178,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 />
               </div>
               <span style={{ fontSize: 13, fontWeight: 500, color: "var(--fg-muted)", maxWidth: 440 }}>
-                Rodada measures eligible activity. It never executes trades or holds user funds.
+                The league measures eligible activity. It never executes trades or holds user funds.
               </span>
             </div>
             <div style={{ display: "flex", gap: 24, fontSize: 13, fontWeight: 500 }}>

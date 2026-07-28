@@ -314,7 +314,7 @@ export default function JoinPage() {
             Open to everyone
           </div>
           <h3 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 700 }}>
-            Choose how Rodada verifies your trades
+            Choose how the league verifies your trades
           </h3>
           <p
             style={{

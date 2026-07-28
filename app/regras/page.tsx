@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/Icons";
 
-export const metadata = { title: "How it works — Rodada" };
+export const metadata = { title: "How it works — Trading League" };
 
 export default function RulesPage() {
   return (
@@ -15,7 +15,7 @@ export default function RulesPage() {
         </div>
         <p className="secsub">
           Trade your club&apos;s token on match day, wherever you already trade — climb the
-          leaderboard and take a share of a pot that grows every day. Rodada never executes trades,
+          leaderboard and take a share of a pot that grows every day. The league never executes trades,
           never holds funds, never recommends. It measures, scores, and pays.
         </p>
 
@@ -66,7 +66,7 @@ points     = SkillScore × (1 − e^(−Volume / V_target))`}
             <div className="rule">
               <Icon id="i-lock" />
               <span>
-                <b>Prizes follow points, never predictions.</b> Rodada never pays out on sporting
+                <b>Prizes follow points, never predictions.</b> The league never pays out on sporting
                 results.
               </span>
             </div>
@@ -76,7 +76,7 @@ points     = SkillScore × (1 − e^(−Volume / V_target))`}
         <div className="panel" style={{ marginTop: 18 }}>
           <div className="ph">
             <Icon id="i-trend" lg />
-            <h3>Where Rodada counts today</h3>
+            <h3>Where the league counts today</h3>
           </div>
           <p className="gapline">
             <b>Kayen (Chiliz Chain)</b> — automatic, on-chain, and the only venue that scores

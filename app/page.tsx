@@ -935,7 +935,7 @@ export default async function Home() {
               Open to everyone
             </div>
             <h3 style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, margin: "0 0 12px" }}>
-              Choose how Rodada verifies your trades
+              Choose how the league verifies your trades
             </h3>
             <p
               style={{
@@ -1263,8 +1263,8 @@ export default async function Home() {
                 margin: 0,
               }}
             >
-              Connect a wallet or link a read-only exchange — you can disconnect at any time. Rodada
-              reads verified activity; it never executes trades or holds funds.
+              Connect a wallet or link a read-only exchange — you can disconnect at any time. The
+              league reads verified activity; it never executes trades or holds funds.
             </p>
           </div>
           <div

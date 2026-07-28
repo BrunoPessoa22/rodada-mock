@@ -8,7 +8,7 @@ import { getClient } from "./chain";
  */
 export function buildClaimMessage(handle: string, address: string, nonce: string): string {
   return [
-    "Rodada — Fan Token Trading League",
+    "Trading League — Chiliz Fan Tokens",
     "",
     `I confirm I am "${handle}" and this wallet is mine.`,
     `Eu confirmo que sou "${handle}" e esta carteira é minha.`,
