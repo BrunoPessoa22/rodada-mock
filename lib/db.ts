@@ -91,6 +91,18 @@ CREATE TABLE IF NOT EXISTS index_log (
   data     TEXT
 );
 
+CREATE TABLE IF NOT EXISTS payouts (
+  scope       TEXT NOT NULL,                         -- match slug, or 'season'
+  address     TEXT NOT NULL,                         -- identity primary wallet (full)
+  handle      TEXT NOT NULL,
+  points      REAL NOT NULL DEFAULT 0,
+  chz         REAL NOT NULL DEFAULT 0,               -- pro-rata CHZ owed
+  computed_at TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'computed',      -- computed | paid
+  tx_hash     TEXT,                                  -- set when disbursed on-chain
+  PRIMARY KEY (scope, address)
+);
+
 CREATE INDEX IF NOT EXISTS idx_scores_address ON scores(address);
 CREATE INDEX IF NOT EXISTS idx_claims_status  ON claims(status);
 `;
@@ -130,6 +142,12 @@ function migrate(d: Database.Database) {
 function seedSettings(d: Database.Database) {
   const insert = d.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
   for (const [key, value] of Object.entries(POT_DEFAULTS)) insert.run(key, value);
+  // funding_verified: '1' only once a real, funded prize source is confirmed —
+  // gates the "Funding verified" badge so the UI never claims funding it lacks.
+  insert.run("funding_verified", "0");
+  // season_pool_chz: the CHZ actually committed to the season board's pro-rata
+  // projection when no single match is active. 0 until funded.
+  insert.run("season_pool_chz", "0");
 }
 
 export function getSetting(key: string): string | null {

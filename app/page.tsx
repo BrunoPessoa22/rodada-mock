@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Countdown } from "@/components/Countdown";
 import { PotCounter } from "@/components/PotCounter";
+import { getSetting } from "@/lib/db";
 import { enName } from "@/lib/i18n";
 import { getPot } from "@/lib/pot";
 import {
@@ -306,10 +307,12 @@ function StandingsTable({
 
 export default async function Home() {
   const pot = getPot();
+  const fundingVerified = getSetting("funding_verified") === "1";
+  const seasonPoolChz = Number(getSetting("season_pool_chz") ?? 0);
   const match = getCurrentMatch() ?? null;
   const board = match
     ? getLeaderboard({ matchId: match.id, poolChz: match.pool_chz })
-    : getLeaderboard({ poolChz: 0 });
+    : getLeaderboard({ poolChz: seasonPoolChz });
   const cexVenues = match ? getCexVolume(match.id) : [];
   const onchainUsd = match ? getOnchainVolume(match.id) : 0;
   const totalVenueUsd =
@@ -470,19 +473,21 @@ export default async function Home() {
               Weekly reward pool
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: ".04em",
-                  padding: "5px 11px",
-                  borderRadius: 9999,
-                  border: "1px solid rgba(255,255,255,.16)",
-                  color: "rgba(255,255,255,.75)",
-                }}
-              >
-                Funding verified
-              </span>
+              {fundingVerified ? (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: ".04em",
+                    padding: "5px 11px",
+                    borderRadius: 9999,
+                    border: "1px solid rgba(255,255,255,.16)",
+                    color: "rgba(255,255,255,.75)",
+                  }}
+                >
+                  Funding verified
+                </span>
+              ) : null}
               <span
                 style={{
                   fontSize: 11,

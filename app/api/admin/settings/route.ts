@@ -3,7 +3,13 @@ import { setSetting } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_KEYS = new Set(["pot_base_chz", "pot_base_date", "pot_daily_chz"]);
+const ALLOWED_KEYS = new Set([
+  "pot_base_chz",
+  "pot_base_date",
+  "pot_daily_chz",
+  "season_pool_chz",
+  "funding_verified",
+]);
 
 export async function POST(request: Request) {
   const denied = requireAdmin(request);
