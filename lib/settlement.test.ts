@@ -84,4 +84,22 @@ describe("computeSettlement", () => {
     const n = (db.prepare("SELECT COUNT(*) AS n FROM payouts WHERE scope = 'm1'").get() as { n: number }).n;
     expect(n).toBe(2);
   });
+
+  it("never overwrites an already-paid row on re-settlement", () => {
+    const s = computeSettlement({ slug: "m1" });
+    recordSettlement(s);
+    // Mark alice paid at the settled amount, with a tx hash.
+    db.prepare(
+      "UPDATE payouts SET status = 'paid', tx_hash = '0xabc', chz = 750 WHERE scope = 'm1' AND handle = 'alice'"
+    ).run();
+    // Bob trades more, alice's share would recompute lower — re-settle.
+    db.prepare("UPDATE scores SET points = 40 WHERE address = ?").run(B);
+    recordSettlement(computeSettlement({ slug: "m1" }));
+    const alice = db
+      .prepare("SELECT status, tx_hash, chz FROM payouts WHERE scope = 'm1' AND handle = 'alice'")
+      .get() as { status: string; tx_hash: string; chz: number };
+    expect(alice.status).toBe("paid");
+    expect(alice.tx_hash).toBe("0xabc");
+    expect(alice.chz).toBe(750); // untouched by the recompute
+  });
 });

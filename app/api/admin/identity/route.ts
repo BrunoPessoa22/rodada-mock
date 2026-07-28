@@ -49,9 +49,34 @@ export async function POST(request: Request) {
   }
 
   const db = getDb();
-  // Ensure the wallet row exists (an unclaimed on-chain scorer may not be in
-  // wallets yet) and set its identity.
   db.prepare("INSERT OR IGNORE INTO wallets (address) VALUES (?)").run(address);
+
+  // Resolution is single-hop, so the identity graph MUST stay flat: identities
+  // are roots (identity_id NULL) and every other wallet links directly to a
+  // root. Reject anything that would build a chain or cycle — otherwise the
+  // merge silently fails to collapse a split (sybil survives) and even
+  // misattributes flow to the wrong address.
+  if (identityId !== null) {
+    const target = db
+      .prepare("SELECT identity_id FROM wallets WHERE address = ?")
+      .get(identityId) as { identity_id: string | null } | undefined;
+    if (target?.identity_id) {
+      return Response.json(
+        { error: "identity target is itself linked — link to its root identity instead" },
+        { status: 409 }
+      );
+    }
+    const dependents = db
+      .prepare("SELECT 1 FROM wallets WHERE identity_id = ? LIMIT 1")
+      .get(address);
+    if (dependents) {
+      return Response.json(
+        { error: "this wallet is already a root for other wallets — unlink those first" },
+        { status: 409 }
+      );
+    }
+  }
+
   const res = db
     .prepare("UPDATE wallets SET identity_id = ? WHERE address = ?")
     .run(identityId, address);

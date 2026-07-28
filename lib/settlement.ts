@@ -60,7 +60,8 @@ export function recordSettlement(settlement: Settlement): number {
        VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(scope, address) DO UPDATE SET
          handle = excluded.handle, points = excluded.points, chz = excluded.chz,
-         computed_at = excluded.computed_at`
+         computed_at = excluded.computed_at
+       WHERE payouts.status = 'computed'`
     );
     for (const r of settlement.rows) {
       insert.run(settlement.scope, r.address, r.handle, r.points, r.chz, nowIso);

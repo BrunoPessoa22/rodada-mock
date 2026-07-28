@@ -305,11 +305,16 @@ async function scoreMatchInner(slug: string): Promise<{ ok: boolean; reason?: st
       if (reserveToken > 0n) {
         pairPriceWchzPerTokenWei.set(info.pair, Number(reserveWchz) / Number(reserveToken));
       } else {
-        priceReadFailed = true;
+        // A drained/dead pool (0 token reserves) is a DETERMINISTIC state that
+        // won't recover on retry — marking held inventory at $0 is correct
+        // (it can't be sold into an empty pool) and must not block finalization
+        // forever. Leave the price unset and proceed.
+        logIndex("warn", `pair for ${symbol} has 0 token reserves — marking inventory at $0`, match.id);
       }
     } catch (error) {
-      // A failed read must NOT silently mark held inventory at $0 and freeze
-      // that into a finalized board — flag it and refuse to finalize below.
+      // A THROWN read is transient (RPC hiccup). Marking held inventory at $0
+      // and freezing that would be wrong, so flag it and refuse to finalize
+      // below until the read succeeds.
       priceReadFailed = true;
       logIndex("warn", `getReserves failed for ${symbol}`, match.id, { error: String(error) });
     }
