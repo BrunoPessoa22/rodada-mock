@@ -1,3 +1,4 @@
+import { validateHandle } from "@/lib/claims";
 import { getDb } from "@/lib/db";
 import { clientIp, rateLimited } from "@/lib/ratelimit";
 
@@ -25,8 +26,9 @@ export async function POST(request: Request) {
   if (typeof address !== "string" || !ADDRESS_RE.test(address)) {
     return Response.json({ error: "address must be a 0x… wallet address" }, { status: 400 });
   }
-  if (typeof handle !== "string" || handle.trim().length < 2 || handle.length > MAX_FIELD) {
-    return Response.json({ error: "handle must be 2-120 characters" }, { status: 400 });
+  const checkedHandle = validateHandle(handle);
+  if (!checkedHandle.ok) {
+    return Response.json({ error: checkedHandle.error }, { status: 400 });
   }
   const cleanVenue = typeof venue === "string" ? venue.slice(0, MAX_FIELD) : null;
   const cleanContact = typeof contact === "string" ? contact.slice(0, MAX_FIELD) : null;
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
 
   db.prepare("INSERT INTO claims (address, handle, venue, contact) VALUES (?, ?, ?, ?)").run(
     lower,
-    handle.trim(),
+    checkedHandle.handle,
     cleanVenue,
     cleanContact
   );

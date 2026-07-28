@@ -1,6 +1,24 @@
-import { getCurrentMatch, getLeaderboard, getMatchBySlug } from "@/lib/queries";
+import { getCurrentMatch, getLeaderboard, getMatchBySlug, shortAddress } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
+
+type Board = ReturnType<typeof getLeaderboard>;
+
+/**
+ * Public projection of a board. The stated privacy model is "the leaderboard
+ * shows only your chosen name; unclaimed addresses appear truncated" — so the
+ * API never emits full wallet addresses (which would re-link a handle to its
+ * entire on-chain history) or the self-declared venue.
+ */
+function publicBoard(board: Board) {
+  return {
+    ...board,
+    entries: board.entries.map(({ address, venue: _venue, ...rest }) => ({
+      ...rest,
+      address: shortAddress(address),
+    })),
+  };
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -9,7 +27,7 @@ export async function GET(request: Request) {
 
   if (scope === "season") {
     const board = getLeaderboard({ poolChz: 0 });
-    return Response.json({ scope: "season", match: null, ...board });
+    return Response.json({ scope: "season", match: null, ...publicBoard(board) });
   }
 
   const match = slug ? getMatchBySlug(slug) : getCurrentMatch();
@@ -20,6 +38,6 @@ export async function GET(request: Request) {
   return Response.json({
     scope: "match",
     match: { ...match, tokens: JSON.parse(match.tokens) as string[] },
-    ...board,
+    ...publicBoard(board),
   });
 }

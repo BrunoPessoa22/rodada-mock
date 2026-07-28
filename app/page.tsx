@@ -192,7 +192,7 @@ function StandingsTable({
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
                   }}
-                  title={`${entry.display} · ${entry.address}`}
+                  title={entry.display}
                 >
                   {entry.display}
                 </span>

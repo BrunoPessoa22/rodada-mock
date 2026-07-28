@@ -39,8 +39,17 @@ export async function POST(request: Request) {
 
   const cleanVenue = typeof venue === "string" ? venue.slice(0, MAX_FIELD) : null;
   const cleanContact = typeof contact === "string" ? contact.slice(0, MAX_FIELD) : null;
+  // Consume the nonce atomically: the conditional UPDATE is the single-use gate,
+  // so two concurrent verifies for the same nonce can't both write a wallet.
+  let alreadyUsed = false;
   const apply = db.transaction(() => {
-    db.prepare("UPDATE claim_nonces SET used = 1 WHERE nonce = ?").run(row.nonce);
+    const consumed = db
+      .prepare("UPDATE claim_nonces SET used = 1 WHERE nonce = ? AND used = 0")
+      .run(row.nonce);
+    if (consumed.changes !== 1) {
+      alreadyUsed = true;
+      return;
+    }
     db.prepare(
       `INSERT INTO claims (address, handle, venue, contact, status)
        VALUES (?, ?, ?, ?, 'approved')`
@@ -54,6 +63,9 @@ export async function POST(request: Request) {
     ).run(row.address, row.handle, cleanVenue, cleanContact);
   });
   apply();
+  if (alreadyUsed) {
+    return Response.json({ error: "challenge already used — request a new one" }, { status: 409 });
+  }
 
   return Response.json({ ok: true, verified: true, handle: row.handle, address: row.address });
 }
