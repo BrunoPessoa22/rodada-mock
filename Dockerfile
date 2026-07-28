@@ -17,6 +17,11 @@ ENV HOSTNAME=0.0.0.0
 # silently off because an env var was forgotten at the platform layer.
 ENV RUN_INDEXER=1
 RUN mkdir -p /app/data && chown node:node /app/data
+# The league DB lives here. Declare it a volume so a plain redeploy that recreates
+# the container does not wipe every claim, score and setting. In Coolify, bind
+# this to a persistent volume/host path — an anonymous volume still survives
+# redeploys but is not a substitute for a mapped, backed-up mount.
+VOLUME /app/data
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
