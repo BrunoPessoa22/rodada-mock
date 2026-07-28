@@ -7,6 +7,13 @@ export const ADMIN_TOKEN = process.env.ADMIN_TOKEN ?? "";
 
 export const RPC_URL = process.env.CHILIZ_RPC_URL ?? "https://rpc.chiliz.com";
 
+// Number of trusted reverse-proxy hops in front of the app (Traefik = 1). The
+// real client IP is the Nth entry from the RIGHT of X-Forwarded-For; anything
+// further left is client-supplied and must never be trusted for rate limiting.
+const rawHops = Number(process.env.TRUSTED_PROXY_HOPS ?? 1);
+export const TRUSTED_PROXY_HOPS =
+  Number.isFinite(rawHops) && rawHops >= 1 ? Math.floor(rawHops) : 1;
+
 // In-process indexer: polls open match windows and rescoring. Enabled only in
 // the deployed container (RUN_INDEXER=1) so `next dev` never double-counts.
 export const RUN_INDEXER = process.env.RUN_INDEXER === "1";

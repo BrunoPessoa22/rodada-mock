@@ -13,6 +13,10 @@ export function buildClaimMessage(handle: string, address: string, nonce: string
     `I confirm I am "${handle}" and this wallet is mine.`,
     `Eu confirmo que sou "${handle}" e esta carteira é minha.`,
     "",
+    // Domain + chain bind the signature to this site and Chiliz Chain, so it
+    // can't be replayed against another dapp or network.
+    "Domain: trading.brunopessoa.com",
+    "Chain: Chiliz (88888)",
     `Wallet: ${address.toLowerCase()}`,
     `Nonce: ${nonce}`,
   ].join("\n");

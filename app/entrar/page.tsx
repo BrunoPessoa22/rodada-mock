@@ -32,6 +32,7 @@ export default function JoinPage() {
   const [sigState, setSigState] = useState<SigState>("idle");
   const [sigError, setSigError] = useState<string>("");
   const [sigHandle, setSigHandle] = useState<string>("");
+  const [sigContact, setSigContact] = useState<string>("");
   const [verifiedAs, setVerifiedAs] = useState<{ handle: string; address: string } | null>(null);
 
   useEffect(() => {
@@ -79,7 +80,11 @@ export default function JoinPage() {
       const verifyRes = await fetch("/api/claims/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nonce: challenge.nonce, signature }),
+        body: JSON.stringify({
+          nonce: challenge.nonce,
+          signature,
+          contact: sigContact.trim() || undefined,
+        }),
       });
       const verify = (await verifyRes.json()) as {
         ok?: boolean;
@@ -197,6 +202,17 @@ export default function JoinPage() {
                     maxLength={40}
                     autoComplete="nickname"
                     onChange={(event) => setSigHandle(event.target.value)}
+                  />
+                </label>
+
+                <label>
+                  Contact for prizes — WhatsApp or Telegram (optional)
+                  <input
+                    placeholder="+55 …"
+                    value={sigContact}
+                    maxLength={80}
+                    autoComplete="off"
+                    onChange={(event) => setSigContact(event.target.value)}
                   />
                 </label>
 
