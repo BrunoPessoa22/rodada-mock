@@ -20,6 +20,11 @@ export async function POST(request: Request) {
       return Response.json({ error: `${name} is required` }, { status: 400 });
     }
   }
+  // pool_chz feeds payout math and an INTEGER column — reject NaN (a bare
+  // Number('x')), Infinity and negatives before they 500 or store garbage.
+  if (!Number.isFinite(pool_chz) || pool_chz < 0) {
+    return Response.json({ error: "pool_chz must be a non-negative number" }, { status: 400 });
+  }
   // Normalize every timestamp to canonical toISOString form — window logic
   // compares these lexicographically against toISOString values, so mixed
   // precision ('T21:00Z' vs 'T21:00:00.000Z') must never reach the DB.

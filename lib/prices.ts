@@ -18,9 +18,11 @@ async function refresh(): Promise<void> {
       chiliz?: { usd?: number; brl?: number; usd_24h_change?: number };
     };
     const c = body.chiliz;
-    if (!c?.usd || !c?.brl) return;
+    // USD is the leg scoring depends on; BRL is display-only, so a missing BRL
+    // quote must not throw away an otherwise-valid USD price.
+    if (!c?.usd) return;
     cache = {
-      price: { usd: c.usd, brl: c.brl, change24h: c.usd_24h_change ?? 0 },
+      price: { usd: c.usd, brl: c.brl ?? 0, change24h: c.usd_24h_change ?? 0 },
       fetchedAt: Date.now(),
     };
   } catch {

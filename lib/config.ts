@@ -10,7 +10,11 @@ export const RPC_URL = process.env.CHILIZ_RPC_URL ?? "https://rpc.chiliz.com";
 // In-process indexer: polls open match windows and rescoring. Enabled only in
 // the deployed container (RUN_INDEXER=1) so `next dev` never double-counts.
 export const RUN_INDEXER = process.env.RUN_INDEXER === "1";
-export const INDEXER_INTERVAL_MS = Number(process.env.INDEXER_INTERVAL_MS ?? 3 * 60 * 1000);
+// Clamp like the other interval configs: a malformed value must never produce a
+// sub-second tick storm against the RPC. Floor at 10s, default 3min.
+const rawIndexerMs = Number(process.env.INDEXER_INTERVAL_MS ?? 3 * 60 * 1000);
+export const INDEXER_INTERVAL_MS =
+  Number.isFinite(rawIndexerMs) && rawIndexerMs >= 10_000 ? Math.floor(rawIndexerMs) : 3 * 60 * 1000;
 
 // CEX venue-volume refresh cadence (piggybacks on the indexer loop). Coarser
 // than the 3-min scoring tick — venue volume is display data, and a full-window
