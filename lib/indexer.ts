@@ -12,7 +12,10 @@ import type { MatchRow } from "./queries";
  * belongs to a KYC group, else the address itself. Only wallets with a non-null
  * identity_id are remapped; everything else scores solo.
  */
-function resolveIdentities(db: ReturnType<typeof getDb>, addresses: string[]): Map<string, string> {
+export function resolveIdentities(
+  db: ReturnType<typeof getDb>,
+  addresses: string[]
+): Map<string, string> {
   const map = new Map<string, string>();
   const CHUNK = 400; // stay well under SQLite's bound-variable ceiling
   for (let i = 0; i < addresses.length; i += CHUNK) {

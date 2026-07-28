@@ -87,6 +87,22 @@ export default function AdminPage() {
     void refresh();
   }
 
+  async function linkIdentity(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const f = new FormData(event.currentTarget);
+    const identityRaw = String(f.get("identityId") ?? "").trim();
+    const res = await fetch("/api/admin/identity", {
+      method: "POST",
+      headers: auth(),
+      body: JSON.stringify({
+        address: String(f.get("address") ?? "").trim(),
+        identityId: identityRaw === "" ? null : identityRaw,
+      }),
+    });
+    setLog(`identity link: HTTP ${res.status} ${JSON.stringify(await res.json())}`);
+    void refresh();
+  }
+
   async function saveMatch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const f = new FormData(event.currentTarget);
@@ -206,7 +222,7 @@ export default function AdminPage() {
               </button>
             </div>
           ))}
-          <form className="adminform" onSubmit={saveMatch}>
+          <form className="adminform" onSubmit={saveMatch} style={{ marginBottom: 24 }}>
             <input name="slug" placeholder="slug (upsert key)" required />
             <input name="home" placeholder="home" required />
             <input name="away" placeholder="away" required />
@@ -220,7 +236,25 @@ export default function AdminPage() {
               <input type="checkbox" name="featured" /> featured (display only)
             </label>
             <button className="btn primary sm" type="submit">
-              salvar rodada
+              save match
+            </button>
+          </form>
+        </div>
+
+        <div className="panel">
+          <div className="ph">
+            <h3>Link wallets to one identity</h3>
+          </div>
+          <p className="gapline">
+            Sum a person&apos;s wallets under a single identity so splitting flow can&apos;t multiply
+            points. Set <b>identity</b> to their primary wallet; leave it blank to unlink. Rescore
+            the affected match afterwards.
+          </p>
+          <form className="adminform" onSubmit={linkIdentity}>
+            <input name="address" placeholder="wallet to link (0x…)" required />
+            <input name="identityId" placeholder="identity = primary wallet (0x…) — blank to unlink" />
+            <button className="btn primary sm" type="submit">
+              link identity
             </button>
           </form>
         </div>
