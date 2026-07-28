@@ -115,12 +115,26 @@ async function sendersFor(
   return cache;
 }
 
+/** Slugs currently being scored — prevents a rescore and an indexer tick from
+ * interleaving their scan+persist for the same match. */
+const scoringInFlight = new Set<string>();
+
 /**
  * Recompute a match window's scores from chain data. Deterministic full
  * recompute: anyone can rerun this against public Chiliz Chain logs plus
  * lib/scoring.ts and get the same leaderboard.
  */
 export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: string; wallets?: number }> {
+  if (scoringInFlight.has(slug)) return { ok: false, reason: "already scoring" };
+  scoringInFlight.add(slug);
+  try {
+    return await scoreMatchInner(slug);
+  } finally {
+    scoringInFlight.delete(slug);
+  }
+}
+
+async function scoreMatchInner(slug: string): Promise<{ ok: boolean; reason?: string; wallets?: number }> {
   const db = getDb();
   const match = db.prepare("SELECT * FROM matches WHERE slug = ?").get(slug) as MatchRow | undefined;
   if (!match) return { ok: false, reason: "match not found" };
@@ -209,8 +223,20 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
 
   let pairsScanned = 0;
   let eventsSeen = 0;
-  /** Score-time WCHZ-per-token-wei for each pair (from getReserves). */
+  /** WCHZ-per-token-wei for each pair. Live from getReserves for open/finalizing
+   * runs; reused from the frozen snapshot when re-scoring a finalized match so
+   * the board reproduces exactly. */
   const pairPriceWchzPerTokenWei = new Map<string, number>();
+  const frozenPrices: Record<string, number> | null = match.frozen_prices
+    ? (JSON.parse(match.frozen_prices) as Record<string, number>)
+    : null;
+  if (alreadyFinalized && frozenPrices) {
+    for (const [pair, price] of Object.entries(frozenPrices)) {
+      pairPriceWchzPerTokenWei.set(pair, price);
+    }
+  }
+  // True if a live reserve read failed on a pair we still need a price for.
+  let priceReadFailed = false;
 
   for (const symbol of tokens) {
     const info = await resolvePair(symbol);
@@ -264,7 +290,10 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
       }
     }
 
-    // Score-time pool price for inventory MTM (WCHZ per 1 token wei).
+    // Pool price for inventory MTM (WCHZ per 1 token wei). A finalized rescore
+    // already has the frozen price seeded — don't re-read (that would reprice a
+    // settled board). Otherwise read live reserves.
+    if (alreadyFinalized && pairPriceWchzPerTokenWei.has(info.pair)) continue;
     try {
       const reserves = (await client.readContract({
         address: info.pair,
@@ -275,8 +304,13 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
       const reserveToken = info.wchzIsToken0 ? reserves[1] : reserves[0];
       if (reserveToken > 0n) {
         pairPriceWchzPerTokenWei.set(info.pair, Number(reserveWchz) / Number(reserveToken));
+      } else {
+        priceReadFailed = true;
       }
     } catch (error) {
+      // A failed read must NOT silently mark held inventory at $0 and freeze
+      // that into a finalized board — flag it and refuse to finalize below.
+      priceReadFailed = true;
       logIndex("warn", `getReserves failed for ${symbol}`, match.id, { error: String(error) });
     }
   }
@@ -306,8 +340,33 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
   const identityFlows = mergeFlowsByIdentity(walletFlows, (addr) => identityOf.get(addr) ?? addr);
   const scores = scoreWindow(identityFlows);
 
+  // Never FREEZE a board that would bake in $0 marks from a failed reserve read.
+  // Only blocks finalization (provisional live runs tolerate a transient miss);
+  // and only when there is actually held inventory in an unpriced pair.
+  if (windowClosed && !alreadyFinalized && priceReadFailed) {
+    let heldUnpriced = false;
+    for (const f of flows.values()) {
+      for (const [pair, net] of f.tokenNetWeiByPair) {
+        if (net !== 0n && !pairPriceWchzPerTokenWei.has(pair)) {
+          heldUnpriced = true;
+          break;
+        }
+      }
+      if (heldUnpriced) break;
+    }
+    if (heldUnpriced) {
+      logIndex("warn", "refusing to finalize: reserve read failed with held inventory — will retry", match.id);
+      return { ok: false, reason: "reserve price unavailable at finalization" };
+    }
+  }
+
   const nowIso = new Date().toISOString();
   const provisional = windowClosed ? 0 : 1;
+  // Freeze the marks used, so a later rescore of this finalized match reproduces
+  // the same inventory valuation instead of re-reading live reserves.
+  const frozenToStore = windowClosed
+    ? JSON.stringify(Object.fromEntries(pairPriceWchzPerTokenWei))
+    : match.frozen_prices;
   const persist = db.transaction(() => {
     db.prepare("DELETE FROM scores WHERE match_id = ?").run(match.id);
     const insertScore = db.prepare(
@@ -323,8 +382,8 @@ export async function scoreMatch(slug: string): Promise<{ ok: boolean; reason?: 
       );
     }
     db.prepare(
-      "UPDATE matches SET chz_usd = ?, status = ?, scored_at = ? WHERE id = ?"
-    ).run(chzUsd, windowClosed ? "scored" : "live", nowIso, match.id);
+      "UPDATE matches SET chz_usd = ?, status = ?, scored_at = ?, frozen_prices = ? WHERE id = ?"
+    ).run(chzUsd, windowClosed ? "scored" : "live", nowIso, frozenToStore ?? null, match.id);
   });
   persist();
 

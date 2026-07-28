@@ -15,6 +15,7 @@ export interface MatchRow {
   pool_chz: number;
   chz_usd: number | null;
   scored_at: string | null;
+  frozen_prices: string | null;
 }
 
 export interface LeaderboardEntry {

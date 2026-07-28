@@ -120,6 +120,11 @@ function migrate(d: Database.Database) {
   if (!cols("wallets").has("identity_id")) {
     d.exec("ALTER TABLE wallets ADD COLUMN identity_id TEXT");
   }
+  if (!cols("matches").has("frozen_prices")) {
+    // JSON map { pairAddress: wchzPerTokenWei } captured at finalization so a
+    // rescore of a scored match reproduces the same inventory marks.
+    d.exec("ALTER TABLE matches ADD COLUMN frozen_prices TEXT");
+  }
 }
 
 function seedSettings(d: Database.Database) {

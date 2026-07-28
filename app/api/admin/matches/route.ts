@@ -42,7 +42,20 @@ export async function POST(request: Request) {
     return Response.json({ error: "window_start_utc must precede window_end_utc" }, { status: 400 });
   }
 
-  getDb()
+  const db = getDb();
+  // A finalized match's pool and window are settled — mutating them would
+  // silently rewrite a board people were already paid (or shown) against.
+  const existing = db.prepare("SELECT status FROM matches WHERE slug = ?").get(slug) as
+    | { status: string }
+    | undefined;
+  if (existing?.status === "scored") {
+    return Response.json(
+      { error: "match is finalized (scored) — its pool and window can no longer be edited" },
+      { status: 409 }
+    );
+  }
+
+  db
     .prepare(
       `INSERT INTO matches (slug, home, away, competition, kickoff_utc, window_start_utc, window_end_utc, featured, tokens, pool_chz)
        VALUES (@slug, @home, @away, @competition, @kickoff_utc, @window_start_utc, @window_end_utc, @featured, @tokens, @pool_chz)
