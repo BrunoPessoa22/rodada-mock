@@ -169,7 +169,7 @@ export default function AdminPage() {
             setSaved(false);
           }}
         >
-          sair
+          sign out
         </button>
       </div>
       {log ? <p className="gapline mono" style={{ fontSize: 12 }}>{log}</p> : null}
@@ -179,7 +179,7 @@ export default function AdminPage() {
           <div className="ph">
             <h3>Claims</h3>
           </div>
-          {claims.length === 0 ? <p className="gapline">nenhum</p> : null}
+          {claims.length === 0 ? <p className="gapline">none</p> : null}
           {claims.map((c) => (
             <div className="adminrow" key={c.id}>
               <span>
@@ -192,10 +192,10 @@ export default function AdminPage() {
               {c.status === "pending" ? (
                 <span style={{ display: "flex", gap: 6 }}>
                   <button className="btn primary sm" onClick={() => act(c.id, "approve")}>
-                    ok
+                    approve
                   </button>
                   <button className="btn secondary sm" onClick={() => act(c.id, "reject")}>
-                    não
+                    reject
                   </button>
                 </span>
               ) : null}
@@ -205,7 +205,7 @@ export default function AdminPage() {
 
         <div className="panel">
           <div className="ph">
-            <h3>Rodadas</h3>
+            <h3>Matches</h3>
           </div>
           {matches.map((m) => (
             <div className="adminrow" key={m.id}>

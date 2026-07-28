@@ -79,9 +79,10 @@ points     = SkillScore × (1 − e^(−Volume / V_target))`}
             <h3>Where Rodada counts today</h3>
           </div>
           <p className="gapline">
-            <b>Kayen (Chiliz Chain)</b> — automatic, on-chain, live. <b>OKX · Binance</b> — live
-            matchday token spot volume on these venues. <b>Mercado Bitcoin · Paribu · Socios</b> —
-            next.
+            <b>Kayen (Chiliz Chain)</b> — automatic, on-chain, and the only venue that scores
+            points today. <b>OKX · Binance</b> — matchday token spot volume is tracked for context
+            (shown next to the on-chain number, but not yet scored). <b>Mercado Bitcoin · Paribu ·
+            Socios</b> — next.
           </p>
         </div>
 
