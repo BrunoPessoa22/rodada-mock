@@ -38,11 +38,16 @@ const rawVolumeTarget = Number(process.env.VOLUME_TARGET_USD ?? 1000);
 export const VOLUME_TARGET_USD =
   Number.isFinite(rawVolumeTarget) && rawVolumeTarget > 0 ? rawVolumeTarget : 1000;
 
-// Skill floor F: SkillScore = max(PnL% + F, 0). With F = 100, a total loss
-// (−100%) is the zero point; break-even scores 100; +20% scores 120.
-const rawSkillFloor = Number(process.env.SKILL_FLOOR_PCT ?? 100);
+// Skill floor F: SkillScore = max(PnL% + F, 0). DEFAULT 0 → profit-only: a
+// break-even or losing book scores 0, only realized/marked profit scores. This
+// is what keeps wash trading worthless — a self-round-trip nets ~0 PnL, so no
+// amount of gross volume earns points. A positive F re-introduces the "flat
+// book with volume scores ~F" behavior (the old Option-B floor) and MUST NOT be
+// set above 0 without also switching the volume unlock to net-of-round-trip
+// exposure, or wash farming becomes profitable again.
+const rawSkillFloor = Number(process.env.SKILL_FLOOR_PCT ?? 0);
 export const SKILL_FLOOR_PCT =
-  Number.isFinite(rawSkillFloor) && rawSkillFloor >= 0 ? rawSkillFloor : 100;
+  Number.isFinite(rawSkillFloor) && rawSkillFloor >= 0 ? rawSkillFloor : 0;
 
 // Season pot: base amount at an anchor date + daily accrual. Values live in the
 // settings table (admin-editable); these are the seed defaults.

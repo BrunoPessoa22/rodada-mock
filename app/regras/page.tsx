@@ -25,15 +25,17 @@ export default function RulesPage() {
             <h3>The formula</h3>
           </div>
           <pre className="codebox" style={{ marginTop: 12 }}>
-            {`SkillScore = max(PnL% + F, 0)     // F = 100 (total loss is zero)
+            {`SkillScore = max(PnL%, 0)         // profit-only: break-even & losses = 0
 points     = SkillScore × (1 − e^(−Volume / V_target))`}
           </pre>
           <p className="gapline" style={{ marginTop: 12 }}>
-            In code: <b>skill is shifted</b> — a total loss (−100%) is the floor at zero;
-            break-even scores F (100); profits score above that; <b>volume unlocks</b> — no volume,
-            multiplier is zero; at the target, ~63% of your skill score counts;{" "}
-            <b>scoring is per identity, not per wallet</b> — flow from all of one person&apos;s
-            wallets is summed before the formula; <b>the code is public</b> —{" "}
+            In code: <b>profit scores</b> — a break-even or losing book scores zero, so a
+            self-trade (wash) that ends flat earns nothing no matter its volume;{" "}
+            <b>volume only qualifies</b> — no volume, multiplier is zero; at the target,{" "}
+            ~63% of your skill score counts; <b>capital is the larger of your buy and sell</b>, so
+            dumping a pre-held bag can&apos;t inflate your return; <b>scoring is per identity, not
+            per wallet</b> — flow from all of one person&apos;s linked wallets is summed before the
+            formula; <b>the code is public</b> —{" "}
             <a href="https://github.com/BrunoPessoa22/rodada-mock/blob/main/lib/scoring.ts">
               lib/scoring.ts
             </a>

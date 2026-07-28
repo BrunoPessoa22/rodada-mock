@@ -4,32 +4,38 @@
  * This file IS the scoring spec. Anyone can recompute the leaderboard from
  * public Chiliz Chain data plus this function:
  *
- *   SkillScore = max(PnL% + F, 0)     // F = SKILL_FLOOR_PCT, default 100
+ *   SkillScore = max(PnL% + F, 0)     // F = SKILL_FLOOR_PCT, default 0
  *   Points     = SkillScore × (1 − e^(−Volume / V_target))
  *
  * Where:
- *  - PnL%  = cash-flow + mark-to-market inventory, as % of capital deployed
- *            (buy USD). Sells without buys use sell proceeds as denominator.
- *  - F     = skill floor so a total loss (−100%) is zero, not break-even.
- *            Break-even → SkillScore 100; +20% → 120; below −F → 0.
+ *  - PnL%  = cash-flow + mark-to-market inventory, as % of capital deployed.
+ *            Capital = max(buy USD, sell USD) so a book that liquidates a large
+ *            pre-window position with a tiny in-window buy can't divide its
+ *            profit by a near-zero denominator (the "free option").
+ *  - F     = skill floor, default 0 → PROFIT-ONLY: break-even and losses score
+ *            0, only profit scores. This is the anti-wash guarantee: a
+ *            self-round-trip nets ~0 PnL, so gross volume alone earns nothing.
  *  - Volume = gross buy + gross sell USD in the match window, plus net
- *             liquidity added (maker depth counts toward the unlock).
+ *             liquidity added (maker depth counts toward the unlock). Volume
+ *             only QUALIFIES (unlocks the multiplier); with zero profit it
+ *             multiplies zero.
  *  - V_target = VOLUME_TARGET_USD (default 1000). At V = V_target the
  *               multiplier is ≈ 0.632; at 3×V_target ≈ 0.95.
  *
  * Enforced properties:
- *  - Worst outcome floors at 0 (no negative points).
- *  - Buy-and-hold earns from price move: remaining inventory is marked at
- *    score-time pool price (inventoryMarkUsd from the indexer).
+ *  - Worst outcome floors at 0 (no negative points); break-even scores 0.
+ *  - Wash trading scores 0: a flat round-trip has ~zero PnL → zero points,
+ *    regardless of volume. ("Points only for real, net trading.")
+ *  - Buy-and-hold earns from price move: remaining inventory is marked at the
+ *    frozen close-time pool price (inventoryMarkUsd from the indexer; frozen at
+ *    finalization so a rescore reproduces the same board).
  *  - Collateral counts, notional doesn't: on-chain spot flows are unlevered
  *    by nature; venue integrations must report collateral-based flow.
- *  - Note: break-even flow with volume scores positive (SkillScore ≈ F).
- *    Anti-wash is no longer "flat = 0"; identity merge + review still apply.
  *
- * Sybil defense (partial, by design): scoring nets per KYC IDENTITY, not per
- * wallet — flows from every wallet an identity owns are summed by
- * mergeFlowsByIdentity() BEFORE the formula. Payout is renormalized over
- * verified identities only (see getLeaderboard).
+ * Sybil defense: scoring nets per KYC IDENTITY, not per wallet — flows from
+ * every wallet linked to an identity (wallets.identity_id, set by an admin via
+ * /api/admin/identity) are summed by mergeFlowsByIdentity() BEFORE the formula.
+ * Payout is renormalized over verified identities only (see getLeaderboard).
  */
 
 import { SKILL_FLOOR_PCT, VOLUME_TARGET_USD } from "./config";
@@ -82,16 +88,18 @@ export function volumeMultiplier(volumeUsd: number, volumeTargetUsd: number): nu
 }
 
 /**
- * Shift PnL% so a total loss (−F%) is the zero point.
- * Default F = 100 → break-even scores 100, +20% scores 120, −100% scores 0.
+ * Shift PnL% by the skill floor F. Default F = 0 → SkillScore = max(PnL%, 0):
+ * profit scores, break-even and losses score 0. (A positive F would make a
+ * flat book score ~F — see the SKILL_FLOOR_PCT warning in config.ts.)
  */
 export function skillScore(pnlPct: number, floorPct: number = SKILL_FLOOR_PCT): number {
   return Math.max(pnlPct + floorPct, 0);
 }
 
 /**
- * Cash-flow + MTM inventory, as percent of capital deployed (buy cost).
- * Short-only books use sell proceeds as the denominator.
+ * Cash-flow + MTM inventory, as percent of capital deployed. Capital is the
+ * larger of buy and sell USD, so liquidating a large pre-window position with a
+ * tiny in-window buy can't shrink the denominator toward zero and inflate PnL%.
  */
 export function computePnl(flow: {
   grossBuyUsd: number;
@@ -99,7 +107,7 @@ export function computePnl(flow: {
   inventoryMarkUsd: number;
 }): { pnlUsd: number; pnlPct: number; capitalUsd: number } {
   const pnlUsd = flow.grossSellUsd - flow.grossBuyUsd + flow.inventoryMarkUsd;
-  const capitalUsd = flow.grossBuyUsd > 0 ? flow.grossBuyUsd : flow.grossSellUsd;
+  const capitalUsd = Math.max(flow.grossBuyUsd, flow.grossSellUsd);
   const pnlPct = capitalUsd > 0 ? (pnlUsd / capitalUsd) * 100 : 0;
   return { pnlUsd, pnlPct, capitalUsd };
 }
