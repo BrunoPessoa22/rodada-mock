@@ -26,7 +26,9 @@ export const TOKENS: Record<string, { address: `0x${string}`; name: string }> = 
   MENGO: { address: "0xbff8fabb04f6494fe393eb7416a698869569a310", name: "Flamengo" },
   GAL: { address: "0x770da1e5ddb22f3ccc2482493bd9b10a7a8a38ae", name: "Galatasaray" },
   TRA: { address: "0xeff432433dd57adfa37004af00db148f9407e7bd", name: "Trabzonspor" },
-  POR: { address: "0x013f2407c6ef765f1199f8818b805121f269f5b8", name: "FC Porto" },
+  // POR is the Portugal National Team token (verified via name() on-chain
+  // 2026-08-18) — NOT FC Porto, whose Socios ticker is PORTO.
+  POR: { address: "0x013f2407c6ef765f1199f8818b805121f269f5b8", name: "Portugal National Team" },
 };
 
 /**
