@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icons";
 
 type FormState = "idle" | "sending" | "done" | "error";
 type SigState = "idle" | "signing" | "verified" | "error";
+type SigPath = "browser" | "socios" | null;
 
 interface EthereumProvider {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
@@ -15,6 +16,14 @@ declare global {
     ethereum?: EthereumProvider;
   }
 }
+
+/**
+ * Reown (WalletConnect) Cloud project id — free, from dashboard.reown.com.
+ * Inlined at build time; when unset the Socios path explains itself instead of
+ * silently breaking.
+ */
+const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "";
+const CHILIZ_CHAIN_ID = 88888;
 
 function toHexMessage(message: string): string {
   return (
@@ -30,25 +39,84 @@ export default function JoinPage() {
   const [walletChecked, setWalletChecked] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [sigState, setSigState] = useState<SigState>("idle");
+  const [sigPath, setSigPath] = useState<SigPath>(null);
   const [sigError, setSigError] = useState<string>("");
   const [sigHandle, setSigHandle] = useState<string>("");
   const [sigContact, setSigContact] = useState<string>("");
   const [verifiedAs, setVerifiedAs] = useState<{ handle: string; address: string } | null>(null);
+  // One WalletConnect provider per page load — re-init would drop the pairing.
+  const wcProviderRef = useRef<{
+    accounts: string[];
+    request(args: { method: string; params?: unknown[] }): Promise<unknown>;
+    connect(): Promise<void>;
+    disconnect(): Promise<void>;
+  } | null>(null);
 
   useEffect(() => {
     const walletAvailable = typeof window !== "undefined" && !!window.ethereum;
     setHasWallet(walletAvailable);
-    setManualOpen(!walletAvailable);
+    setManualOpen(false);
     setWalletChecked(true);
   }, []);
 
-  async function claimWithSignature(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!window.ethereum || sigHandle.trim().length < 2) {
-      setSigError("handle");
+  /**
+   * Shared claim runner: challenge → sign → verify. Both connect paths feed it
+   * their own address + signer, so the server-side flow is identical whether
+   * the signature came from a browser extension or the Socios.com app.
+   */
+  async function runClaim(address: string, sign: (message: string) => Promise<string>) {
+    const challengeRes = await fetch("/api/claims/challenge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, handle: sigHandle.trim() }),
+    });
+    const challenge = (await challengeRes.json()) as {
+      nonce?: string;
+      message?: string;
+      error?: string;
+    };
+    if (!challengeRes.ok || !challenge.nonce || !challenge.message) {
+      throw new Error(challenge.error ?? "challenge failed");
+    }
+
+    const signature = await sign(challenge.message);
+
+    const verifyRes = await fetch("/api/claims/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nonce: challenge.nonce,
+        signature,
+        contact: sigContact.trim() || undefined,
+      }),
+    });
+    const verify = (await verifyRes.json()) as {
+      ok?: boolean;
+      handle?: string;
+      address?: string;
+      error?: string;
+    };
+    if (!verifyRes.ok || !verify.ok) throw new Error(verify.error ?? "verification failed");
+
+    setVerifiedAs({ handle: verify.handle ?? sigHandle, address: verify.address ?? address });
+    setSigState("verified");
+  }
+
+  function requireHandle(): boolean {
+    if (sigHandle.trim().length >= 2) return true;
+    setSigError("choose a username first");
+    setSigState("error");
+    return false;
+  }
+
+  async function claimWithBrowserWallet() {
+    if (!requireHandle()) return;
+    if (!window.ethereum) {
+      setSigError("no browser wallet detected");
       setSigState("error");
       return;
     }
+    setSigPath("browser");
     setSigState("signing");
     setSigError("");
     try {
@@ -57,47 +125,68 @@ export default function JoinPage() {
       })) as string[];
       const address = accounts?.[0];
       if (!address) throw new Error("no account");
-
-      const challengeRes = await fetch("/api/claims/challenge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, handle: sigHandle.trim() }),
+      await runClaim(address, async (message) => {
+        return (await window.ethereum!.request({
+          method: "personal_sign",
+          params: [toHexMessage(message), address],
+        })) as string;
       });
-      const challenge = (await challengeRes.json()) as {
-        nonce?: string;
-        message?: string;
-        error?: string;
-      };
-      if (!challengeRes.ok || !challenge.nonce || !challenge.message) {
-        throw new Error(challenge.error ?? "challenge failed");
-      }
-
-      const signature = (await window.ethereum.request({
-        method: "personal_sign",
-        params: [toHexMessage(challenge.message), address],
-      })) as string;
-
-      const verifyRes = await fetch("/api/claims/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nonce: challenge.nonce,
-          signature,
-          contact: sigContact.trim() || undefined,
-        }),
-      });
-      const verify = (await verifyRes.json()) as {
-        ok?: boolean;
-        handle?: string;
-        address?: string;
-        error?: string;
-      };
-      if (!verifyRes.ok || !verify.ok) throw new Error(verify.error ?? "verification failed");
-
-      setVerifiedAs({ handle: verify.handle ?? sigHandle, address: verify.address ?? address });
-      setSigState("verified");
     } catch (err) {
       setSigError(err instanceof Error ? err.message : "wallet error");
+      setSigState("error");
+    }
+  }
+
+  /**
+   * Socios.com app path: WalletConnect v2 pairing on Chiliz Chain. The modal
+   * shows a QR code — scan it from the Socios.com app's wallet (or any other
+   * WalletConnect wallet holding your fan tokens) and approve one free
+   * signature. Nothing else is requested: personal_sign only, no transaction.
+   */
+  async function claimWithSocios() {
+    if (!requireHandle()) return;
+    if (!WC_PROJECT_ID) {
+      setSigError(
+        "Socios connect is being enabled — use a browser wallet or manual verification meanwhile"
+      );
+      setSigState("error");
+      return;
+    }
+    setSigPath("socios");
+    setSigState("signing");
+    setSigError("");
+    try {
+      if (!wcProviderRef.current) {
+        const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
+        wcProviderRef.current = await EthereumProvider.init({
+          projectId: WC_PROJECT_ID,
+          chains: [CHILIZ_CHAIN_ID],
+          showQrModal: true,
+          methods: ["personal_sign"],
+          events: ["accountsChanged", "chainChanged"],
+          rpcMap: { [CHILIZ_CHAIN_ID]: "https://rpc.chiliz.com" },
+          metadata: {
+            name: "Trading League",
+            description: "Fan Token Trading League — trade the match, share the pot.",
+            url: "https://trading.brunopessoa.com",
+            icons: ["https://trading.brunopessoa.com/icon.svg"],
+          },
+        });
+      }
+      const provider = wcProviderRef.current;
+      if (provider.accounts.length === 0) await provider.connect();
+      const address = provider.accounts[0];
+      if (!address) throw new Error("no account approved in the wallet app");
+      await runClaim(address, async (message) => {
+        return (await provider.request({
+          method: "personal_sign",
+          params: [toHexMessage(message), address],
+        })) as string;
+      });
+    } catch (err) {
+      // A closed modal surfaces as a rejection — keep the message human.
+      const raw = err instanceof Error ? err.message : "wallet error";
+      setSigError(/reject|cancel|closed/i.test(raw) ? "connection cancelled in the app" : raw);
       setSigState("error");
     }
   }
@@ -191,7 +280,13 @@ export default function JoinPage() {
                 <strong>Live · 0 pts</strong>
               </div>
 
-              <form className="join-action" onSubmit={claimWithSignature}>
+              <form
+                className="join-action"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  claimWithBrowserWallet();
+                }}
+              >
                 <label>
                   Your leaderboard username
                   <input
@@ -225,20 +320,35 @@ export default function JoinPage() {
                 {walletChecked && hasWallet ? (
                   <button className="btn primary" type="submit" disabled={sigState === "signing"}>
                     <Icon id="i-wallet" />
-                    {sigState === "signing"
+                    {sigState === "signing" && sigPath === "browser"
                       ? "Confirm in your wallet…"
-                      : "Join league & appear on leaderboard"}
+                      : "Sign with browser wallet"}
                   </button>
                 ) : walletChecked ? (
                   <div className="wallet-missing">
-                    Wallet not detected. Open this page in your wallet browser or use manual
-                    verification below.
+                    No browser wallet detected — connect the Socios.com app below, open this page in
+                    your wallet browser, or use manual verification.
                   </div>
                 ) : (
                   <p className="join-proof">Checking for your wallet…</p>
                 )}
 
-                <p className="join-proof">One free signature · no transaction · no gas</p>
+                <button
+                  className="btn secondary"
+                  type="button"
+                  disabled={sigState === "signing"}
+                  onClick={claimWithSocios}
+                >
+                  <Icon id="i-zap" />
+                  {sigState === "signing" && sigPath === "socios"
+                    ? "Approve in the Socios.com app…"
+                    : "Connect Socios.com app"}
+                </button>
+
+                <p className="join-proof">
+                  One free signature · no transaction · no gas. Socios connect uses WalletConnect —
+                  scan the QR with the wallet inside your Socios.com app.
+                </p>
               </form>
             </div>
 
@@ -277,6 +387,8 @@ export default function JoinPage() {
                         <option value="mercado-bitcoin">Mercado Bitcoin</option>
                         <option value="okx">OKX</option>
                         <option value="binance">Binance</option>
+                        <option value="gate">Gate</option>
+                        <option value="mexc">MEXC</option>
                         <option value="paribu">Paribu</option>
                         <option value="other">Other</option>
                       </select>
@@ -338,7 +450,8 @@ export default function JoinPage() {
             >
               <div style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>Verify a wallet</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
-                Live now · Kayen / Chiliz Chain · sign a message, no approval
+                Live now · Chiliz Chain · browser wallet or the Socios.com app · sign a message, no
+                approval
               </div>
             </div>
             <div
@@ -354,7 +467,8 @@ export default function JoinPage() {
                 Connect a CEX account
               </div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
-                Read-only API — OKX · Binance next
+                Read-only API — OKX · Binance next. Meanwhile CEX, Solana and Base volume is tracked
+                venue-wide on the matchday board.
               </div>
             </div>
           </div>
