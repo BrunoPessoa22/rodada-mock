@@ -62,24 +62,26 @@ export function getCurrentMatch(now = new Date()): MatchRow | undefined {
     .get(iso) as MatchRow | undefined;
 }
 
-export interface CexVenueVolume {
-  venue: string;
+export interface VenueVolumeRow {
+  source: string; // cex:binance | solana:meteora | base:aerodrome…
+  venue: string; // binance | meteora | aerodrome…
+  chain: string | null; // NULL for CEX
   quoteUsd: number;
   trades: number;
   pairs: number;
   updatedAt: string | null;
 }
 
-/** Window volume per CEX venue for a match, summed across its listed pairs. */
-export function getCexVolume(matchId: number): CexVenueVolume[] {
+/** Window volume per tracked venue for a match, summed across its pairs/pools. */
+export function getVenueVolume(matchId: number): VenueVolumeRow[] {
   return getDb()
     .prepare(
-      `SELECT venue, SUM(quote_usd) AS quoteUsd, SUM(trades) AS trades,
+      `SELECT source, venue, chain, SUM(quote_usd) AS quoteUsd, SUM(trades) AS trades,
               COUNT(*) AS pairs, MAX(updated_at) AS updatedAt
-         FROM cex_volume WHERE match_id = ?
-        GROUP BY venue ORDER BY quoteUsd DESC`
+         FROM venue_volume WHERE match_id = ?
+        GROUP BY source ORDER BY quoteUsd DESC`
     )
-    .all(matchId) as CexVenueVolume[];
+    .all(matchId) as VenueVolumeRow[];
 }
 
 /** Gross on-chain taker volume (buys + sells, USD) counted for a match. */

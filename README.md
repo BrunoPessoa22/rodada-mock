@@ -28,12 +28,30 @@ and pays.
   leaderboard's pro-rata projection into a payouts ledger + CSV (verified
   identities only). The on-chain CHZ transfer is a separate, human-authorized
   step; the "Funding verified" badge shows only when `funding_verified` is set.
-- **CEX venue volume** — [`lib/cex.ts`](lib/cex.ts) tracks spot volume of each
-  matchday token on **OKX** and **Binance** (public candles per listed pair,
-  summed inside the window, converted to USD) and shows it at
-  [/api/cex](https://trading.brunopessoa.com/api/cex). This is **display only —
-  it does not score points today** (only Kayen on-chain flow does). Per-trader
-  CEX attribution (read-only API keys → same formula) is the next layer.
+- **Tracked-venue volume** — the league counts trading wherever it happens and
+  is honest about which layer earns points:
+  - **Scored** (per-wallet attribution): Chiliz Chain on-chain flow via the
+    indexer. The only layer that earns points today.
+  - **Tracked** (venue-aggregate, display-only): [`lib/cex.ts`](lib/cex.ts)
+    measures window spot volume on **Binance · OKX · Gate · MEXC · Bitget ·
+    HTX · Upbit · Mercado Bitcoin** (public candles per listed pair, explicit
+    quote → USD), and [`lib/dexvol.ts`](lib/dexvol.ts) measures the on-chain
+    pools of the same tokens on **Solana** (Meteora DLMM, via Jupiter) and
+    **Base** (Aerodrome CL) through GeckoTerminal OHLCV. Everything lands in
+    the `venue_volume` table and is served at
+    [/api/venues](https://trading.brunopessoa.com/api/venues) (`/api/cex` is a
+    legacy alias) and on the matchday venue board.
+  - Listings/pools are pinned in code and were verified live 2026-08-18
+    (instrument existence + price sanity vs a canonical venue — tickers collide
+    across exchanges; see the warnings in `lib/cex.ts`). Per-trader CEX
+    attribution (read-only API keys → same formula) is the next layer;
+    Base/Solana per-trader scoring is gated on the resolver/reconciliation
+    proofs in [docs/multichain-venues.md](docs/multichain-venues.md).
+- **Socios connect** — the join flow signs the claim message with either a
+  browser wallet or the **Socios.com app** via WalletConnect v2 (QR pairing on
+  Chiliz Chain, `personal_sign` only). Requires `NEXT_PUBLIC_WC_PROJECT_ID`
+  (free project id from dashboard.reown.com); without it the button explains
+  itself and the other paths keep working.
 
 Full concept: [League Proposal v2](public/proposal/league-proposal-v2.md) ·
 served at [/proposal](https://trading.brunopessoa.com/proposal). The original
@@ -64,7 +82,15 @@ switching the unlock to net exposure),
 `INDEXER_INTERVAL_MS` (default 3min, floored at 10s),
 `MAKER_COOLDOWN_S` (anti-JIT: liquidity must persist this long past the whistle
 to keep counting toward the volume unlock; default 6h — the board finalizes
-only after it elapses).
+only after it elapses),
+`CEX_REFRESH_MS` (tracked-venue volume refresh cadence; default 10min),
+`NEXT_PUBLIC_WC_PROJECT_ID` (Reown/WalletConnect project id for the Socios.com
+app connect path — build-time).
+
+Ops: `GET /api/health` reports DB reachability, indexer heartbeat
+(`lastTickAt`/`indexerStale`) and the current match — point an uptime monitor
+at it. The indexer loop also writes a daily SQLite backup to
+`DATA_DIR/backups/` (14 kept).
 
 Deploys via Coolify (Dockerfile build) on push to `main` + manual deploy API
 call. Matches are managed through `/admin` (or `POST /api/admin/matches`).

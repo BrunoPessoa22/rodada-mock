@@ -71,15 +71,20 @@ CREATE TABLE IF NOT EXISTS claim_nonces (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
-CREATE TABLE IF NOT EXISTS cex_volume (
+CREATE TABLE IF NOT EXISTS venue_volume (
   match_id   INTEGER NOT NULL REFERENCES matches(id),
-  venue      TEXT NOT NULL,                            -- binance | okx
+  source     TEXT NOT NULL,                            -- cex:binance | solana:meteora | base:aerodrome…
+  venue      TEXT NOT NULL,                            -- binance | okx | gate | meteora | aerodrome…
+  chain      TEXT,                                     -- NULL for CEX; solana | base for on-chain
   token      TEXT NOT NULL,                            -- league symbol (MENGO, BAR…)
-  inst       TEXT NOT NULL,                            -- exchange pair (MENGO-USDT, BARUSDT…)
+  inst       TEXT NOT NULL,                            -- exchange pair OR pool address
+  quote      TEXT NOT NULL,                            -- explicit quote asset (USDT, BRL, USDC…)
   quote_usd  REAL NOT NULL DEFAULT 0,                  -- window volume in USD
   trades     INTEGER NOT NULL DEFAULT 0,               -- 0 where the venue doesn't expose counts
   updated_at TEXT,
-  PRIMARY KEY (match_id, inst)
+  PRIMARY KEY (match_id, source, inst)                 -- source in the PK: the same inst string
+                                                       -- exists on several venues (PSGUSDT is
+                                                       -- Binance, MEXC and Bitget)
 );
 
 CREATE TABLE IF NOT EXISTS index_log (
@@ -137,6 +142,76 @@ function migrate(d: Database.Database) {
     // rescore of a scored match reproduces the same inventory marks.
     d.exec("ALTER TABLE matches ADD COLUMN frozen_prices TEXT");
   }
+  // cex_volume → venue_volume: the multi-venue layer generalizes the old
+  // CEX-only table (adds source/chain/quote, and puts source in the PK because
+  // inst strings collide across venues). Legacy rows were only ever Binance
+  // (SYMBOLUSDT/SYMBOLTRY) and OKX (SYM-QUOTE), so the quote backfill below is
+  // exhaustive; anything unrecognized keeps quote 'USD?' and its stored USD
+  // total, which is all the display layer reads.
+  const hasLegacyCex = (
+    d
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'cex_volume'")
+      .get() as { name: string } | undefined
+  )?.name;
+  if (hasLegacyCex) {
+    const legacyQuote = (inst: string): string => {
+      if (inst.includes("-")) return inst.split("-")[1] ?? "USD?";
+      const m = inst.match(/(USDT|USDC|TRY)$/);
+      return m ? m[1] : "USD?";
+    };
+    const rows = d.prepare("SELECT * FROM cex_volume").all() as {
+      match_id: number;
+      venue: string;
+      token: string;
+      inst: string;
+      quote_usd: number;
+      trades: number;
+      updated_at: string | null;
+    }[];
+    const insert = d.prepare(
+      `INSERT OR IGNORE INTO venue_volume (match_id, source, venue, chain, token, inst, quote, quote_usd, trades, updated_at)
+       VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)`
+    );
+    const copyAndDrop = d.transaction(() => {
+      for (const r of rows) {
+        insert.run(
+          r.match_id,
+          `cex:${r.venue}`,
+          r.venue,
+          r.token,
+          r.inst,
+          legacyQuote(r.inst),
+          r.quote_usd,
+          r.trades,
+          r.updated_at
+        );
+      }
+      d.exec("DROP TABLE cex_volume");
+    });
+    copyAndDrop();
+  }
+}
+
+/**
+ * Online SQLite backup into DATA_DIR/backups, pruned to the newest 14 files.
+ * Runs from the indexer loop once a day; a failed backup must never take the
+ * indexer down, so callers catch.
+ */
+export async function backupDb(): Promise<string> {
+  const dir = `${DATA_DIR}/backups`;
+  fs.mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().slice(0, 10);
+  const file = `${dir}/rodada-${stamp}.db`;
+  await getDb().backup(file);
+  const keep = 14;
+  const backups = fs
+    .readdirSync(dir)
+    .filter((f) => /^rodada-\d{4}-\d{2}-\d{2}\.db$/.test(f))
+    .sort();
+  for (const old of backups.slice(0, Math.max(0, backups.length - keep))) {
+    fs.rmSync(`${dir}/${old}`);
+  }
+  return file;
 }
 
 function seedSettings(d: Database.Database) {

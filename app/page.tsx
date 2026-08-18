@@ -5,13 +5,15 @@ import { getSetting } from "@/lib/db";
 import { enName } from "@/lib/i18n";
 import { getPot } from "@/lib/pot";
 import {
-  getCexVolume,
   getCurrentMatch,
   getLeaderboard,
   getOnchainVolume,
+  getVenueVolume,
   type LeaderboardEntry,
   type MatchRow,
 } from "@/lib/queries";
+import { CEX_LISTINGS, CEX_VENUE_LABEL, VENUE_TRADE_URL, venuesForTokens, type CexVenue } from "@/lib/cex";
+import { DEX_NETWORK_LABEL, DEX_POOLS, dexTradeUrl } from "@/lib/dexvol";
 
 export const dynamic = "force-dynamic";
 
@@ -305,6 +307,136 @@ function StandingsTable({
   );
 }
 
+interface VenueBoardRow {
+  key: string;
+  label: string;
+  tag: string;
+  scored: boolean;
+  usd: number | null; // null = tracked venue with no measured volume this window yet
+  url: string;
+}
+
+/**
+ * One row per place the featured tokens actually trade: the scored Chiliz
+ * on-chain layer first, then every tracked venue (CEX + Solana/Base pools)
+ * with its measured window volume and a direct trade link.
+ */
+function buildVenueBoard(
+  tokens: string[],
+  volume: { source: string; quoteUsd: number }[],
+  onchainUsd: number
+): VenueBoardRow[] {
+  const bySource = new Map(volume.map((v) => [v.source, v.quoteUsd]));
+  const rows: VenueBoardRow[] = [
+    {
+      key: "chiliz",
+      label: "Kayen / FanX",
+      tag: "Chiliz Chain · scored",
+      scored: true,
+      usd: onchainUsd,
+      url: "https://app.kayen.org/",
+    },
+  ];
+  for (const venue of venuesForTokens(tokens)) {
+    const firstListing = tokens.flatMap((t) => CEX_LISTINGS[t]?.[venue as CexVenue] ?? [])[0];
+    if (!firstListing) continue;
+    rows.push({
+      key: `cex:${venue}`,
+      label: CEX_VENUE_LABEL[venue],
+      tag: "CEX · tracked",
+      scored: false,
+      usd: bySource.get(`cex:${venue}`) ?? null,
+      url: VENUE_TRADE_URL[venue](firstListing.inst),
+    });
+  }
+  const dexSeen = new Set<string>();
+  for (const pool of DEX_POOLS) {
+    if (!tokens.includes(pool.token)) continue;
+    const source = `${pool.network}:${pool.dex}`;
+    if (dexSeen.has(source)) continue;
+    dexSeen.add(source);
+    rows.push({
+      key: source,
+      label: pool.dex === "meteora" ? "Jupiter / Meteora" : "Aerodrome",
+      tag: `${DEX_NETWORK_LABEL[pool.network]} · tracked`,
+      scored: false,
+      usd: bySource.get(source) ?? null,
+      url: dexTradeUrl(pool),
+    });
+  }
+  return rows.sort(
+    (a, b) =>
+      Number(b.scored) - Number(a.scored) ||
+      (b.usd ?? 0) - (a.usd ?? 0) ||
+      a.label.localeCompare(b.label)
+  );
+}
+
+function VenueBoard({ rows }: { rows: VenueBoardRow[] }) {
+  if (rows.length <= 1) return null;
+  const fmt = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: ".08em",
+          textTransform: "uppercase",
+          color: "var(--fg-muted)",
+          marginBottom: 8,
+        }}
+      >
+        Trade where you already trade — the league tracks it
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 6 }}>
+        {rows.map((r) => (
+          <a
+            key={r.key}
+            href={r.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: 8,
+              padding: "9px 12px",
+              background: "var(--bg-muted)",
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+              textDecoration: "none",
+            }}
+          >
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontWeight: 600, fontSize: 13, color: "var(--fg)" }}>
+                {r.label}
+              </span>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: r.scored ? "var(--green-500)" : "var(--fg-muted)",
+                }}
+              >
+                {r.tag}
+              </span>
+            </span>
+            <span style={{ marginLeft: "auto", fontWeight: 700, fontSize: 13, color: "var(--fg)" }}>
+              {r.usd != null && r.usd > 0 ? fmt.format(r.usd) : "—"}
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function Home() {
   const pot = getPot();
   const fundingVerified = getSetting("funding_verified") === "1";
@@ -313,10 +445,10 @@ export default async function Home() {
   const board = match
     ? getLeaderboard({ matchId: match.id, poolChz: match.pool_chz })
     : getLeaderboard({ poolChz: seasonPoolChz });
-  const cexVenues = match ? getCexVolume(match.id) : [];
+  const venueVolume = match ? getVenueVolume(match.id) : [];
   const onchainUsd = match ? getOnchainVolume(match.id) : 0;
   const totalVenueUsd =
-    onchainUsd + cexVenues.reduce((s, v) => s + (Number.isFinite(v.quoteUsd) ? v.quoteUsd : 0), 0);
+    onchainUsd + venueVolume.reduce((s, v) => s + (Number.isFinite(v.quoteUsd) ? v.quoteUsd : 0), 0);
 
   const homeName = match ? enName(match.home) : "—";
   const awayName = match ? enName(match.away) : "—";
@@ -850,6 +982,7 @@ export default async function Home() {
                   </b>.</>
                 ) : null}
               </div>
+              <VenueBoard rows={buildVenueBoard(tokens, venueVolume, onchainUsd)} />
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
                 <a
                   className="btn primary sm"

@@ -79,10 +79,14 @@ points     = SkillScore × (1 − e^(−Volume / V_target))`}
             <h3>Where the league counts today</h3>
           </div>
           <p className="gapline">
-            <b>Kayen (Chiliz Chain)</b> — automatic, on-chain, and the only venue that scores
-            points today. <b>OKX · Binance</b> — matchday token spot volume is tracked for context
-            (shown next to the on-chain number, but not yet scored). <b>Mercado Bitcoin · Paribu ·
-            Socios</b> — next.
+            <b>Kayen / FanX (Chiliz Chain)</b> — automatic, on-chain, and the only venue that
+            scores points today: every wallet&apos;s flow is publicly attributable, so anyone can
+            re-run the board. <b>Tracked venues</b> — matchday token volume on{" "}
+            <b>Binance · OKX · Gate · MEXC · Bitget · HTX · Upbit · Mercado Bitcoin</b> and the
+            on-chain pools on <b>Solana (Jupiter/Meteora)</b> and <b>Base (Aerodrome)</b> is
+            measured per window and shown next to the scored number, but earns no points yet —
+            those venues expose no per-trader data the league can verify. <b>Next:</b> read-only
+            CEX API keys graduate an exchange from tracked to scored through the same formula.
           </p>
         </div>
 

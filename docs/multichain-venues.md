@@ -1,5 +1,14 @@
 # Trading League — Multi-Venue / Multi-Chain Scoring Architecture (FINAL)
 
+> **STATUS (2026-08-18):** the *volume* half of this design is LIVE — the
+> `venue_volume` table (source in the PK), eight CEX collectors
+> (`lib/cex.ts`), and Solana/Base pool collectors via GeckoTerminal
+> (`lib/dexvol.ts`), all display-only, additive, and outside the scoring path.
+> The *flow* half (lifting the Chiliz indexer into a `FlowCollector` behind
+> `collect()`, per-source finalization, keyed-CEX scoring) is still pending and
+> keeps its golden-snapshot acceptance gate below. Solana/Base remain
+> volume-only per §10's hard gates.
+
 ## 0. The one load-bearing insight
 
 `WalletFlow` (`lib/scoring.ts:43`) is already a **venue-agnostic, USD-denominated
