@@ -4,7 +4,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 make g+
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+# Cap the V8 heap during `next build`: the deploy box has ~8GB shared with the
+# rest of the fleet and swap runs near-full, so an unbounded webpack heap gets
+# OOM-killed under transient pressure (exit 255 mid-compile, no error line).
+# 2.5GB forces harder GC instead of ballooning; the build just runs slower.
+RUN NODE_OPTIONS=--max-old-space-size=2560 npm run build
 
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app
