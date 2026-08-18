@@ -30,6 +30,26 @@ describe("CEX listings config", () => {
   });
 });
 
+describe("venue brand directory", () => {
+  it("every directory entry points at a logo file that exists in public/", async () => {
+    const { existsSync } = await import("node:fs");
+    const { venueDirectory, venueLogoForSource } = await import("./venuebrand");
+    const rows = venueDirectory();
+    expect(rows.length).toBeGreaterThanOrEqual(11); // Kayen + 8 CEXs + Solana + Base
+    expect(rows[0]).toMatchObject({ key: "kayen", scored: true });
+    for (const row of rows) {
+      expect(row.url).toMatch(/^https:\/\//);
+      expect(existsSync(join(process.cwd(), "public", row.logo))).toBe(true);
+    }
+    // Every source the volume layer can write resolves to a logo.
+    for (const source of ["chiliz", "cex:binance", "cex:mercadobitcoin", "solana:meteora", "base:aerodrome"]) {
+      const logo = venueLogoForSource(source);
+      expect(logo, source).toBeTruthy();
+      expect(existsSync(join(process.cwd(), "public", logo!))).toBe(true);
+    }
+  });
+});
+
 describe("DEX pool registry", () => {
   it("has no unknown tokens, duplicate or malformed pools", () => {
     expect(dexPoolProblems()).toEqual([]);

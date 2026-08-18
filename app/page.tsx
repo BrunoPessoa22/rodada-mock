@@ -14,6 +14,7 @@ import {
 } from "@/lib/queries";
 import { CEX_LISTINGS, CEX_VENUE_LABEL, VENUE_TRADE_URL, venuesForTokens, type CexVenue } from "@/lib/cex";
 import { DEX_NETWORK_LABEL, DEX_POOLS, dexTradeUrl } from "@/lib/dexvol";
+import { venueDirectory, venueLogoForSource } from "@/lib/venuebrand";
 
 export const dynamic = "force-dynamic";
 
@@ -314,6 +315,7 @@ interface VenueBoardRow {
   scored: boolean;
   usd: number | null; // null = tracked venue with no measured volume this window yet
   url: string;
+  logo: string | null;
 }
 
 /**
@@ -335,6 +337,7 @@ function buildVenueBoard(
       scored: true,
       usd: onchainUsd,
       url: "https://app.kayen.org/",
+      logo: venueLogoForSource("chiliz"),
     },
   ];
   for (const venue of venuesForTokens(tokens)) {
@@ -347,6 +350,7 @@ function buildVenueBoard(
       scored: false,
       usd: bySource.get(`cex:${venue}`) ?? null,
       url: VENUE_TRADE_URL[venue](firstListing.inst),
+      logo: venueLogoForSource(`cex:${venue}`),
     });
   }
   const dexSeen = new Set<string>();
@@ -362,6 +366,7 @@ function buildVenueBoard(
       scored: false,
       usd: bySource.get(source) ?? null,
       url: dexTradeUrl(pool),
+      logo: venueLogoForSource(source),
     });
   }
   return rows.sort(
@@ -412,6 +417,17 @@ function VenueBoard({ rows }: { rows: VenueBoardRow[] }) {
               textDecoration: "none",
             }}
           >
+            {r.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={r.logo}
+                alt=""
+                width={26}
+                height={26}
+                loading="lazy"
+                style={{ borderRadius: 7, flex: "none", alignSelf: "center" }}
+              />
+            ) : null}
             <span style={{ minWidth: 0 }}>
               <span style={{ display: "block", fontWeight: 600, fontSize: 13, color: "var(--fg)" }}>
                 {r.label}
@@ -1003,6 +1019,102 @@ export default async function Home() {
               window is set.
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Venue wall — every place the league counts, always visible */}
+      <section className="rd-section" style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 40px 8px" }}>
+        <div style={{ marginBottom: 28 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              textTransform: "uppercase",
+              color: "var(--brand)",
+              marginBottom: 12,
+            }}
+          >
+            One league · every venue
+          </div>
+          <h2
+            className="rd-h2"
+            style={{
+              fontSize: 34,
+              fontWeight: 700,
+              letterSpacing: "-.01em",
+              lineHeight: 1.1,
+              margin: "0 0 12px",
+              textTransform: "uppercase",
+            }}
+          >
+            Trade where you already trade
+          </h2>
+          <p
+            style={{
+              fontSize: 15,
+              lineHeight: 1.6,
+              fontWeight: 500,
+              color: "var(--ink-soft)",
+              margin: 0,
+              maxWidth: 640,
+            }}
+          >
+            Points come from verified Chiliz Chain trades today. Matchday volume on every other
+            venue below — exchanges, Solana and Base — is measured and shown on the board.
+          </p>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(168px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {venueDirectory().map((v) => (
+            <a
+              key={v.key}
+              href={v.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                background: "#fff",
+                border: v.scored ? "1px solid var(--brand)" : "1px solid var(--border)",
+                borderRadius: 14,
+                padding: 18,
+                textDecoration: "none",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={v.logo}
+                alt={`${v.label} logo`}
+                width={44}
+                height={44}
+                loading="lazy"
+                style={{ borderRadius: 11 }}
+              />
+              <span>
+                <span style={{ display: "block", fontWeight: 700, fontSize: 15, color: "var(--fg)" }}>
+                  {v.label}
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    marginTop: 3,
+                    color: v.scored ? "var(--brand)" : "var(--fg-muted)",
+                  }}
+                >
+                  {v.tag}
+                </span>
+              </span>
+            </a>
+          ))}
         </div>
       </section>
 
