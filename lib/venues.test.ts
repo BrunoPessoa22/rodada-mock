@@ -30,6 +30,28 @@ describe("CEX listings config", () => {
   });
 });
 
+describe("token registry", () => {
+  it("TOKENS and PAIR_OVERRIDES cover the same symbols with well-formed addresses", async () => {
+    const { TOKENS, PAIR_OVERRIDES } = await import("./tokens");
+    const tokenSyms = Object.keys(TOKENS).sort();
+    const pairSyms = Object.keys(PAIR_OVERRIDES).sort();
+    expect(pairSyms).toEqual(tokenSyms);
+    expect(tokenSyms.length).toBeGreaterThanOrEqual(64);
+    const addrs = new Set<string>();
+    const pairs = new Set<string>();
+    for (const sym of tokenSyms) {
+      expect(TOKENS[sym].address, sym).toMatch(/^0x[0-9a-f]{40}$/);
+      expect(PAIR_OVERRIDES[sym], sym).toMatch(/^0x[0-9a-f]{40}$/);
+      addrs.add(TOKENS[sym].address);
+      pairs.add(PAIR_OVERRIDES[sym]);
+      expect(TOKENS[sym].name.length, sym).toBeGreaterThan(2);
+    }
+    // No duplicate token or pair addresses — a paste error here mis-scores a match.
+    expect(addrs.size).toBe(tokenSyms.length);
+    expect(pairs.size).toBe(tokenSyms.length);
+  });
+});
+
 describe("venue brand directory", () => {
   it("every directory entry points at a logo file that exists in public/", async () => {
     const { existsSync } = await import("node:fs");

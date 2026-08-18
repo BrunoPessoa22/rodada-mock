@@ -15,6 +15,7 @@ import {
 import { CEX_LISTINGS, CEX_VENUE_LABEL, VENUE_TRADE_URL, venuesForTokens, type CexVenue } from "@/lib/cex";
 import { DEX_NETWORK_LABEL, DEX_POOLS, dexTradeUrl } from "@/lib/dexvol";
 import { venueDirectory, venueLogoForSource } from "@/lib/venuebrand";
+import { TOKENS } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -616,7 +617,7 @@ export default async function Home() {
                   color: "rgba(255,255,255,.55)",
                 }}
               >
-                9 club tokens · 11 venues · one table
+                {Object.keys(TOKENS).length} club tokens · 11 venues · one table
               </div>
             </div>
           </div>

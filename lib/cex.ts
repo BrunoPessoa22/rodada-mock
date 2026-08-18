@@ -9,6 +9,9 @@
  * score points. Per-trader CEX attribution (read-only API keys → myTrades
  * through the same formula) is the next layer and is documented in /regras.
  *
+ * Only a subset of the 64-token registry is CEX-listed; absence here just
+ * means that token's volume is counted on-chain only.
+ *
  * Listings verified live 2026-08-18 against every venue's public instrument
  * endpoint AND price-sanity-checked against a canonical venue (each candidate's
  * last price within a few percent of Binance/OKX's quote for the same token).
