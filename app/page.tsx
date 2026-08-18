@@ -597,13 +597,13 @@ export default async function Home() {
               <div className="rd-crest-row" aria-hidden>
                 {HERO_LINEUP.slice(0, 5).map((sym) => (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img key={sym} className="rd-crest" src={TOKEN_BADGES[sym]} alt="" width={58} height={58} />
+                  <img key={sym} className="rd-crest" src={TOKEN_BADGES[sym]} alt="" width={66} height={66} />
                 ))}
               </div>
               <div className="rd-crest-row" style={{ marginTop: 10, marginLeft: 28 }} aria-hidden>
                 {HERO_LINEUP.slice(5).map((sym) => (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img key={sym} className="rd-crest" src={TOKEN_BADGES[sym]} alt="" width={58} height={58} />
+                  <img key={sym} className="rd-crest" src={TOKEN_BADGES[sym]} alt="" width={66} height={66} />
                 ))}
               </div>
               <div
@@ -679,7 +679,7 @@ export default async function Home() {
                   transform: "rotate(45deg)",
                 }}
               />
-              Weekly reward pool
+              Prize pool
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               {fundingVerified ? (
