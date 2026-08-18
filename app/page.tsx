@@ -1133,7 +1133,7 @@ export default async function Home() {
                       marginTop: 2,
                     }}
                   >
-                    Sign a message. No approval.
+                    Browser wallet or the Socios.com app. One signature, no approval.
                   </span>
                 </span>
                 <svg
@@ -1200,7 +1200,8 @@ export default async function Home() {
                       marginTop: 2,
                     }}
                   >
-                    Read-only API access — OKX · Binance next.
+                    Read-only API keys so your own CEX trades score — next. Venue volume across
+                    eight exchanges, Solana and Base is tracked already.
                   </span>
                 </span>
               </div>
@@ -1489,6 +1490,19 @@ export default async function Home() {
                     color: "var(--ink-soft)",
                   }}
                 >
+                  Socios.com app
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "5px 11px",
+                    borderRadius: 9999,
+                    background: "var(--bg-muted)",
+                    border: "1px solid var(--border)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
                   Live now
                 </span>
               </div>
@@ -1552,8 +1566,10 @@ export default async function Home() {
                   margin: "0 0 18px",
                 }}
               >
-                Create a read-only connection. We only inspect verified trades — never withdraw or
-                move funds.
+                Create a read-only connection so your own exchange trades can score. We only
+                inspect verified trades — never withdraw or move funds. Venue-wide volume on
+                Binance, OKX, Gate, MEXC, Bitget, HTX, Upbit and Mercado Bitcoin is already
+                tracked on the matchday board.
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <span
