@@ -513,3 +513,47 @@ button { font-family: inherit; }
   .join-loop { gap: 6px; padding: 9px 10px; font-size: 10px; }
   .manual-claim summary { align-items: flex-start; flex-wrap: wrap; }
 }
+
+/* ---- Matchday identity: elevation + floodlit stadium scene ------------- */
+/* Soft layered elevation replaces flat 1px-border-only cards; links lift.  */
+.rd-elev {
+  box-shadow: 0 1px 2px rgba(22, 33, 46, 0.05), 0 10px 28px -14px rgba(22, 33, 46, 0.18);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+a.rd-elev:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(22, 33, 46, 0.07), 0 20px 40px -16px rgba(22, 33, 46, 0.3);
+  border-color: var(--border-strong);
+  text-decoration: none;
+}
+/* Night-match scene: navy ground with floodlight glows (cool blue from the
+   stands, faint lime off the pitch). Background light only — never on text. */
+.rd-stadium {
+  position: relative;
+  background: var(--blue-ink);
+  overflow: hidden;
+}
+.rd-stadium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(560px 360px at 10% -14%, rgba(0, 118, 244, 0.4), transparent 68%),
+    radial-gradient(680px 400px at 90% -20%, rgba(209, 236, 0, 0.13), transparent 70%),
+    radial-gradient(1000px 460px at 50% 120%, rgba(0, 118, 244, 0.14), transparent 72%);
+}
+.rd-stadium > * { position: relative; }
+/* Club-token lineup: overlapping crests like a team photo. */
+.rd-crest-row { display: flex; align-items: center; }
+.rd-crest {
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: #fff;
+  box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.55);
+}
+.rd-crest-row .rd-crest { margin-left: -14px; }
+.rd-crest-row .rd-crest:first-child { margin-left: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .rd-elev, a.rd-elev:hover { transition: none; transform: none; }
+}

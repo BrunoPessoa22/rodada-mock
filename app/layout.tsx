@@ -4,14 +4,16 @@ import { IconSprite } from "@/components/Icons";
 import { MobileNav } from "@/components/MobileNav";
 import "./globals.css";
 
+const DESCRIPTION =
+  "Trade your club's Fan Token on matchday — on Chiliz, Binance, OKX, Solana, Base and more. " +
+  "Profit earns points, points share a CHZ prize pool that grows every day. Free entry.";
+
 export const metadata: Metadata = {
-  title: "Trading League — Fan Tokens on Chiliz",
-  description:
-    "Trade the match. Share the pot. Connect once, trade eligible Fan Tokens inside published match windows, and earn a share of the weekly reward pool.",
+  title: "Trading League — Trade the match. Share the pot.",
+  description: DESCRIPTION,
   openGraph: {
-    title: "Trading League — Fan Tokens on Chiliz",
-    description:
-      "Trade the match. Share the pot. Connect once, trade eligible Fan Tokens inside published match windows, and earn a share of the weekly reward pool.",
+    title: "Trading League — Trade the match. Share the pot.",
+    description: DESCRIPTION,
     siteName: "Trading League",
     type: "website",
   },

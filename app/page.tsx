@@ -28,6 +28,21 @@ const CLUB_NAME_COLORS: Record<string, [string, string]> = {
   Spain: ["#AA151B", "#F1BF00"],
 };
 
+/** Official club-token badges, self-hosted (CoinGecko/GeckoTerminal, 250px). */
+const TOKEN_BADGES: Record<string, string> = {
+  MENGO: "/tokens/MENGO.png",
+  BAR: "/tokens/BAR.png",
+  PSG: "/tokens/PSG.png",
+  GAL: "/tokens/GAL.png",
+  ARG: "/tokens/ARG.png",
+  GALO: "/tokens/GALO.png",
+  TRA: "/tokens/TRA.png",
+  POR: "/tokens/POR.png",
+  SPAIN: "/tokens/SPAIN.png",
+};
+/** Hero lineup order — alternating crest colors so the row reads as a squad. */
+const HERO_LINEUP = ["MENGO", "BAR", "ARG", "PSG", "GAL", "GALO", "SPAIN", "TRA", "POR"];
+
 const AVATAR_COLORS = [
   "var(--blue-800)",
   "var(--green-500)",
@@ -67,13 +82,15 @@ function ClubBadge({ name, colors }: { name: string; colors: [string, string] })
 function StandingsTable({
   entries,
   wallets,
+  totalPoints,
 }: {
   entries: LeaderboardEntry[];
   wallets: number;
+  /** Board-wide points — same figure the pot card shows, never a top-8 sum. */
+  totalPoints: number;
 }) {
   const top = entries.slice(0, 8);
   const scoring = top.filter((e) => e.points > 0);
-  const totalPoints = scoring.reduce((s, e) => s + e.points, 0);
   const newcomers = top.length - scoring.length;
 
   return (
@@ -100,7 +117,7 @@ function StandingsTable({
         <div style={{ fontWeight: 700, fontSize: 18 }}>Live leaderboard</div>
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-muted)" }}>
           {scoring.length > 0
-            ? `${wallets.toLocaleString("en-US")} scoring · ${Math.floor(totalPoints).toLocaleString("en-US")} eligible points`
+            ? `${wallets.toLocaleString("en-US")} scoring · ${Math.floor(totalPoints).toLocaleString("en-US")} points on the board`
             : top.length > 0
               ? `${top.length} verified · waiting for first trades`
               : "Open entry — claim a wallet to appear"}
@@ -333,7 +350,7 @@ function buildVenueBoard(
     {
       key: "chiliz",
       label: "Kayen / FanX",
-      tag: "Chiliz Chain · scored",
+      tag: "Chiliz Chain · earns points",
       scored: true,
       usd: onchainUsd,
       url: "https://app.kayen.org/",
@@ -406,6 +423,7 @@ function VenueBoard({ rows }: { rows: VenueBoardRow[] }) {
             href={r.url}
             target="_blank"
             rel="noopener noreferrer"
+            className="rd-elev"
             style={{
               display: "flex",
               alignItems: "baseline",
@@ -480,85 +498,128 @@ export default async function Home() {
 
   return (
     <main>
-      {/* Hero copy */}
-      <section className="rd-section" style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 40px 36px" }}>
+      {/* Hero — night match under floodlights, the club crests as the lineup */}
+      <section className="rd-stadium">
         <div
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            gap: 40,
-            flexWrap: "wrap",
-          }}
+          className="rd-section"
+          style={{ maxWidth: 1200, margin: "0 auto", padding: "72px 40px 56px" }}
         >
-          <div style={{ maxWidth: 680 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: ".08em",
-                textTransform: "uppercase",
-                color: "var(--brand)",
-                marginBottom: 16,
-              }}
-            >
-              Open weekly league · Free entry
-            </div>
-            <h1
-              className="rd-h1"
-              style={{
-                fontSize: 52,
-                lineHeight: 1.03,
-                fontWeight: 800,
-                letterSpacing: "-.02em",
-                margin: "0 0 16px",
-                textTransform: "uppercase",
-              }}
-            >
-              Trade the match.
-              <br />
-              Share the pot.
-            </h1>
-            <p
-              style={{
-                fontSize: 18,
-                lineHeight: 1.6,
-                fontWeight: 500,
-                color: "var(--ink-soft)",
-                margin: 0,
-                maxWidth: 560,
-              }}
-            >
-              Connect once, trade eligible Fan Tokens inside published match windows, and earn a
-              share of Sunday&apos;s reward pool.
-            </p>
-          </div>
-          <span
+          <div
             style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
-              gap: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              padding: "8px 15px",
-              borderRadius: 9999,
-              background: "var(--green-50)",
-              color: "var(--green-500)",
+              justifyContent: "space-between",
+              gap: 48,
+              flexWrap: "wrap",
             }}
           >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 9999,
-                background: "var(--green-500)",
-                animation: "rd-pulse 1.6s ease-in-out infinite",
-              }}
-            />
-            {board.wallets > 0
-              ? `${board.wallets.toLocaleString("en-US")} traders scoring`
-              : "Live on-chain counting"}
-          </span>
+            <div style={{ maxWidth: 620, minWidth: 300, flex: "1 1 420px" }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
+                  color: "var(--lime-500)",
+                  marginBottom: 16,
+                }}
+              >
+                Fan Token Trading League · Free entry
+              </div>
+              <h1
+                className="rd-h1"
+                style={{
+                  fontSize: 52,
+                  lineHeight: 1.03,
+                  fontWeight: 800,
+                  letterSpacing: "-.02em",
+                  margin: "0 0 16px",
+                  textTransform: "uppercase",
+                  color: "#fff",
+                }}
+              >
+                Trade the match.
+                <br />
+                Share the pot.
+              </h1>
+              <p
+                style={{
+                  fontSize: 18,
+                  lineHeight: 1.6,
+                  fontWeight: 500,
+                  color: "rgba(255,255,255,.72)",
+                  margin: "0 0 26px",
+                  maxWidth: 540,
+                }}
+              >
+                When your club plays, its Fan Token moves. Trade it while the match window is open
+                — profit earns points, and points earn your share of a CHZ prize pool that grows
+                every day.
+              </p>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                <Link className="btn primary" href="/entrar">
+                  Join this week — free
+                </Link>
+                <Link
+                  href="/regras"
+                  style={{ color: "rgba(255,255,255,.75)", fontSize: 14, fontWeight: 600 }}
+                >
+                  How scoring works
+                </Link>
+              </div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 24,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--green-300)",
+                }}
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 9999,
+                    background: "var(--green-300)",
+                    animation: "rd-pulse 1.6s ease-in-out infinite",
+                  }}
+                />
+                {board.wallets > 0
+                  ? `${board.wallets.toLocaleString("en-US")} traders on the board · counted on-chain`
+                  : "Live on-chain counting"}
+              </div>
+            </div>
+
+            <div style={{ flex: "0 1 auto" }}>
+              <div className="rd-crest-row" aria-hidden>
+                {HERO_LINEUP.slice(0, 5).map((sym) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={sym} className="rd-crest" src={TOKEN_BADGES[sym]} alt="" width={58} height={58} />
+                ))}
+              </div>
+              <div className="rd-crest-row" style={{ marginTop: 10, marginLeft: 28 }} aria-hidden>
+                {HERO_LINEUP.slice(5).map((sym) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={sym} className="rd-crest" src={TOKEN_BADGES[sym]} alt="" width={58} height={58} />
+                ))}
+              </div>
+              <div
+                style={{
+                  marginTop: 16,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: ".06em",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,.55)",
+                }}
+              >
+                9 club tokens · 11 venues · one table
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -660,7 +721,7 @@ export default async function Home() {
               marginBottom: 18,
             }}
           >
-            The pot keeps growing until the weekly close.
+            Grows every day. Split by points on the board, week by week.
           </div>
 
           <div
@@ -764,7 +825,7 @@ export default async function Home() {
               >
                 {match
                   ? `This matchday pool · ${match.pool_chz.toLocaleString("en-US")} CHZ`
-                  : "Season target pot"}
+                  : "Season pool today"}
               </div>
               <div
                 style={{
@@ -782,7 +843,7 @@ export default async function Home() {
               </div>
               <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,.5)" }}>
                 {eligiblePoints > 0
-                  ? `${eligiblePoints.toLocaleString("en-US")} eligible points on the board`
+                  ? `split across ${eligiblePoints.toLocaleString("en-US")} points on the board`
                   : "Free entry — score by trading where you already trade"}
               </div>
             </div>
@@ -1077,6 +1138,7 @@ export default async function Home() {
               href={v.url}
               target="_blank"
               rel="noopener noreferrer"
+              className="rd-elev"
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -1157,7 +1219,11 @@ export default async function Home() {
             alignItems: "start",
           }}
         >
-          <StandingsTable entries={board.entries} wallets={board.wallets} />
+          <StandingsTable
+            entries={board.entries}
+            wallets={board.wallets}
+            totalPoints={board.totalPoints}
+          />
 
           <div
             style={{
@@ -1440,11 +1506,19 @@ export default async function Home() {
             </div>
           </div>
           <div style={{ marginTop: 20, fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>
-            ={" "}
-            <span style={{ color: "var(--brand)" }}>
-              share of the pool by points
-            </span>{" "}
-            · skill × volume unlock
+            = <span style={{ color: "var(--brand)" }}>your share of the pot</span>
+          </div>
+          <div
+            style={{
+              marginTop: 8,
+              fontSize: 13,
+              fontWeight: 500,
+              lineHeight: 1.55,
+              color: "var(--fg-muted)",
+            }}
+          >
+            Points come from verified profit — volume only unlocks them, and wash trades score
+            zero. <Link href="/regras">Read the full formula</Link>.
           </div>
         </div>
 
@@ -1459,7 +1533,7 @@ export default async function Home() {
             justifyContent: "center",
           }}
         >
-          <h3 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 12px" }}>Simple by design</h3>
+          <h3 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 12px" }}>One rule</h3>
           <p
             style={{
               fontSize: 15,
@@ -1469,8 +1543,9 @@ export default async function Home() {
               margin: 0,
             }}
           >
-            No closed league, no assigned opponent, no lockout. Your verified trades inside the match
-            window are your result — that&apos;s the whole game.
+            Trade the featured club tokens while the match window is open. Your verified result is
+            your score — profit earns points, points earn CHZ. Play any week, skip any week;
+            nothing else counts.
           </p>
         </div>
       </section>
@@ -1748,7 +1823,7 @@ export default async function Home() {
                   {
                     n: "3",
                     title: "Score with profit",
-                    desc: "Volume qualifies you; verified P&L creates the result.",
+                    desc: "Profit earns points; volume only unlocks them. Wash trading scores zero.",
                   },
                 ].map((step) => (
                   <div key={step.n} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
@@ -1813,7 +1888,7 @@ export default async function Home() {
         >
           <div style={{ maxWidth: 560 }}>
             <div className="eyebrow" style={{ marginBottom: 14 }}>
-              Your route to the top division
+              Season roadmap
             </div>
             <h2
               className="rd-h2"
@@ -1838,8 +1913,8 @@ export default async function Home() {
               margin: 0,
             }}
           >
-            The Open Arena keeps entry free. The 18-seat Premier League creates the rivalries,
-            promotion and sponsor-ready fixtures.
+            The Open Arena is live today — free entry, every match window. The competitive tiers
+            arrive as the season grows, and your verified record now is your qualification later.
           </p>
         </div>
         <div
@@ -1854,19 +1929,19 @@ export default async function Home() {
               dark: true,
             },
             {
-              kicker: "Qualify",
+              kicker: "Coming next",
               title: "Challenger Rank",
-              desc: "Build a verified performance record over matchdays.",
+              desc: "Your matchday results build a verified record that qualifies you upward.",
               dark: false,
             },
             {
-              kicker: "18 seats",
+              kicker: "Planned · 18 seats",
               title: "Premier League",
               desc: "Weekly head-to-heads and a live season table.",
               dark: false,
             },
             {
-              kicker: "Featured",
+              kicker: "Planned",
               title: "Battle Nights",
               desc: "Rivalries, teams and broadcast-ready moments.",
               dark: false,

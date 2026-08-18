@@ -75,7 +75,7 @@ export function venueDirectory(): VenueBrand[] {
       key: "kayen",
       label: "Kayen / FanX",
       logo: VENUE_LOGOS.kayen,
-      tag: "Chiliz Chain · scored",
+      tag: "Chiliz Chain · earns points",
       url: "https://app.kayen.org/",
       scored: true,
     },
