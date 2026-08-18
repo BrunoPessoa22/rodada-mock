@@ -17,13 +17,27 @@ declare global {
   }
 }
 
+const CHILIZ_CHAIN_ID = 88888;
+
 /**
  * Reown (WalletConnect) Cloud project id — free, from dashboard.reown.com.
- * Inlined at build time; when unset the Socios path explains itself instead of
- * silently breaking.
+ * Fetched from /api/config at runtime (server env WC_PROJECT_ID) so enabling
+ * or rotating it is an env change + restart, not a rebuild; when unset the
+ * Socios path explains itself instead of silently breaking.
  */
-const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "";
-const CHILIZ_CHAIN_ID = 88888;
+let wcProjectIdPromise: Promise<string> | null = null;
+function getWcProjectId(): Promise<string> {
+  if (!wcProjectIdPromise) {
+    wcProjectIdPromise = fetch("/api/config")
+      .then((res) => (res.ok ? res.json() : { wcProjectId: "" }))
+      .then((body: { wcProjectId?: string }) => body.wcProjectId ?? "")
+      .catch(() => {
+        wcProjectIdPromise = null; // transient network failure — retry next click
+        return "";
+      });
+  }
+  return wcProjectIdPromise;
+}
 
 function toHexMessage(message: string): string {
   return (
@@ -145,7 +159,8 @@ export default function JoinPage() {
    */
   async function claimWithSocios() {
     if (!requireHandle()) return;
-    if (!WC_PROJECT_ID) {
+    const projectId = await getWcProjectId();
+    if (!projectId) {
       setSigError(
         "Socios connect is being enabled — use a browser wallet or manual verification meanwhile"
       );
@@ -159,7 +174,7 @@ export default function JoinPage() {
       if (!wcProviderRef.current) {
         const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
         wcProviderRef.current = await EthereumProvider.init({
-          projectId: WC_PROJECT_ID,
+          projectId,
           chains: [CHILIZ_CHAIN_ID],
           showQrModal: true,
           methods: ["personal_sign"],

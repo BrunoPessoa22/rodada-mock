@@ -49,9 +49,10 @@ and pays.
     proofs in [docs/multichain-venues.md](docs/multichain-venues.md).
 - **Socios connect** — the join flow signs the claim message with either a
   browser wallet or the **Socios.com app** via WalletConnect v2 (QR pairing on
-  Chiliz Chain, `personal_sign` only). Requires `NEXT_PUBLIC_WC_PROJECT_ID`
-  (free project id from dashboard.reown.com); without it the button explains
-  itself and the other paths keep working.
+  Chiliz Chain, `personal_sign` only). Requires `WC_PROJECT_ID`
+  (free project id from dashboard.reown.com), served to the client at runtime
+  via `/api/config` — enabling it is an env change + restart, no rebuild;
+  without it the button explains itself and the other paths keep working.
 
 Full concept: [League Proposal v2](public/proposal/league-proposal-v2.md) ·
 served at [/proposal](https://trading.brunopessoa.com/proposal). The original
@@ -84,8 +85,8 @@ switching the unlock to net exposure),
 to keep counting toward the volume unlock; default 6h — the board finalizes
 only after it elapses),
 `CEX_REFRESH_MS` (tracked-venue volume refresh cadence; default 10min),
-`NEXT_PUBLIC_WC_PROJECT_ID` (Reown/WalletConnect project id for the Socios.com
-app connect path — build-time).
+`WC_PROJECT_ID` (Reown/WalletConnect project id for the Socios.com app
+connect path — runtime, served via `/api/config`).
 
 Ops: `GET /api/health` reports DB reachability, indexer heartbeat
 (`lastTickAt`/`indexerStale`) and the current match — point an uptime monitor
