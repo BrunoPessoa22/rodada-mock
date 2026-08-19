@@ -631,7 +631,7 @@ export default async function Home() {
         style={{
           maxWidth: 1200,
           margin: "0 auto",
-          padding: "0 40px 24px",
+          padding: "36px 40px 24px",
           display: "grid",
           gridTemplateColumns: "1.5fr 1fr",
           gap: 24,
