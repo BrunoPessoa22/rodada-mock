@@ -1,5 +1,5 @@
 import { getDb, getSetting } from "@/lib/db";
-import { getCurrentMatch } from "@/lib/queries";
+import { activeSeason, getCurrentMatch } from "@/lib/queries";
 import { RUN_INDEXER, INDEXER_INTERVAL_MS } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * fields; 503 only when the database itself is unreachable. Staleness policy
  * lives in the monitor, not here — but `indexerStale` gives a ready-made flag:
  * true when RUN_INDEXER is armed and the last completed tick is older than
- * five intervals.
+ * five intervals — plus `orphanMatches`, which must always be 0.
  */
 export async function GET() {
   try {
@@ -17,6 +17,15 @@ export async function GET() {
   } catch (error) {
     return Response.json({ ok: false, error: String(error) }, { status: 503 });
   }
+
+  // A match with no season is invisible to getCurrentMatch, getLeaderboard AND
+  // scoreDueMatches — it would sit through its whole window silently unscored.
+  // The admin route always sets one and the migration backfilled every existing
+  // row, so this can only come from a hand-written INSERT or a restored backup.
+  // Surfacing it here means the uptime monitor catches it instead of a trader.
+  const orphanMatches = (
+    getDb().prepare("SELECT COUNT(*) AS n FROM matches WHERE season IS NULL").get() as { n: number }
+  ).n;
 
   const lastTickAt = getSetting("last_tick_at");
   const tickAgeMs = lastTickAt ? Date.now() - new Date(lastTickAt).getTime() : null;
@@ -27,6 +36,8 @@ export async function GET() {
     indexerArmed: RUN_INDEXER,
     lastTickAt,
     indexerStale: RUN_INDEXER && (tickAgeMs == null || tickAgeMs > 5 * INDEXER_INTERVAL_MS),
+    activeSeason: activeSeason(),
+    orphanMatches,
     currentMatch: match?.slug ?? null,
     currentWindowEnd: match?.window_end_utc ?? null,
   });
