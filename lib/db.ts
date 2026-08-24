@@ -114,8 +114,48 @@ CREATE TABLE IF NOT EXISTS payouts (
   PRIMARY KEY (scope, address)
 );
 
+CREATE TABLE IF NOT EXISTS cex_keys (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  address        TEXT NOT NULL,                      -- verified wallet this key is bound to
+  venue          TEXT NOT NULL,                      -- binance | okx
+  api_key_enc    TEXT NOT NULL,                      -- AES-256-GCM, AAD = venue|address
+  api_secret_enc TEXT NOT NULL,
+  passphrase_enc TEXT,                               -- OKX only
+  key_last4      TEXT NOT NULL,                      -- shown in UI + signed message; never the key
+  status         TEXT NOT NULL DEFAULT 'verified',   -- verified | invalid (auto-revoked)
+  perms          TEXT,                               -- venue's own permission readout at last check
+  last_error     TEXT,
+  last_checked_at TEXT,
+  created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+  UNIQUE(address, venue)                             -- one key per venue per wallet; attach replaces
+);
+
+CREATE TABLE IF NOT EXISTS cexkey_nonces (
+  nonce      TEXT PRIMARY KEY,
+  address    TEXT NOT NULL,
+  venue      TEXT NOT NULL,
+  action     TEXT NOT NULL,                          -- attach | revoke
+  key_last4  TEXT NOT NULL,
+  used       INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS keyed_cex_volume (
+  match_id   INTEGER NOT NULL REFERENCES matches(id),
+  address    TEXT NOT NULL,
+  venue      TEXT NOT NULL,
+  token      TEXT NOT NULL,
+  inst       TEXT NOT NULL,
+  buy_usd    REAL NOT NULL DEFAULT 0,                -- window fills, quote converted to USD
+  sell_usd   REAL NOT NULL DEFAULT 0,
+  trades     INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT,
+  PRIMARY KEY (match_id, address, venue, inst)
+);
+
 CREATE INDEX IF NOT EXISTS idx_scores_address ON scores(address);
 CREATE INDEX IF NOT EXISTS idx_claims_status  ON claims(status);
+CREATE INDEX IF NOT EXISTS idx_keyed_cex_addr ON keyed_cex_volume(address);
 `;
 
 let db: Database.Database | null = null;

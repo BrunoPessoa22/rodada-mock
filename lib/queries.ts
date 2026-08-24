@@ -114,6 +114,26 @@ export function getVenueVolume(matchId: number): VenueVolumeRow[] {
     .all(matchId) as VenueVolumeRow[];
 }
 
+export interface KeyedVenueVolumeRow {
+  venue: string; // binance | okx
+  usd: number; // buy + sell USD across connected accounts
+  traders: number; // distinct connected wallets with fills
+}
+
+/**
+ * Volume attributed through read-only key connections, per venue. Unlike
+ * venue_volume (market-wide candles) this is the players' OWN fills — the
+ * "verified" sliver of a venue's tracked total.
+ */
+export function getKeyedVenueVolume(matchId: number): KeyedVenueVolumeRow[] {
+  return getDb()
+    .prepare(
+      `SELECT venue, SUM(buy_usd + sell_usd) AS usd, COUNT(DISTINCT address) AS traders
+         FROM keyed_cex_volume WHERE match_id = ? GROUP BY venue ORDER BY usd DESC`
+    )
+    .all(matchId) as KeyedVenueVolumeRow[];
+}
+
 /** Gross on-chain taker volume (buys + sells, USD) counted for a match. */
 export function getOnchainVolume(matchId: number): number {
   const row = getDb()

@@ -20,24 +20,37 @@ declare global {
 const CHILIZ_CHAIN_ID = 88888;
 
 /**
- * Reown (WalletConnect) Cloud project id — free, from dashboard.reown.com.
- * Fetched from /api/config at runtime (server env WC_PROJECT_ID) so enabling
- * or rotating it is an env change + restart, not a rebuild; when unset the
- * Socios path explains itself instead of silently breaking.
+ * Runtime client config (/api/config): the Reown/WalletConnect project id and
+ * which venues accept read-only key connections. Fetched at runtime so
+ * enabling or rotating either is an env change + restart, not a rebuild; when
+ * unset each path explains itself instead of silently breaking.
  */
-let wcProjectIdPromise: Promise<string> | null = null;
-function getWcProjectId(): Promise<string> {
-  if (!wcProjectIdPromise) {
-    wcProjectIdPromise = fetch("/api/config")
-      .then((res) => (res.ok ? res.json() : { wcProjectId: "" }))
-      .then((body: { wcProjectId?: string }) => body.wcProjectId ?? "")
+interface ClientConfig {
+  wcProjectId: string;
+  cexConnect: string[];
+}
+let configPromise: Promise<ClientConfig> | null = null;
+function getClientConfig(): Promise<ClientConfig> {
+  if (!configPromise) {
+    configPromise = fetch("/api/config")
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((body: Partial<ClientConfig>) => ({
+        wcProjectId: body.wcProjectId ?? "",
+        cexConnect: Array.isArray(body.cexConnect) ? body.cexConnect : [],
+      }))
       .catch(() => {
-        wcProjectIdPromise = null; // transient network failure — retry next click
-        return "";
+        configPromise = null; // transient network failure — retry next call
+        return { wcProjectId: "", cexConnect: [] };
       });
   }
-  return wcProjectIdPromise;
+  return configPromise;
 }
+
+const CEX_LABEL: Record<string, string> = { binance: "Binance", okx: "OKX" };
+const CEX_API_PAGE: Record<string, string> = {
+  binance: "https://www.binance.com/en/my/settings/api-management",
+  okx: "https://www.okx.com/account/my-api",
+};
 
 function toHexMessage(message: string): string {
   return (
@@ -66,11 +79,27 @@ export default function JoinPage() {
     disconnect(): Promise<void>;
   } | null>(null);
 
+  // Read-only exchange connection flow
+  const [cexVenues, setCexVenues] = useState<string[]>([]);
+  const [cexVenue, setCexVenue] = useState<string>("okx");
+  const [cexKey, setCexKey] = useState("");
+  const [cexSecret, setCexSecret] = useState("");
+  const [cexPass, setCexPass] = useState("");
+  const [cexState, setCexState] = useState<
+    "idle" | "signing" | "verifying" | "connected" | "error"
+  >("idle");
+  const [cexError, setCexError] = useState("");
+  const [cexApiPage, setCexApiPage] = useState("");
+  const [cexConnected, setCexConnected] = useState<{ venue: string; keyLast4: string } | null>(
+    null
+  );
+
   useEffect(() => {
     const walletAvailable = typeof window !== "undefined" && !!window.ethereum;
     setHasWallet(walletAvailable);
     setManualOpen(false);
     setWalletChecked(true);
+    getClientConfig().then((config) => setCexVenues(config.cexConnect));
   }, []);
 
   /**
@@ -123,32 +152,26 @@ export default function JoinPage() {
     return false;
   }
 
-  async function claimWithBrowserWallet() {
-    if (!requireHandle()) return;
-    if (!window.ethereum) {
-      setSigError("no browser wallet detected");
-      setSigState("error");
-      return;
-    }
-    setSigPath("browser");
-    setSigState("signing");
-    setSigError("");
-    try {
-      const accounts = (await window.ethereum.request({
-        method: "eth_requestAccounts",
-      })) as string[];
-      const address = accounts?.[0];
-      if (!address) throw new Error("no account");
-      await runClaim(address, async (message) => {
-        return (await window.ethereum!.request({
+  interface Signer {
+    address: string;
+    sign(message: string): Promise<string>;
+  }
+
+  async function getBrowserSigner(): Promise<Signer> {
+    if (!window.ethereum) throw new Error("no browser wallet detected");
+    const accounts = (await window.ethereum.request({
+      method: "eth_requestAccounts",
+    })) as string[];
+    const address = accounts?.[0];
+    if (!address) throw new Error("no account");
+    return {
+      address,
+      sign: async (message) =>
+        (await window.ethereum!.request({
           method: "personal_sign",
           params: [toHexMessage(message), address],
-        })) as string;
-      });
-    } catch (err) {
-      setSigError(err instanceof Error ? err.message : "wallet error");
-      setSigState("error");
-    }
+        })) as string,
+    };
   }
 
   /**
@@ -157,52 +180,188 @@ export default function JoinPage() {
    * WalletConnect wallet holding your fan tokens) and approve one free
    * signature. Nothing else is requested: personal_sign only, no transaction.
    */
-  async function claimWithSocios() {
-    if (!requireHandle()) return;
-    const projectId = await getWcProjectId();
-    if (!projectId) {
-      setSigError(
+  async function getSociosSigner(): Promise<Signer> {
+    const { wcProjectId } = await getClientConfig();
+    if (!wcProjectId) {
+      throw new Error(
         "Socios connect is being enabled — use a browser wallet or manual verification meanwhile"
       );
-      setSigState("error");
-      return;
     }
+    if (!wcProviderRef.current) {
+      const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
+      wcProviderRef.current = await EthereumProvider.init({
+        projectId: wcProjectId,
+        chains: [CHILIZ_CHAIN_ID],
+        showQrModal: true,
+        methods: ["personal_sign"],
+        events: ["accountsChanged", "chainChanged"],
+        rpcMap: { [CHILIZ_CHAIN_ID]: "https://rpc.chiliz.com" },
+        metadata: {
+          name: "Trading League",
+          description: "Fan Token Trading League — trade the match, share the pot.",
+          url: "https://trading.brunopessoa.com",
+          icons: ["https://trading.brunopessoa.com/icon.svg"],
+        },
+      });
+    }
+    const provider = wcProviderRef.current;
+    if (provider.accounts.length === 0) await provider.connect();
+    const address = provider.accounts[0];
+    if (!address) throw new Error("no account approved in the wallet app");
+    return {
+      address,
+      sign: async (message) =>
+        (await provider.request({
+          method: "personal_sign",
+          params: [toHexMessage(message), address],
+        })) as string,
+    };
+  }
+
+  async function claimWithBrowserWallet() {
+    if (!requireHandle()) return;
+    setSigPath("browser");
+    setSigState("signing");
+    setSigError("");
+    try {
+      const { address, sign } = await getBrowserSigner();
+      await runClaim(address, sign);
+    } catch (err) {
+      setSigError(err instanceof Error ? err.message : "wallet error");
+      setSigState("error");
+    }
+  }
+
+  async function claimWithSocios() {
+    if (!requireHandle()) return;
     setSigPath("socios");
     setSigState("signing");
     setSigError("");
     try {
-      if (!wcProviderRef.current) {
-        const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
-        wcProviderRef.current = await EthereumProvider.init({
-          projectId,
-          chains: [CHILIZ_CHAIN_ID],
-          showQrModal: true,
-          methods: ["personal_sign"],
-          events: ["accountsChanged", "chainChanged"],
-          rpcMap: { [CHILIZ_CHAIN_ID]: "https://rpc.chiliz.com" },
-          metadata: {
-            name: "Trading League",
-            description: "Fan Token Trading League — trade the match, share the pot.",
-            url: "https://trading.brunopessoa.com",
-            icons: ["https://trading.brunopessoa.com/icon.svg"],
-          },
-        });
-      }
-      const provider = wcProviderRef.current;
-      if (provider.accounts.length === 0) await provider.connect();
-      const address = provider.accounts[0];
-      if (!address) throw new Error("no account approved in the wallet app");
-      await runClaim(address, async (message) => {
-        return (await provider.request({
-          method: "personal_sign",
-          params: [toHexMessage(message), address],
-        })) as string;
-      });
+      const { address, sign } = await getSociosSigner();
+      await runClaim(address, sign);
     } catch (err) {
       // A closed modal surfaces as a rejection — keep the message human.
       const raw = err instanceof Error ? err.message : "wallet error";
       setSigError(/reject|cancel|closed/i.test(raw) ? "connection cancelled in the app" : raw);
       setSigState("error");
+    }
+  }
+
+  /**
+   * Attach a read-only exchange key: challenge → sign with the claimed wallet
+   * → server verifies with the exchange that the key can ONLY read, then
+   * stores it encrypted. The signed message names the venue and the key's
+   * last 4 characters, so the approval in the wallet says exactly what happens.
+   */
+  async function connectCex(path: "browser" | "socios") {
+    const key = cexKey.trim();
+    const secret = cexSecret.trim();
+    const pass = cexPass.trim();
+    if (key.length < 8 || secret.length < 8) {
+      setCexError("paste the API key and its secret first");
+      setCexState("error");
+      return;
+    }
+    if (cexVenue === "okx" && !pass) {
+      setCexError("OKX keys need their passphrase");
+      setCexState("error");
+      return;
+    }
+    setCexState("signing");
+    setCexError("");
+    setCexApiPage("");
+    try {
+      const signer = path === "browser" ? await getBrowserSigner() : await getSociosSigner();
+      const challengeRes = await fetch("/api/cexkeys/challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: signer.address,
+          venue: cexVenue,
+          action: "attach",
+          keyLast4: key.slice(-4),
+        }),
+      });
+      const challenge = (await challengeRes.json()) as {
+        nonce?: string;
+        message?: string;
+        error?: string;
+      };
+      if (!challengeRes.ok || !challenge.nonce || !challenge.message) {
+        throw new Error(challenge.error ?? "challenge failed");
+      }
+      const signature = await signer.sign(challenge.message);
+      setCexState("verifying");
+      const attachRes = await fetch("/api/cexkeys/attach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nonce: challenge.nonce,
+          signature,
+          apiKey: key,
+          apiSecret: secret,
+          passphrase: pass || undefined,
+        }),
+      });
+      const attach = (await attachRes.json()) as {
+        ok?: boolean;
+        venue?: string;
+        keyLast4?: string;
+        error?: string;
+        apiPage?: string;
+      };
+      if (!attachRes.ok || !attach.ok) {
+        setCexApiPage(attach.apiPage ?? "");
+        throw new Error(attach.error ?? "connection failed");
+      }
+      setCexConnected({ venue: attach.venue ?? cexVenue, keyLast4: attach.keyLast4 ?? key.slice(-4) });
+      // Secrets have done their job — wipe them from component state.
+      setCexKey("");
+      setCexSecret("");
+      setCexPass("");
+      setCexState("connected");
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "error";
+      setCexError(/reject|cancel|closed/i.test(raw) ? "signature cancelled in the wallet" : raw);
+      setCexState("error");
+    }
+  }
+
+  /** Revoke = the encrypted credentials are deleted server-side, immediately. */
+  async function disconnectCex(path: "browser" | "socios") {
+    if (!cexConnected) return;
+    setCexState("signing");
+    setCexError("");
+    try {
+      const signer = path === "browser" ? await getBrowserSigner() : await getSociosSigner();
+      const challengeRes = await fetch("/api/cexkeys/challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: signer.address, venue: cexConnected.venue, action: "revoke" }),
+      });
+      const challenge = (await challengeRes.json()) as {
+        nonce?: string;
+        message?: string;
+        error?: string;
+      };
+      if (!challengeRes.ok || !challenge.nonce || !challenge.message) {
+        throw new Error(challenge.error ?? "challenge failed");
+      }
+      const signature = await signer.sign(challenge.message);
+      const revokeRes = await fetch("/api/cexkeys/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nonce: challenge.nonce, signature }),
+      });
+      const revoke = (await revokeRes.json()) as { ok?: boolean; error?: string };
+      if (!revokeRes.ok || !revoke.ok) throw new Error(revoke.error ?? "revoke failed");
+      setCexConnected(null);
+      setCexState("idle");
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "error";
+      setCexError(/reject|cancel|closed/i.test(raw) ? "signature cancelled in the wallet" : raw);
+      setCexState("error");
     }
   }
 
@@ -475,19 +634,176 @@ export default function JoinPage() {
                 border: "1px solid rgba(255,255,255,.1)",
                 borderRadius: 12,
                 padding: 16,
-                opacity: 0.8,
               }}
             >
               <div style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>
                 Connect a CEX account
               </div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
-                Read-only API — OKX · Binance next. Meanwhile CEX, Solana and Base volume is tracked
-                venue-wide on the matchday board.
+                {cexVenues.length > 0
+                  ? "Live now · OKX and Binance · read-only API key — connect below. Other venues stay tracked venue-wide on the matchday board."
+                  : "Read-only API — OKX · Binance, being enabled. Meanwhile CEX, Solana and Base volume is tracked venue-wide on the matchday board."}
               </div>
             </div>
           </div>
         </div>
+
+        {cexVenues.length > 0 ? (
+          <div className="panel" id="cex" style={{ marginTop: 28 }}>
+            <div className="ph">
+              <Icon id="i-lock" lg />
+              <h3>Connect an exchange — read-only</h3>
+            </div>
+            <p className="gapline">
+              Your own fan-token trades on the exchange count as verified volume during match
+              windows. The league checks with the exchange that the key can <b>only read</b> — a
+              key that can trade or withdraw is refused, and a connected key is disconnected
+              automatically if its permissions ever change.
+            </p>
+
+            {cexConnected ? (
+              <div className="join-success" aria-live="polite">
+                <p className="gapline">
+                  <Icon id="i-check" /> <b>{CEX_LABEL[cexConnected.venue] ?? cexConnected.venue}</b>{" "}
+                  connected — read-only verified (key ending {cexConnected.keyLast4}). Your league-pair
+                  trades during match windows now count as verified volume.
+                </p>
+                {cexState === "error" ? (
+                  <p className="formerror" aria-live="polite">
+                    Couldn&apos;t disconnect: {cexError}
+                  </p>
+                ) : null}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    disabled={cexState === "signing"}
+                    onClick={() => disconnectCex(hasWallet ? "browser" : "socios")}
+                  >
+                    {cexState === "signing" ? "Confirm in your wallet…" : "Disconnect (sign to confirm)"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form
+                className="join-action"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  connectCex(hasWallet ? "browser" : "socios");
+                }}
+              >
+                <label>
+                  Exchange
+                  <select
+                    value={cexVenue}
+                    onChange={(event) => {
+                      setCexVenue(event.target.value);
+                      setCexError("");
+                      setCexApiPage("");
+                      if (cexState === "error") setCexState("idle");
+                    }}
+                  >
+                    {cexVenues.map((v) => (
+                      <option key={v} value={v}>
+                        {CEX_LABEL[v] ?? v}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <p className="join-proof" style={{ margin: 0 }}>
+                  1 ·{" "}
+                  <a href={CEX_API_PAGE[cexVenue]} target="_blank" rel="noopener noreferrer">
+                    Create an API key on {CEX_LABEL[cexVenue] ?? cexVenue} ↗
+                  </a>{" "}
+                  and check <b>only &quot;Read&quot;</b> — leave trading and withdrawals off. 2 ·
+                  Paste it here. 3 · Sign once with the wallet you claimed with.
+                </p>
+
+                <label>
+                  API key
+                  <input
+                    value={cexKey}
+                    onChange={(event) => setCexKey(event.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="mono"
+                    placeholder="paste the API key"
+                  />
+                </label>
+                <label>
+                  API secret
+                  <input
+                    value={cexSecret}
+                    onChange={(event) => setCexSecret(event.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                    type="password"
+                    className="mono"
+                    placeholder="paste the secret"
+                  />
+                </label>
+                {cexVenue === "okx" ? (
+                  <label>
+                    Passphrase (set when you created the key)
+                    <input
+                      value={cexPass}
+                      onChange={(event) => setCexPass(event.target.value)}
+                      autoComplete="off"
+                      type="password"
+                      className="mono"
+                      placeholder="OKX API passphrase"
+                    />
+                  </label>
+                ) : null}
+
+                {cexState === "error" ? (
+                  <p className="formerror" aria-live="polite">
+                    Couldn&apos;t connect: {cexError}
+                    {cexApiPage ? (
+                      <>
+                        {" "}
+                        <a href={cexApiPage} target="_blank" rel="noopener noreferrer">
+                          Create a read-only key ↗
+                        </a>
+                      </>
+                    ) : null}
+                  </p>
+                ) : null}
+
+                <button
+                  className="btn primary"
+                  type="submit"
+                  disabled={cexState === "signing" || cexState === "verifying"}
+                >
+                  <Icon id="i-lock" />
+                  {cexState === "signing"
+                    ? "Confirm in your wallet…"
+                    : cexState === "verifying"
+                      ? `Verifying with ${CEX_LABEL[cexVenue] ?? cexVenue}…`
+                      : "Sign & verify read-only"}
+                </button>
+                {!hasWallet ? (
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    disabled={cexState === "signing" || cexState === "verifying"}
+                    onClick={() => connectCex("socios")}
+                  >
+                    <Icon id="i-zap" />
+                    Sign with the Socios.com app
+                  </button>
+                ) : null}
+
+                <p className="join-proof">
+                  Stored encrypted · read-only enforced by the exchange itself · used only to read
+                  your fan-token trades inside match windows · disconnect here anytime, which
+                  deletes the key. Requires a claimed username (top of this page).
+                </p>
+              </form>
+            )}
+          </div>
+        ) : null}
 
         <p className="gapline" style={{ marginTop: 28 }}>
           <b>Privacy:</b> the leaderboard shows only your chosen name. Unclaimed addresses appear

@@ -16,6 +16,7 @@ export async function register() {
   const { refreshDueCexVolume } = await import("./lib/cex");
   const { refreshDueDexVolume } = await import("./lib/dexvol");
   const { refreshDueVibeVolume } = await import("./lib/vibe");
+  const { refreshDueKeyedCex } = await import("./lib/cexkeys");
   const { backupDb, setSetting } = await import("./lib/db");
   const { CEX_REFRESH_MS } = await import("./lib/config");
   let running = false;
@@ -32,6 +33,7 @@ export async function register() {
         await refreshDueCexVolume();
         await refreshDueDexVolume();
         await refreshDueVibeVolume();
+        await refreshDueKeyedCex();
       }
       if (Date.now() - lastBackup >= BACKUP_INTERVAL_MS) {
         lastBackup = Date.now();

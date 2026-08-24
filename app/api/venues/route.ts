@@ -1,4 +1,10 @@
-import { getCurrentMatch, getMatchBySlug, getOnchainVolume, getVenueVolume } from "@/lib/queries";
+import {
+  getCurrentMatch,
+  getKeyedVenueVolume,
+  getMatchBySlug,
+  getOnchainVolume,
+  getVenueVolume,
+} from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -18,5 +24,8 @@ export async function GET(request: Request) {
     tokens: JSON.parse(match.tokens) as string[],
     onchainUsd: getOnchainVolume(match.id),
     venues: getVenueVolume(match.id),
+    // Players' own fills via read-only key connections — the verified sliver
+    // of each CEX's market-wide tracked total above.
+    keyed: getKeyedVenueVolume(match.id),
   });
 }

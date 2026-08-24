@@ -42,14 +42,24 @@ export default function PrivacyPage() {
             <b>A signature record.</b> The one-time challenge you signed to prove the wallet is
             yours. It proves ownership; it cannot move funds.
           </li>
+          <li>
+            <b>A read-only exchange API key, only if you connect one.</b> Optional. Before storing
+            it we ask the exchange itself what the key can do and refuse anything beyond
+            &quot;read&quot;; we re-check on every collection run and disconnect the key
+            automatically if its permissions ever widen. It is stored encrypted (AES-256-GCM),
+            never logged, and used for exactly one thing: reading your own fan-token trades during
+            match windows. Disconnecting on the join page deletes the key immediately; the
+            aggregated match-window volume it already produced stays on the board, credential-free.
+          </li>
         </ul>
 
         <h3>What we never collect</h3>
         <p>
           No private keys. No seed phrases. No withdrawal or spending permissions. No exchange
-          credentials with trading rights — a future exchange link will be read-only API keys, and
-          read-only means read-only. No documents, no selfies, no background tracking or advertising
-          profiles across other sites.
+          credentials with trading rights — the exchange link accepts read-only API keys only, the
+          exchange&apos;s own permission endpoint is the judge, and a key that gains trading rights
+          later is dropped automatically. No documents, no selfies, no background tracking or
+          advertising profiles across other sites.
         </p>
 
         <h3>What we do with it</h3>
@@ -86,8 +96,9 @@ export default function PrivacyPage() {
         <p>
           On a single server the operator controls, in one database, backed up daily. Third parties
           involved: the public Chiliz Chain RPC, public market-data endpoints for prices and venue
-          volume, and WalletConnect for the Socios.com sign-in flow. None of them receive your
-          contact details.
+          volume, WalletConnect for the Socios.com sign-in flow, and — only if you connected a
+          read-only key — signed read requests to your own exchange account on Binance or OKX. None
+          of them receive your contact details.
         </p>
 
         <h3>Cookies</h3>

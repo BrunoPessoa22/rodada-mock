@@ -115,7 +115,10 @@ export const VENUE_TRADE_URL: Record<CexVenue, (inst: string) => string> = {
   bitget: (inst) => `https://www.bitget.com/spot/${inst}`,
   htx: (inst) => `https://www.htx.com/trade/${inst.replace(/(usdt)$/, "_$1")}`,
   upbit: (inst) => `https://upbit.com/exchange?code=CRIX.UPBIT.${inst}`,
-  mercadobitcoin: () => `https://www.mercadobitcoin.com.br/`,
+  // MB's canonical per-symbol URL — they 301 it to the token's current page
+  // (criptomoedas/PSGFT-BRL → fan-tokens/paris-saint-germain), so the mapping
+  // to marketing slugs stays THEIR problem. Never link the bare homepage.
+  mercadobitcoin: (inst) => `https://www.mercadobitcoin.com.br/criptomoedas/${inst}`,
 };
 
 // Fresh options per request — AbortSignal.timeout starts its clock at CREATION,

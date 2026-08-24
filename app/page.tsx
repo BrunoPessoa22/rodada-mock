@@ -6,6 +6,7 @@ import { enName } from "@/lib/i18n";
 import { getPot } from "@/lib/pot";
 import {
   getCurrentMatch,
+  getKeyedVenueVolume,
   getLeaderboard,
   getOnchainVolume,
   getVenueVolume,
@@ -356,6 +357,9 @@ interface VenueBoardRow {
   /** Derivative notional, not spot turnover — never folded into the spot total. */
   perp?: boolean;
   usd: number | null; // null = tracked venue with no measured volume this window yet
+  /** Slice of `usd` attributed via read-only key connections — players' own fills. */
+  keyedUsd?: number;
+  keyedTraders?: number;
   url: string;
   logo: string | null;
 }
@@ -368,9 +372,11 @@ interface VenueBoardRow {
 function buildVenueBoard(
   tokens: string[],
   volume: { source: string; quoteUsd: number }[],
-  onchainUsd: number
+  onchainUsd: number,
+  keyed: { venue: string; usd: number; traders: number }[] = []
 ): VenueBoardRow[] {
   const bySource = new Map(volume.map((v) => [v.source, v.quoteUsd]));
+  const keyedByVenue = new Map(keyed.map((k) => [k.venue, k]));
   const rows: VenueBoardRow[] = [
     {
       key: "chiliz",
@@ -385,12 +391,15 @@ function buildVenueBoard(
   for (const venue of venuesForTokens(tokens)) {
     const firstListing = tokens.flatMap((t) => CEX_LISTINGS[t]?.[venue as CexVenue] ?? [])[0];
     if (!firstListing) continue;
+    const keyedRow = keyedByVenue.get(venue);
     rows.push({
       key: `cex:${venue}`,
       label: CEX_VENUE_LABEL[venue],
       tag: "CEX · tracked",
       scored: false,
       usd: bySource.get(`cex:${venue}`) ?? null,
+      keyedUsd: keyedRow?.usd,
+      keyedTraders: keyedRow?.traders,
       url: VENUE_TRADE_URL[venue](firstListing.inst),
       logo: venueLogoForSource(`cex:${venue}`),
     });
@@ -499,6 +508,19 @@ function VenueBoard({ rows }: { rows: VenueBoardRow[] }) {
               >
                 {r.tag}
               </span>
+              {r.keyedUsd != null && r.keyedUsd > 0 ? (
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "var(--green-500)",
+                  }}
+                >
+                  incl. {fmt.format(r.keyedUsd)} verified · {r.keyedTraders}{" "}
+                  {r.keyedTraders === 1 ? "trader" : "traders"}
+                </span>
+              ) : null}
             </span>
             <span style={{ marginLeft: "auto", fontWeight: 700, fontSize: 13, color: "var(--fg)" }}>
               {r.usd != null && r.usd > 0 ? fmt.format(r.usd) : "—"}
@@ -519,6 +541,7 @@ export default async function Home() {
     ? getLeaderboard({ matchId: match.id, poolChz: match.pool_chz })
     : getLeaderboard({ poolChz: seasonPoolChz });
   const venueVolume = match ? getVenueVolume(match.id) : [];
+  const keyedVolume = match ? getKeyedVenueVolume(match.id) : [];
   const onchainUsd = match ? getOnchainVolume(match.id) : 0;
   // Spot turnover only. Perp notional is a leveraged synthetic — a fan buying a
   // PSG perp never touches a PSG token — so adding it here would inflate a
@@ -1134,7 +1157,7 @@ export default async function Home() {
                   </b>.</>
                 ) : null}
               </div>
-              <VenueBoard rows={buildVenueBoard(tokens, venueVolume, onchainUsd)} />
+              <VenueBoard rows={buildVenueBoard(tokens, venueVolume, onchainUsd, keyedVolume)} />
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
                 <a
                   className="btn primary sm"
@@ -1837,12 +1860,15 @@ export default async function Home() {
                   margin: "0 0 18px",
                 }}
               >
-                Create a read-only connection so your own exchange trades can score. We only
-                inspect verified trades — never withdraw or move funds. Venue-wide volume on
-                Binance, OKX, Gate, MEXC, Bitget, HTX, Upbit and Mercado Bitcoin is already
-                tracked on the matchday board.
+                Connect a read-only API key so your own exchange trades show as verified volume
+                during match windows. The key can only read — trading or withdrawal rights are
+                refused — and venue-wide volume on Binance, OKX, Gate, MEXC, Bitget, HTX, Upbit
+                and Mercado Bitcoin is already tracked on the matchday board.
               </p>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <Link className="btn secondary sm" href="/entrar#cex">
+                  Connect OKX or Binance
+                </Link>
                 <span
                   style={{
                     fontSize: 11,
@@ -1854,20 +1880,7 @@ export default async function Home() {
                     color: "var(--ink-soft)",
                   }}
                 >
-                  OKX · Binance
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "5px 11px",
-                    borderRadius: 9999,
-                    background: "var(--bg-muted)",
-                    border: "1px solid var(--border)",
-                    color: "var(--ink-soft)",
-                  }}
-                >
-                  Next up
+                  Read-only · live now
                 </span>
               </div>
             </div>
