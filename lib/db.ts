@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import fs from "node:fs";
-import { DATA_DIR, DB_PATH, POT_DEFAULTS } from "./config";
+import { ACTIVE_SEASON_DEFAULT, DATA_DIR, DB_PATH, POT_DEFAULTS, PRESEASON } from "./config";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS settings (
@@ -22,7 +22,13 @@ CREATE TABLE IF NOT EXISTS matches (
   tokens           TEXT NOT NULL,                     -- JSON array of token symbols counted
   pool_chz         INTEGER NOT NULL DEFAULT 0,
   chz_usd          REAL,
-  scored_at        TEXT
+  scored_at        TEXT,
+  season           TEXT                               -- season this match's points belong to.
+                                                      -- The public board only ever shows ONE
+                                                      -- season (settings.active_season), so a
+                                                      -- scoring-rule change retires the old board
+                                                      -- into an archive instead of silently
+                                                      -- mixing two formulas in one table.
 );
 
 CREATE TABLE IF NOT EXISTS wallets (
@@ -142,6 +148,16 @@ function migrate(d: Database.Database) {
     // rescore of a scored match reproduces the same inventory marks.
     d.exec("ALTER TABLE matches ADD COLUMN frozen_prices TEXT");
   }
+  if (!cols("matches").has("season")) {
+    // Every match that predates the column was scored under the RETIRED
+    // Jul-2026 formula (points = 2·√|net taker USD|), which the current
+    // profit-only rules cannot reproduce — and whose inventory marks were
+    // never frozen, so a rescore would re-price July flow at today's
+    // reserves. Those boards are archived as a preseason, never mixed into
+    // the live season and never payable. See docs/preseason.md.
+    d.exec("ALTER TABLE matches ADD COLUMN season TEXT");
+    d.prepare("UPDATE matches SET season = ? WHERE season IS NULL").run(PRESEASON);
+  }
   // cex_volume → venue_volume: the multi-venue layer generalizes the old
   // CEX-only table (adds source/chain/quote, and puts source in the PK because
   // inst strings collide across venues). Legacy rows were only ever Binance
@@ -223,6 +239,9 @@ function seedSettings(d: Database.Database) {
   // season_pool_chz: the CHZ actually committed to the season board's pro-rata
   // projection when no single match is active. 0 until funded.
   insert.run("season_pool_chz", "0");
+  // active_season: the ONLY season the public board reads. Matches created from
+  // the admin console inherit it; anything from an earlier season is archive.
+  insert.run("active_season", ACTIVE_SEASON_DEFAULT);
 }
 
 export function getSetting(key: string): string | null {

@@ -5,7 +5,7 @@ import { getChzPrice, getFreshChzPrice } from "./prices";
 import { mergeFlowsByIdentity, scoreWindow, type WalletFlow } from "./scoring";
 import { FACTORY, WCHZ, TOKENS, PAIR_OVERRIDES, LOG_CHUNK_BLOCKS } from "./tokens";
 import { MAKER_COOLDOWN_S } from "./config";
-import type { MatchRow } from "./queries";
+import { activeSeason, type MatchRow } from "./queries";
 
 /**
  * Map each wallet to its scoring key — the identity's primary address if it
@@ -415,10 +415,11 @@ export async function scoreDueMatches(): Promise<void> {
   const due = db
     .prepare(
       `SELECT slug FROM matches
-        WHERE (window_start_utc <= ? AND window_end_utc > ?)
-           OR (window_end_utc <= ? AND status != 'scored')`
+        WHERE season = ?
+          AND ((window_start_utc <= ? AND window_end_utc > ?)
+               OR (window_end_utc <= ? AND status != 'scored'))`
     )
-    .all(nowIso, nowIso, nowIso) as { slug: string }[];
+    .all(activeSeason(), nowIso, nowIso, nowIso) as { slug: string }[];
   for (const { slug } of due) {
     try {
       await scoreMatch(slug);

@@ -106,4 +106,63 @@ describe("getLeaderboard", () => {
     expect(board.payablePoints).toBe(25);
     expect(board.wallets).toBe(1);
   });
+
+  it("never mixes an archived season into the live board", () => {
+    const insertMatch = db.prepare(
+      `INSERT INTO matches (
+         id, slug, home, away, competition, kickoff_utc,
+         window_start_utc, window_end_utc, tokens, pool_chz, season
+       ) VALUES (?, ?, 'A', 'B', 'Cup', ?, ?, ?, ?, 1000, ?)`
+    );
+    // Same shape, two seasons: the retired preseason board and the live one.
+    insertMatch.run(
+      1, "old", "2026-07-19T18:00:00.000Z", "2026-07-19T15:00:00.000Z",
+      "2026-07-19T21:00:00.000Z", JSON.stringify(["X"]), "preseason-2026"
+    );
+    insertMatch.run(
+      2, "new", "2026-09-01T18:00:00.000Z", "2026-09-01T15:00:00.000Z",
+      "2026-09-01T21:00:00.000Z", JSON.stringify(["X"]), "2026-pilot"
+    );
+    const score = db.prepare(
+      `INSERT INTO scores (match_id, address, net_taker_usd, maker_add_usd, swaps, points)
+       VALUES (?, ?, 0, 0, 1, ?)`
+    );
+    score.run(1, "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 500); // preseason whale
+    score.run(2, "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", 7); // pilot season
+
+    const live = getLeaderboard({ poolChz: 1_000 });
+    expect(live.totalPoints).toBe(7);
+    expect(live.entries.map((e) => e.address)).toEqual([
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    ]);
+
+    // The archive is still readable on request — retired, not deleted.
+    const archive = getLeaderboard({ season: "preseason-2026", poolChz: 0 });
+    expect(archive.totalPoints).toBe(500);
+  });
+
+  it("does not pay a lone verified wallet the whole pool", () => {
+    db.prepare(
+      `INSERT INTO matches (id, slug, home, away, competition, kickoff_utc,
+         window_start_utc, window_end_utc, tokens, pool_chz)
+       VALUES (1, 'm', 'A', 'B', 'Cup', ?, ?, ?, ?, 1000)`
+    ).run(
+      "2026-09-01T18:00:00.000Z", "2026-09-01T15:00:00.000Z",
+      "2026-09-01T21:00:00.000Z", JSON.stringify(["X"])
+    );
+    db.prepare(
+      "INSERT INTO wallets (address, handle, status) VALUES (?, 'solo', 'verified')"
+    ).run("0x1111111111111111111111111111111111111111");
+    const score = db.prepare(
+      `INSERT INTO scores (match_id, address, net_taker_usd, maker_add_usd, swaps, points)
+       VALUES (1, ?, 0, 0, 1, ?)`
+    );
+    score.run("0x1111111111111111111111111111111111111111", 10);
+    score.run("0x9999999999999999999999999999999999999999", 90); // unverified
+
+    const board = getLeaderboard({ matchId: 1, poolChz: 1_000 });
+    const solo = board.entries.find((e) => e.display === "solo")!;
+    expect(solo.projectedChz).toBeCloseTo(100, 6); // 10/100 × 1000, not 1000
+    expect(board.unclaimedPoints).toBe(90);
+  });
 });

@@ -6,7 +6,7 @@ import "./globals.css";
 
 const DESCRIPTION =
   "Trade your club's Fan Token on matchday — on Chiliz, Binance, OKX, Solana, Base and more. " +
-  "Profit earns points, points share a CHZ prize pool that grows every day. Free entry.";
+  "Profit earns points, points share the matchday CHZ prize pool. Free entry, no stake.";
 
 export const metadata: Metadata = {
   title: "Trading League — Trade the match. Share the pot.",
@@ -183,18 +183,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 The league measures eligible activity. It never executes trades or holds user funds.
               </span>
             </div>
-            <div style={{ display: "flex", gap: 24, fontSize: 13, fontWeight: 500 }}>
-              <Link href="/regras" style={{ color: "var(--fg-muted)" }}>
-                Eligibility
-              </Link>
+            <div
+              style={{ display: "flex", gap: 22, fontSize: 13, fontWeight: 500, flexWrap: "wrap" }}
+            >
               <Link href="/regras" style={{ color: "var(--fg-muted)" }}>
                 Scoring
               </Link>
-              <Link href="/regras" style={{ color: "var(--fg-muted)" }}>
+              <Link href="/terms" style={{ color: "var(--fg-muted)" }}>
+                Terms
+              </Link>
+              <Link href="/privacy" style={{ color: "var(--fg-muted)" }}>
                 Data policy
               </Link>
-              <Link href="/regras" style={{ color: "var(--fg-muted)" }}>
+              <Link href="/prizes" style={{ color: "var(--fg-muted)" }}>
                 Prize rules
+              </Link>
+              <Link href="/archive" style={{ color: "var(--fg-muted)" }}>
+                Archive
               </Link>
             </div>
           </div>

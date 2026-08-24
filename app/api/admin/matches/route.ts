@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { activeSeason } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +58,8 @@ export async function POST(request: Request) {
 
   db
     .prepare(
-      `INSERT INTO matches (slug, home, away, competition, kickoff_utc, window_start_utc, window_end_utc, featured, tokens, pool_chz)
-       VALUES (@slug, @home, @away, @competition, @kickoff_utc, @window_start_utc, @window_end_utc, @featured, @tokens, @pool_chz)
+      `INSERT INTO matches (slug, home, away, competition, kickoff_utc, window_start_utc, window_end_utc, featured, tokens, pool_chz, season)
+       VALUES (@slug, @home, @away, @competition, @kickoff_utc, @window_start_utc, @window_end_utc, @featured, @tokens, @pool_chz, @season)
        ON CONFLICT(slug) DO UPDATE SET
          home = excluded.home, away = excluded.away, competition = excluded.competition,
          kickoff_utc = excluded.kickoff_utc, window_start_utc = excluded.window_start_utc,
@@ -76,7 +77,11 @@ export async function POST(request: Request) {
       featured,
       tokens: JSON.stringify(tokens),
       pool_chz,
+      // New matches always join the active season. A match's season is set once
+      // at creation and never rewritten on update, so re-editing a fixture can
+      // never drag an archived board back onto the live page.
+      season: activeSeason(),
     });
 
-  return Response.json({ ok: true, slug });
+  return Response.json({ ok: true, slug, season: activeSeason() });
 }

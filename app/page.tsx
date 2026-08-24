@@ -80,15 +80,30 @@ function ClubBadge({ name, colors }: { name: string; colors: [string, string] })
   );
 }
 
+/** "24 Aug 2026, 08:41 UTC" — an explicit stamp beats an implied "now". */
+function utcStamp(iso: string): string {
+  return `${new Date(iso).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
 function StandingsTable({
   entries,
   wallets,
   totalPoints,
+  live,
+  asOf,
+  poolCommitted,
 }: {
   entries: LeaderboardEntry[];
   wallets: number;
   /** Board-wide points — same figure the pot card shows, never a top-8 sum. */
   totalPoints: number;
+  /** True only while a match window is open. A board headed "Live" when the
+   * last match closed weeks ago is the fastest way to lose a trader's trust. */
+  live: boolean;
+  /** Newest score write in this board's scope. */
+  asOf: string | null;
+  /** Whether real CHZ backs this board's payout column. */
+  poolCommitted: boolean;
 }) {
   const top = entries.slice(0, 8);
   const scoring = top.filter((e) => e.points > 0);
@@ -115,10 +130,14 @@ function StandingsTable({
           flexWrap: "wrap",
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: 18 }}>Live leaderboard</div>
+        <div style={{ fontWeight: 700, fontSize: 18 }}>
+          {live ? "Live leaderboard" : "Season leaderboard"}
+        </div>
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-muted)" }}>
           {scoring.length > 0
-            ? `${wallets.toLocaleString("en-US")} scoring · ${Math.floor(totalPoints).toLocaleString("en-US")} points on the board`
+            ? `${wallets.toLocaleString("en-US")} scoring · ${Math.floor(totalPoints).toLocaleString("en-US")} points on the board${
+                !live && asOf ? ` · as of ${utcStamp(asOf)}` : ""
+              }`
             : top.length > 0
               ? `${top.length} verified · waiting for first trades`
               : "Open entry — claim a wallet to appear"}
@@ -320,7 +339,9 @@ function StandingsTable({
       >
         {newcomers > 0 && scoring.length === 0
           ? "Open entry: verified names appear here instantly. Trade during the match window to move up."
-          : "Estimated payout updates as the pot and leaderboard change."}
+          : poolCommitted
+            ? "Estimated payout updates as the pot and leaderboard change."
+            : "Estimated payout appears once a matchday pool is committed."}
       </div>
     </div>
   );
@@ -496,6 +517,13 @@ export default async function Home() {
     : false;
 
   const eligiblePoints = Math.floor(board.totalPoints);
+  // The CHZ a trader's points are actually divided into: the open match's pool,
+  // or the committed season pool. Never `pot.potChzNow`, which is a target.
+  const payoutPoolChz = match ? match.pool_chz : seasonPoolChz;
+  // The board is only "live" while a window is open; otherwise it is a result,
+  // and the page has to say when it was last computed rather than implying now.
+  const boardIsLive = windowOpen;
+  const boardAsOf = board.updatedAt;
 
   return (
     <main>
@@ -554,8 +582,8 @@ export default async function Home() {
                 }}
               >
                 When your club plays, its Fan Token moves. Trade it while the match window is open
-                — profit earns points, and points earn your share of a CHZ prize pool that grows
-                every day.
+                — profit earns points, and points earn your share of the matchday&apos;s CHZ prize
+                pool.
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
                 <Link className="btn primary" href="/entrar">
@@ -584,13 +612,17 @@ export default async function Home() {
                     width: 8,
                     height: 8,
                     borderRadius: 9999,
-                    background: "var(--green-300)",
-                    animation: "rd-pulse 1.6s ease-in-out infinite",
+                    background: windowOpen ? "var(--green-300)" : "rgba(255,255,255,.45)",
+                    animation: windowOpen ? "rd-pulse 1.6s ease-in-out infinite" : "none",
                   }}
                 />
-                {board.wallets > 0
-                  ? `${board.wallets.toLocaleString("en-US")} traders on the board · counted on-chain`
-                  : "Live on-chain counting"}
+                {windowOpen
+                  ? board.wallets > 0
+                    ? `${board.wallets.toLocaleString("en-US")} traders on the board · counting live`
+                    : "Window open · counting live on-chain"
+                  : board.wallets > 0
+                    ? `${board.wallets.toLocaleString("en-US")} traders on the season board`
+                    : "Next matchday window opens soon"}
               </div>
             </div>
 
@@ -680,24 +712,24 @@ export default async function Home() {
                   transform: "rotate(45deg)",
                 }}
               />
-              Prize pool
+              {fundingVerified ? "Prize pool" : "Prize pool target"}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              {fundingVerified ? (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: ".04em",
-                    padding: "5px 11px",
-                    borderRadius: 9999,
-                    border: "1px solid rgba(255,255,255,.16)",
-                    color: "rgba(255,255,255,.75)",
-                  }}
-                >
-                  Funding verified
-                </span>
-              ) : null}
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: ".04em",
+                  padding: "5px 11px",
+                  borderRadius: 9999,
+                  border: fundingVerified
+                    ? "1px solid rgba(255,255,255,.16)"
+                    : "1px solid rgba(255,193,7,.45)",
+                  color: fundingVerified ? "rgba(255,255,255,.75)" : "#FFD24A",
+                }}
+              >
+                {fundingVerified ? "Funding verified" : "Not yet funded"}
+              </span>
               <span
                 style={{
                   fontSize: 11,
@@ -722,7 +754,9 @@ export default async function Home() {
               marginBottom: 18,
             }}
           >
-            Grows every day. Split by points on the board, week by week.
+            {fundingVerified
+              ? "Grows every day. Split by points on the board, week by week."
+              : "Target for the pilot season — not yet funded. Prizes are paid only from confirmed funding, and only for matchdays announced as funded."}
           </div>
 
           <div
@@ -759,31 +793,41 @@ export default async function Home() {
               flexWrap: "wrap",
             }}
           >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--green-300)",
-              }}
-            >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            {/* The daily accrual is only shown once funding is confirmed. A
+                headline prize number that ticks up 10,000 CHZ a day with
+                nothing behind it is the most damaging thing this page can
+                show — getPot() already zeroes dailyChz while unfunded. */}
+            {fundingVerified ? (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--green-300)",
+                }}
               >
-                <path d="M12 19V5" />
-                <path d="m5 12 7-7 7 7" />
-              </svg>
-              +{pot.dailyChz.toLocaleString("en-US")} CHZ today
-            </span>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 19V5" />
+                  <path d="m5 12 7-7 7 7" />
+                </svg>
+                +{pot.dailyChz.toLocaleString("en-US")} CHZ today
+              </span>
+            ) : (
+              <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,.62)" }}>
+                Target — no CHZ committed yet
+              </span>
+            )}
             <span
               style={{
                 fontSize: 12,
@@ -799,7 +843,7 @@ export default async function Home() {
                   <Countdown target={windowOpen ? match.window_end_utc : match.kickoff_utc} />
                 </>
               ) : (
-                "Season pot · pilot beta"
+                fundingVerified ? "Season pot · pilot beta" : "Season target · pilot beta"
               )}
             </span>
           </div>
@@ -826,7 +870,7 @@ export default async function Home() {
               >
                 {match
                   ? `This matchday pool · ${match.pool_chz.toLocaleString("en-US")} CHZ`
-                  : "Season pool today"}
+                  : "Season pool committed"}
               </div>
               <div
                 style={{
@@ -837,15 +881,20 @@ export default async function Home() {
                   marginBottom: 8,
                 }}
               >
-                {match ? match.pool_chz.toLocaleString("en-US") : Math.floor(pot.potChzNow).toLocaleString("en-US")}{" "}
+                {/* The committed pool — `season_pool_chz` / a match's own pool —
+                    NOT the headline target. These are different numbers and the
+                    page must never imply the target is what gets divided. */}
+                {match ? match.pool_chz.toLocaleString("en-US") : seasonPoolChz.toLocaleString("en-US")}{" "}
                 <span style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,.55)" }}>
                   CHZ
                 </span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,.5)" }}>
-                {eligiblePoints > 0
-                  ? `split across ${eligiblePoints.toLocaleString("en-US")} points on the board`
-                  : "Free entry — score by trading where you already trade"}
+                {(match ? match.pool_chz : seasonPoolChz) <= 0
+                  ? "No pool committed yet — free entry, points still count"
+                  : eligiblePoints > 0
+                    ? `split across ${eligiblePoints.toLocaleString("en-US")} points on the board`
+                    : "Free entry — score by trading where you already trade"}
               </div>
             </div>
             <Link
@@ -1194,7 +1243,7 @@ export default async function Home() {
               marginBottom: 12,
             }}
           >
-            Live weekly standings
+            {windowOpen ? "Live weekly standings" : "Season standings"}
           </div>
           <h2
             className="rd-h2"
@@ -1224,6 +1273,9 @@ export default async function Home() {
             entries={board.entries}
             wallets={board.wallets}
             totalPoints={board.totalPoints}
+            live={boardIsLive}
+            asOf={boardAsOf}
+            poolCommitted={payoutPoolChz > 0}
           />
 
           <div
@@ -1485,12 +1537,15 @@ export default async function Home() {
                 padding: 18,
               }}
             >
+              {/* The COMMITTED pool, never the headline target — this box is
+                  multiplied by a trader's points, so putting an unfunded
+                  aspiration here is a promise the league can't keep. */}
               <div style={{ fontSize: 30, fontWeight: 800, color: "var(--fg)" }}>
-                {match
-                  ? match.pool_chz >= 1000
-                    ? `${(match.pool_chz / 1000).toFixed(match.pool_chz % 1000 === 0 ? 0 : 1)}k`
-                    : match.pool_chz.toLocaleString("en-US")
-                  : `${(pot.potChzNow / 1_000_000).toFixed(2)}M`}
+                {payoutPoolChz > 0
+                  ? payoutPoolChz >= 1000
+                    ? `${(payoutPoolChz / 1000).toFixed(payoutPoolChz % 1000 === 0 ? 0 : 1)}k`
+                    : payoutPoolChz.toLocaleString("en-US")
+                  : "—"}
               </div>
               <div
                 style={{
@@ -1502,7 +1557,7 @@ export default async function Home() {
                   marginTop: 4,
                 }}
               >
-                Current pot
+                {payoutPoolChz > 0 ? "Committed pool" : "Pool to be confirmed"}
               </div>
             </div>
           </div>
@@ -1519,7 +1574,8 @@ export default async function Home() {
             }}
           >
             Points come from verified profit — volume only unlocks them, and wash trades score
-            zero. <Link href="/regras">Read the full formula</Link>.
+            zero. Points on wallets that never verify are not paid; that share stays in the pot.{" "}
+            <Link href="/regras">Read the full formula</Link>.
           </div>
         </div>
 

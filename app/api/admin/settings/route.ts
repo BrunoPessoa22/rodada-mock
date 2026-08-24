@@ -9,6 +9,7 @@ const ALLOWED_KEYS = new Set([
   "pot_daily_chz",
   "season_pool_chz",
   "funding_verified",
+  "active_season",
 ]);
 
 export async function POST(request: Request) {
@@ -30,6 +31,15 @@ export async function POST(request: Request) {
   if (key === "pot_base_date") {
     if (Number.isNaN(Date.parse(value))) {
       return Response.json({ error: "pot_base_date must be an ISO-8601 date" }, { status: 400 });
+    }
+  } else if (key === "active_season") {
+    // The season id is a slug used verbatim in the matches table and on the
+    // archive route — keep it boring so it can never collide or inject.
+    if (!/^[a-z0-9][a-z0-9-]{1,31}$/.test(value)) {
+      return Response.json(
+        { error: "active_season must be 2-32 lowercase letters, digits or hyphens" },
+        { status: 400 }
+      );
     }
   } else {
     const n = Number(value);

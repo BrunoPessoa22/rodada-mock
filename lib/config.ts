@@ -58,8 +58,29 @@ export const SKILL_FLOOR_PCT =
 
 // Season pot: base amount at an anchor date + daily accrual. Values live in the
 // settings table (admin-editable); these are the seed defaults.
+//
+// IMPORTANT: this is a TARGET, not a balance. Nothing in the app can verify that
+// CHZ exists — `settings.funding_verified` is the only thing that says a real,
+// funded source was confirmed, and the UI must present the pot as a target until
+// it flips to '1'. Payouts are computed from `season_pool_chz` / a match's
+// `pool_chz`, never from this counter.
 export const POT_DEFAULTS = {
   pot_base_chz: "1247500",
   pot_base_date: "2026-07-16T00:00:00Z",
   pot_daily_chz: "10000",
 };
+
+/**
+ * Season the public board reads. A season is the unit of "one formula, one
+ * board": if the scoring rules change, the old season is archived rather than
+ * rescored, because a board nobody can reproduce from the published formula is
+ * worse than no board.
+ */
+export const ACTIVE_SEASON_DEFAULT = "2026-pilot";
+
+/**
+ * The retired Jul-2026 board (World Cup final + Brasileirão R19/R20). Scored
+ * under `points = 2·√|net taker USD|` — sign-blind net flow, not profit — which
+ * the current published formula cannot reproduce. Archive-only, never payable.
+ */
+export const PRESEASON = "preseason-2026";

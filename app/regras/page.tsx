@@ -15,7 +15,7 @@ export default function RulesPage() {
         </div>
         <p className="secsub">
           Trade your club&apos;s token on match day, wherever you already trade — climb the
-          leaderboard and take a share of a pot that grows every day. The league never executes trades,
+          leaderboard and take a share of the matchday pot. The league never executes trades,
           never holds funds, never recommends. It measures, scores, and pays.
         </p>
 
@@ -87,6 +87,39 @@ points     = SkillScore × (1 − e^(−Volume / V_target))`}
             measured per window and shown next to the scored number, but earns no points yet —
             those venues expose no per-trader data the league can verify. <b>Next:</b> read-only
             CEX API keys graduate an exchange from tracked to scored through the same formula.
+          </p>
+        </div>
+
+        <div className="panel" style={{ marginTop: 18 }}>
+          <div className="ph">
+            <Icon id="i-scale" lg />
+            <h3>How the pot is divided</h3>
+          </div>
+          <pre className="codebox" style={{ marginTop: 12 }}>
+            {`your share = (your points ÷ ALL points on the board) × committed pool`}
+          </pre>
+          <p className="gapline" style={{ marginTop: 12 }}>
+            <b>The denominator is the whole board</b>, not the verified part of it. Points on
+            wallets that never verify are not paid and are not handed to the traders who did —
+            that share stays in the pot and rolls into the next matchday. Dividing only among
+            verified wallets would pay the first person to claim a handle almost the entire pot for
+            signing up early rather than for trading well. <b>A pool is only payable once it is
+            announced as funded</b>; a figure shown as a target is intent, not a promise. Full
+            terms: <Link href="/prizes">Prize rules</Link>.
+          </p>
+        </div>
+
+        <div className="panel" style={{ marginTop: 18 }}>
+          <div className="ph">
+            <Icon id="i-lock" lg />
+            <h3>When the rules change</h3>
+          </div>
+          <p className="gapline" style={{ marginTop: 12 }}>
+            A change to the formula applies from the <b>next season</b>, never retroactively inside
+            one. A season already scored keeps the numbers it ran on and moves to the archive — it
+            is never quietly rescored under rules its traders never saw. The league&apos;s first
+            three windows (July 2026) ran on an earlier formula and live in{" "}
+            <Link href="/archive">the preseason archive</Link> for exactly this reason.
           </p>
         </div>
 

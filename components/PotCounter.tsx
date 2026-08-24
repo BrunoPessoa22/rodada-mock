@@ -22,6 +22,14 @@ export function PotCounter({
     const t0 = new Date(asOf).getTime();
     const potNow = () => potChz + (Date.now() - t0) * perMs;
 
+    // No accrual (an unfunded target) means no motion. The count-up reads as
+    // "money arriving right now", which is exactly the impression a target
+    // with nothing behind it must not give.
+    if (dailyChz <= 0) {
+      setValue(Math.floor(potChz));
+      return;
+    }
+
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let raf = 0;
     let interval: ReturnType<typeof setInterval> | undefined;

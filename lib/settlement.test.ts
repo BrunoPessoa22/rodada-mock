@@ -56,25 +56,39 @@ afterAll(() => {
 });
 
 describe("computeSettlement", () => {
-  it("splits the pool pro-rata over verified identities only", () => {
+  it("pays each verified identity its share of ALL points on the board", () => {
     const s = computeSettlement({ slug: "m1" });
     expect(s.poolChz).toBe(1000);
-    // Unverified C's 60 points don't dilute the payout: payable = 30 + 10 = 40.
+    // Board total = 100 points (30 + 10 + 60); only 40 of them are payable.
     expect(s.payablePoints).toBe(40);
     const byHandle = Object.fromEntries(s.rows.map((r) => [r.handle, r.chz]));
-    expect(byHandle.alice).toBeCloseTo(750, 6); // 30/40 × 1000
-    expect(byHandle.bob).toBeCloseTo(250, 6); // 10/40 × 1000
+    expect(byHandle.alice).toBeCloseTo(300, 6); // 30/100 × 1000
+    expect(byHandle.bob).toBeCloseTo(100, 6); // 10/100 × 1000
     expect(s.rows.some((r) => r.address === C)).toBe(false);
-    // Allocated CHZ never exceeds the pool.
+    // Unverified C's 60 points are simply not paid — that 600 CHZ stays in the
+    // pot. Renormalizing over the verified subset instead would hand alice and
+    // bob the whole 1000 for having claimed a handle, which is how one early
+    // signup ends up projected the entire season pool.
     const total = s.rows.reduce((sum, r) => sum + r.chz, 0);
+    expect(total).toBeCloseTo(400, 6);
     expect(total).toBeLessThanOrEqual(1000 + 1e-6);
+  });
+
+  it("caps one verified identity's share at its own points share of the board", () => {
+    // The pathological case: a single verified wallet with a tiny score sits on
+    // a board dominated by unverified addresses. It must NOT collect the pool.
+    db.prepare("UPDATE wallets SET status = 'unclaimed', handle = NULL WHERE address = ?").run(B);
+    const s = computeSettlement({ slug: "m1" });
+    expect(s.rows).toHaveLength(1);
+    expect(s.rows[0].handle).toBe("alice");
+    expect(s.rows[0].chz).toBeCloseTo(300, 6); // 30/100 × 1000 — not 1000
   });
 
   it("emits full addresses in the settlement CSV (needed to actually pay)", () => {
     const csv = settlementCsv(computeSettlement({ slug: "m1" }));
     expect(csv.split("\n")[0]).toBe("scope,address,handle,points,chz");
     expect(csv).toContain(A);
-    expect(csv).toContain("750.0000");
+    expect(csv).toContain("300.0000");
   });
 
   it("persists computed payouts idempotently", () => {
@@ -90,7 +104,7 @@ describe("computeSettlement", () => {
     recordSettlement(s);
     // Mark alice paid at the settled amount, with a tx hash.
     db.prepare(
-      "UPDATE payouts SET status = 'paid', tx_hash = '0xabc', chz = 750 WHERE scope = 'm1' AND handle = 'alice'"
+      "UPDATE payouts SET status = 'paid', tx_hash = '0xabc', chz = 300 WHERE scope = 'm1' AND handle = 'alice'"
     ).run();
     // Bob trades more, alice's share would recompute lower — re-settle.
     db.prepare("UPDATE scores SET points = 40 WHERE address = ?").run(B);
@@ -100,6 +114,6 @@ describe("computeSettlement", () => {
       .get() as { status: string; tx_hash: string; chz: number };
     expect(alice.status).toBe("paid");
     expect(alice.tx_hash).toBe("0xabc");
-    expect(alice.chz).toBe(750); // untouched by the recompute
+    expect(alice.chz).toBe(300); // untouched by the recompute
   });
 });
