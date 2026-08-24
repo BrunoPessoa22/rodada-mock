@@ -3,9 +3,8 @@
 Live at **https://trading.brunopessoa.com** (English).
 
 Trade your club's token on match day, wherever you already trade — climb the
-leaderboard, take a share of a pot that grows every day. The league never
-executes trades, never holds funds, never recommends. It measures, scores,
-and pays.
+leaderboard, take a share of the matchday pot. The league never executes
+trades, never holds funds, never recommends. It measures, scores, and pays.
 
 ## What this is
 
@@ -18,12 +17,28 @@ and pays.
   `SKILL_FLOOR_PCT = 0` by default). Break-even and losses score 0, so a
   self-round-trip (wash) is worthless no matter its volume — volume only
   qualifies the unlock, profit scores. Flows net **per KYC identity before the
-  formula** (wallets linked via `POST /api/admin/identity`); only verified
-  identities divide the pool. Anyone can recompute the on-chain leaderboard.
+  formula** (wallets linked via `POST /api/admin/identity`). Anyone can
+  recompute the on-chain leaderboard.
 - **Claim your wallet** — choose a username and sign a one-time message
   (domain- and chain-bound) so your verified name appears on the leaderboard
   immediately; an optional contact is captured for prizes. Manual review
   remains available as a fallback.
+- **Seasons** — `matches.season` + `settings.active_season`. The public board
+  only ever reads ONE season, so a scoring-rule change archives the old board
+  instead of silently mixing two formulas in one table. **A formula change
+  applies from the next season, never retroactively inside one** — to change
+  scoring, roll the season. The July 2026 windows ran on the league's first
+  formula and live at [`/archive`](app/archive/page.tsx); see
+  [`docs/preseason.md`](docs/preseason.md).
+- **Payout share** — `your points ÷ ALL points on the board × committed pool`.
+  Points on wallets that never verify are not paid and are **not**
+  redistributed to those who did; that share stays in the pot. Dividing by the
+  verified subset instead hands the whole pool to whoever claims a handle first.
+- **The pot is a target until it isn't** — `pot_base_chz` is a stated target,
+  not a balance. While `funding_verified != '1'` the daily accrual is
+  suppressed, the counter does not animate, and every surface labels the figure
+  a target. Payout math always uses the **committed** pool (`season_pool_chz`
+  or a match's `pool_chz`), never the headline number.
 - **Settlement** — `npm run settle -- <slug|season>` materializes the
   leaderboard's pro-rata projection into a payouts ledger + CSV (verified
   identities only). The on-chain CHZ transfer is a separate, human-authorized
