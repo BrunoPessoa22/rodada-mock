@@ -1,0 +1,6 @@
+# The league is a public product — the board, the rules and the archive are
+# meant to be found. Admin and API surfaces are not content.
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
