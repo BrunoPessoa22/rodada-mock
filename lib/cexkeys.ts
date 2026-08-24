@@ -254,8 +254,16 @@ export async function checkReadOnly(
     if (venue === "binance") {
       const { status, body } = await binanceSignedGet("/sapi/v1/account/apiRestrictions", {}, creds);
       if (status === 200) return evaluateBinanceRestrictions(body);
-      const msg =
-        (typeof body === "object" && body !== null && (body as { msg?: string }).msg) || `HTTP ${status}`;
+      const rec = (typeof body === "object" && body !== null ? body : {}) as {
+        code?: number;
+        msg?: string;
+      };
+      const msg = rec.msg || `HTTP ${status}`;
+      // -1021 = our clock outside recvWindow. That is OUR problem, never the
+      // key's — treating it as definitive would auto-revoke every healthy key.
+      if (rec.code === -1021) {
+        return { ok: false, reason: `Binance clock skew: ${msg}`, transient: true };
+      }
       if (status === 401 || status === 400 || status === 403) {
         return { ok: false, reason: `Binance rejected the key: ${msg}`, transient: false };
       }
@@ -269,6 +277,10 @@ export async function checkReadOnly(
     };
     if (status === 200 && rec.code === "0") return evaluateOkxPerm(rec.data?.[0]?.perm);
     const msg = rec.msg || `HTTP ${status}`;
+    // 50102 = timestamp expired — clock skew, same rule as Binance -1021.
+    if (rec.code === "50102") {
+      return { ok: false, reason: `OKX clock skew: ${msg}`, transient: true };
+    }
     if (status === 401 || rec.code === "50111" || rec.code === "50113" || rec.code === "50105") {
       return { ok: false, reason: `OKX rejected the key: ${msg}`, transient: false };
     }

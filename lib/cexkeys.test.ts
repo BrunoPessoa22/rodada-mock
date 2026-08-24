@@ -132,6 +132,24 @@ describe("checkReadOnly over the wire", () => {
     if (!down.ok) expect(down.transient).toBe(true);
   });
 
+  it("clock skew is transient on both venues — must never auto-revoke", async () => {
+    vi.stubGlobal("fetch", async () =>
+      new Response(JSON.stringify({ code: -1021, msg: "Timestamp outside recvWindow." }), {
+        status: 400,
+      })
+    );
+    const b = await checkReadOnly("binance", CREDS);
+    expect(b.ok).toBe(false);
+    if (!b.ok) expect(b.transient).toBe(true);
+
+    vi.stubGlobal("fetch", async () =>
+      new Response(JSON.stringify({ code: "50102", msg: "Timestamp expired" }), { status: 401 })
+    );
+    const o = await checkReadOnly("okx", { ...CREDS, passphrase: "p" });
+    expect(o.ok).toBe(false);
+    if (!o.ok) expect(o.transient).toBe(true);
+  });
+
   it("okx: perm string decides; network errors are transient", async () => {
     vi.stubGlobal("fetch", async () =>
       new Response(JSON.stringify({ code: "0", data: [{ perm: "read_only,trade" }] }), { status: 200 })
