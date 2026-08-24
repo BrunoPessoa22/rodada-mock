@@ -93,6 +93,7 @@ export default function JoinPage() {
   const [cexConnected, setCexConnected] = useState<{ venue: string; keyLast4: string } | null>(
     null
   );
+  const [cexNotice, setCexNotice] = useState("");
 
   useEffect(() => {
     const walletAvailable = typeof window !== "undefined" && !!window.ethereum;
@@ -328,9 +329,12 @@ export default function JoinPage() {
     }
   }
 
-  /** Revoke = the encrypted credentials are deleted server-side, immediately. */
-  async function disconnectCex(path: "browser" | "socios") {
-    if (!cexConnected) return;
+  /**
+   * Revoke = the encrypted credentials are deleted server-side, immediately.
+   * Works on any venue, not just one connected this session — a returning
+   * user selects the venue and signs; the server 404s if nothing is attached.
+   */
+  async function disconnectCexVenue(venue: string, path: "browser" | "socios") {
     setCexState("signing");
     setCexError("");
     try {
@@ -338,7 +342,7 @@ export default function JoinPage() {
       const challengeRes = await fetch("/api/cexkeys/challenge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: signer.address, venue: cexConnected.venue, action: "revoke" }),
+        body: JSON.stringify({ address: signer.address, venue, action: "revoke" }),
       });
       const challenge = (await challengeRes.json()) as {
         nonce?: string;
@@ -357,6 +361,7 @@ export default function JoinPage() {
       const revoke = (await revokeRes.json()) as { ok?: boolean; error?: string };
       if (!revokeRes.ok || !revoke.ok) throw new Error(revoke.error ?? "revoke failed");
       setCexConnected(null);
+      setCexNotice(`${CEX_LABEL[venue] ?? venue} disconnected — the key was deleted.`);
       setCexState("idle");
     } catch (err) {
       const raw = err instanceof Error ? err.message : "error";
@@ -678,7 +683,10 @@ export default function JoinPage() {
                     className="btn secondary"
                     type="button"
                     disabled={cexState === "signing"}
-                    onClick={() => disconnectCex(hasWallet ? "browser" : "socios")}
+                    onClick={() =>
+                      cexConnected &&
+                      disconnectCexVenue(cexConnected.venue, hasWallet ? "browser" : "socios")
+                    }
                   >
                     {cexState === "signing" ? "Confirm in your wallet…" : "Disconnect (sign to confirm)"}
                   </button>
@@ -800,6 +808,23 @@ export default function JoinPage() {
                   your fan-token trades inside match windows · disconnect here anytime, which
                   deletes the key. Requires a claimed username (top of this page).
                 </p>
+
+                {cexNotice ? (
+                  <p className="join-proof" aria-live="polite">
+                    <Icon id="i-check" /> {cexNotice}
+                  </p>
+                ) : null}
+                <button
+                  className="btn secondary"
+                  type="button"
+                  disabled={cexState === "signing" || cexState === "verifying"}
+                  onClick={() => {
+                    setCexNotice("");
+                    disconnectCexVenue(cexVenue, hasWallet ? "browser" : "socios");
+                  }}
+                >
+                  Disconnect a previous {CEX_LABEL[cexVenue] ?? cexVenue} key (sign to confirm)
+                </button>
               </form>
             )}
           </div>
