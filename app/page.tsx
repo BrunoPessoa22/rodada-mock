@@ -15,6 +15,7 @@ import {
 import { CEX_LISTINGS, CEX_VENUE_LABEL, VENUE_TRADE_URL, venuesForTokens, type CexVenue } from "@/lib/cex";
 import { DEX_NETWORK_LABEL, DEX_POOLS, dexTradeUrl } from "@/lib/dexvol";
 import { venueDirectory, venueLogoForSource } from "@/lib/venuebrand";
+import { isPerpSource, VIBE_MARKETS, VIBE_SOURCE, VIBE_TRADE_URL } from "@/lib/vibe";
 import { TOKENS } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
@@ -352,6 +353,8 @@ interface VenueBoardRow {
   label: string;
   tag: string;
   scored: boolean;
+  /** Derivative notional, not spot turnover — never folded into the spot total. */
+  perp?: boolean;
   usd: number | null; // null = tracked venue with no measured volume this window yet
   url: string;
   logo: string | null;
@@ -408,9 +411,23 @@ function buildVenueBoard(
       logo: venueLogoForSource(source),
     });
   }
+  if (VIBE_MARKETS.some((m) => tokens.includes(m.token))) {
+    const symbolId = VIBE_MARKETS.find((m) => tokens.includes(m.token))!.symbolId;
+    rows.push({
+      key: VIBE_SOURCE,
+      label: "vibe.trading",
+      tag: "Perps · tracked · not spot",
+      scored: false,
+      perp: true,
+      usd: bySource.get(VIBE_SOURCE) ?? null,
+      url: VIBE_TRADE_URL(symbolId),
+      logo: venueLogoForSource(VIBE_SOURCE),
+    });
+  }
   return rows.sort(
     (a, b) =>
       Number(b.scored) - Number(a.scored) ||
+      Number(a.perp ?? false) - Number(b.perp ?? false) ||
       (b.usd ?? 0) - (a.usd ?? 0) ||
       a.label.localeCompare(b.label)
   );
@@ -503,8 +520,15 @@ export default async function Home() {
     : getLeaderboard({ poolChz: seasonPoolChz });
   const venueVolume = match ? getVenueVolume(match.id) : [];
   const onchainUsd = match ? getOnchainVolume(match.id) : 0;
+  // Spot turnover only. Perp notional is a leveraged synthetic — a fan buying a
+  // PSG perp never touches a PSG token — so adding it here would inflate a
+  // token-demand figure with exposure that creates none.
   const totalVenueUsd =
-    onchainUsd + venueVolume.reduce((s, v) => s + (Number.isFinite(v.quoteUsd) ? v.quoteUsd : 0), 0);
+    onchainUsd +
+    venueVolume.reduce(
+      (s, v) => s + (!isPerpSource(v.source) && Number.isFinite(v.quoteUsd) ? v.quoteUsd : 0),
+      0
+    );
 
   const homeName = match ? enName(match.home) : "—";
   const awayName = match ? enName(match.away) : "—";
@@ -649,7 +673,8 @@ export default async function Home() {
                   color: "rgba(255,255,255,.55)",
                 }}
               >
-                {Object.keys(TOKENS).length} club tokens · 11 venues · one table
+                {Object.keys(TOKENS).length} club tokens · {venueDirectory().length} venues · one
+                table
               </div>
             </div>
           </div>
@@ -1172,7 +1197,9 @@ export default async function Home() {
             }}
           >
             Points come from verified Chiliz Chain trades today. Matchday volume on every other
-            venue below — exchanges, Solana and Base — is measured and shown on the board.
+            venue below — exchanges, Solana, Base and perps — is measured and shown on the
+            board. Perp notional is a derivative, so it is shown on its own line and never
+            added to the spot total.
           </p>
         </div>
         <div
@@ -1432,7 +1459,7 @@ export default async function Home() {
                     }}
                   >
                     Read-only API keys so your own CEX trades score — next. Venue volume across
-                    eight exchanges, Solana and Base is tracked already.
+                    eight exchanges, Solana, Base and vibe.trading perps is tracked already.
                   </span>
                 </span>
               </div>

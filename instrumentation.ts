@@ -15,6 +15,7 @@ export async function register() {
   const { scoreDueMatches } = await import("./lib/indexer");
   const { refreshDueCexVolume } = await import("./lib/cex");
   const { refreshDueDexVolume } = await import("./lib/dexvol");
+  const { refreshDueVibeVolume } = await import("./lib/vibe");
   const { backupDb, setSetting } = await import("./lib/db");
   const { CEX_REFRESH_MS } = await import("./lib/config");
   let running = false;
@@ -30,6 +31,7 @@ export async function register() {
         lastVenueRefresh = Date.now();
         await refreshDueCexVolume();
         await refreshDueDexVolume();
+        await refreshDueVibeVolume();
       }
       if (Date.now() - lastBackup >= BACKUP_INTERVAL_MS) {
         lastBackup = Date.now();

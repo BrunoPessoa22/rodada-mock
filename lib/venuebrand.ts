@@ -12,6 +12,7 @@
  */
 import { CEX_LISTINGS, CEX_VENUE_LABEL, VENUE_TRADE_URL, type CexVenue } from "./cex";
 import { CHAIN_TOKEN_REFS } from "./dexvol";
+import { VIBE_MARKETS, VIBE_TRADE_URL } from "./vibe";
 
 export const VENUE_LOGOS: Record<string, string> = {
   kayen: "/venues/kayen.png",
@@ -26,6 +27,7 @@ export const VENUE_LOGOS: Record<string, string> = {
   jupiter: "/venues/jupiter.png",
   meteora: "/venues/meteora.jpg",
   aerodrome: "/venues/aerodrome.jpg",
+  vibe: "/venues/vibe.svg",
 };
 
 /** Logo for a venue_volume source id (or the synthetic "chiliz" scored row). */
@@ -34,6 +36,7 @@ export function venueLogoForSource(source: string): string | null {
   if (source.startsWith("cex:")) return VENUE_LOGOS[source.slice(4)] ?? null;
   if (source === "solana:meteora") return VENUE_LOGOS.jupiter;
   if (source === "base:aerodrome") return VENUE_LOGOS.aerodrome;
+  if (source === "perp:vibe") return VENUE_LOGOS.vibe;
   return null;
 }
 
@@ -98,6 +101,17 @@ export function venueDirectory(): VenueBrand[] {
     logo: VENUE_LOGOS.jupiter,
     tag: "Solana · tracked",
     url: `https://jup.ag/swap/USDC-${CHAIN_TOKEN_REFS.solana.PSG}`,
+    scored: false,
+  });
+  rows.push({
+    key: "vibe",
+    label: "vibe.trading",
+    logo: VENUE_LOGOS.vibe,
+    // The only venue on the wall that is not spot, and the only one where a fan
+    // can be SHORT their club. Labelled so nobody reads perp notional as token
+    // demand — see isPerpSource() in lib/vibe.ts.
+    tag: "Perps · tracked · not spot",
+    url: VIBE_TRADE_URL(VIBE_MARKETS[0].symbolId),
     scored: false,
   });
   rows.push({

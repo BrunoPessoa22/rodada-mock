@@ -47,6 +47,14 @@ trades, never holds funds, never recommends. It measures, scores, and pays.
   is honest about which layer earns points:
   - **Scored** (per-wallet attribution): Chiliz Chain on-chain flow via the
     indexer. The only layer that earns points today.
+  - **Perps** ([`lib/vibe.ts`](lib/vibe.ts)): vibe.trading (Symmio) fan-token
+    perpetuals, tracked from the public Goldsky subgraph. Shown on its own line
+    and **excluded from the spot total** — a perp is a synthetic, so its
+    notional is not token demand. Per-trader attribution is fully available
+    (sub-account → owner EOA), but scoring is gated on mark integrity: the
+    underlying Meteora pools are too thin to pay a CHZ pot against. Depth,
+    volume, the scored design and the partnership ask are all in
+    [`docs/vibe-integration.md`](docs/vibe-integration.md).
   - **Tracked** (venue-aggregate, display-only): [`lib/cex.ts`](lib/cex.ts)
     measures window spot volume on **Binance · OKX · Gate · MEXC · Bitget ·
     HTX · Upbit · Mercado Bitcoin** (public candles per listed pair, explicit
