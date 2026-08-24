@@ -31,4 +31,14 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 USER node
 EXPOSE 3000
+# Health probe in the image, not at the platform layer. Coolify's HTTP check
+# shells out to curl/wget INSIDE the container, and node:22-bookworm-slim ships
+# neither — that check can never pass here, and enabling it fails the deploy and
+# rolls back. node is obviously present, so use it.
+#
+# This reports liveness only. A WEDGED INDEXER still answers 200: the signal for
+# that is `indexerStale` in the /api/health body, which needs an external
+# monitor reading the JSON. See docs/go-live-checklist.md.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
+  CMD node -e "require('http').get('http://127.0.0.1:3000/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 CMD ["node", "server.js"]

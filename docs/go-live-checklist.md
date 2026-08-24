@@ -115,9 +115,13 @@ rev-share framing. See `docs/internal/README.md` for what closing that costs.
 - **`/terms`, `/privacy`, `/prizes`** exist; the footer no longer points four
   different labels at one page.
 - **`sig_e2e_test` purged** from the verified (payable) set.
-- **Container healthcheck** on `/api/health`. Still worth pointing an external
-  uptime monitor at it — `indexerStale` is the flag that matters during a
-  window.
+- **Container healthcheck** on `/api/health`, defined in the Dockerfile and run
+  with node. Coolify's platform-level HTTP check shells out to curl/wget inside
+  the container and `node:22-bookworm-slim` ships neither — enabling it fails
+  every deploy, so it stays off. **This only reports liveness: a wedged indexer
+  still answers 200.** Point an external uptime monitor at `/api/health` and
+  alert on `indexerStale: true` and `orphanMatches > 0` — that is the check that
+  matters during a live window, and it is still yours to set up.
 - **Backups off the volume**: `~/bin/trading-league-backup.sh`, daily 11:30 UTC,
   30-day retention, integrity-checked, on the host rather than inside the
   Docker volume it protects.
