@@ -14,6 +14,7 @@ import {
   type MatchRow,
 } from "@/lib/queries";
 import { CEX_LISTINGS, CEX_VENUE_LABEL, VENUE_TRADE_URL, venuesForTokens, type CexVenue } from "@/lib/cex";
+import { cexConnectEnabled, KEYED_VENUES, KEYED_VENUE_LABEL } from "@/lib/cexkeys";
 import { DEX_NETWORK_LABEL, DEX_POOLS, dexTradeUrl } from "@/lib/dexvol";
 import { venueDirectory, venueLogoForSource } from "@/lib/venuebrand";
 import { isPerpSource, VIBE_MARKETS, VIBE_SOURCE, VIBE_TRADE_URL } from "@/lib/vibe";
@@ -1220,9 +1221,20 @@ export default async function Home() {
             }}
           >
             Points come from verified Chiliz Chain trades today. Matchday volume on every other
-            venue below — exchanges, Solana, Base and perps — is measured and shown on the
-            board. Perp notional is a derivative, so it is shown on its own line and never
-            added to the spot total.
+            venue below — exchanges, Solana, Base and perps — is measured automatically from
+            public data; nothing to connect. Perp notional is a derivative, so it is shown on
+            its own line and never added to the spot total.
+            {cexConnectEnabled() ? (
+              <>
+                {" "}
+                On <b>{KEYED_VENUES.map((v) => KEYED_VENUE_LABEL[v]).join(" and ")}</b> you can
+                additionally{" "}
+                <Link href="/entrar#cex" style={{ color: "var(--link)", fontWeight: 600 }}>
+                  connect a read-only key
+                </Link>{" "}
+                so your own trades count as verified volume.
+              </>
+            ) : null}
           </p>
         </div>
         <div
@@ -1274,6 +1286,24 @@ export default async function Home() {
                 >
                   {v.tag}
                 </span>
+                {cexConnectEnabled() && (KEYED_VENUES as readonly string[]).includes(v.key) ? (
+                  <span
+                    style={{
+                      display: "inline-block",
+                      marginTop: 8,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: ".06em",
+                      textTransform: "uppercase",
+                      color: "var(--brand)",
+                      border: "1px solid var(--brand)",
+                      borderRadius: 999,
+                      padding: "3px 8px",
+                    }}
+                  >
+                    Read-only connect
+                  </span>
+                ) : null}
               </span>
             </a>
           ))}

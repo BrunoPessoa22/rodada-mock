@@ -96,6 +96,17 @@ const CEX_API_PAGE: Record<string, string> = {
   binance: "https://www.binance.com/en/my/settings/api-management",
   okx: "https://www.okx.com/account/my-api",
 };
+/** Same self-hosted marks the landing venue wall uses (public/venues/). */
+const CEX_LOGO: Record<string, string> = {
+  binance: "/venues/binance.jpg",
+  okx: "/venues/okx.png",
+  gate: "/venues/gate.png",
+  mexc: "/venues/mexc.jpg",
+  bitget: "/venues/bitget.jpg",
+  htx: "/venues/htx.png",
+  upbit: "/venues/upbit.png",
+  mercadobitcoin: "/venues/mercadobitcoin.png",
+};
 
 function toHexMessage(message: string): string {
   return (
@@ -145,7 +156,15 @@ export default function JoinPage() {
     setHasWallet(walletAvailable);
     setManualOpen(false);
     setWalletChecked(true);
-    getClientConfig().then((config) => setCexVenues(config.cexConnect));
+    getClientConfig().then((config) => {
+      setCexVenues(config.cexConnect);
+      // Default the picker to the first venue the server offers.
+      if (config.cexConnect.length > 0) {
+        setCexVenue((current) =>
+          config.cexConnect.includes(current) ? current : config.cexConnect[0]
+        );
+      }
+    });
   }, []);
 
   /**
@@ -712,19 +731,64 @@ export default function JoinPage() {
               automatically if its permissions ever change.
             </p>
 
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                gap: 8,
+                marginTop: 14,
+              }}
+            >
+              {[
+                { icon: "i-lock", text: "Read-only, verified by the exchange" },
+                { icon: "i-shield", text: "Stored encrypted, never logged" },
+                { icon: "i-check", text: "Disconnect anytime — key is deleted" },
+              ].map((chip) => (
+                <span
+                  key={chip.icon}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 12px",
+                    background: "var(--bg-muted)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  <Icon id={chip.icon} /> {chip.text}
+                </span>
+              ))}
+            </div>
+
             {cexConnected ? (
               <div className="join-success" aria-live="polite">
-                <p className="gapline">
-                  <Icon id="i-check" /> <b>{CEX_LABEL[cexConnected.venue] ?? cexConnected.venue}</b>{" "}
-                  connected — read-only verified (key ending {cexConnected.keyLast4}). Your league-pair
-                  trades during match windows now count as verified volume.
-                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16 }}>
+                  {CEX_LOGO[cexConnected.venue] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={CEX_LOGO[cexConnected.venue]}
+                      alt=""
+                      width={36}
+                      height={36}
+                      style={{ borderRadius: 9 }}
+                    />
+                  ) : null}
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 500, lineHeight: 1.55 }}>
+                    <b>{CEX_LABEL[cexConnected.venue] ?? cexConnected.venue}</b> connected —
+                    read-only verified (key ending {cexConnected.keyLast4}). Your league-pair
+                    trades during match windows now count as verified volume.
+                  </p>
+                </div>
                 {cexState === "error" ? (
                   <p className="formerror" aria-live="polite">
                     Couldn&apos;t disconnect: {cexError}
                   </p>
                 ) : null}
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
                   <button
                     className="btn secondary"
                     type="button"
@@ -746,33 +810,106 @@ export default function JoinPage() {
                   connectCex(hasWallet ? "browser" : "socios");
                 }}
               >
-                <label>
-                  Exchange
-                  <select
-                    value={cexVenue}
-                    onChange={(event) => {
-                      setCexVenue(event.target.value);
-                      setCexError("");
-                      setCexApiPage("");
-                      if (cexState === "error") setCexState("idle");
-                    }}
-                  >
-                    {cexVenues.map((v) => (
-                      <option key={v} value={v}>
-                        {CEX_LABEL[v] ?? v}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div
+                  role="radiogroup"
+                  aria-label="Exchange"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {cexVenues.map((v) => {
+                    const selected = v === cexVenue;
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        className="rd-elev"
+                        onClick={() => {
+                          setCexVenue(v);
+                          setCexError("");
+                          setCexApiPage("");
+                          if (cexState === "error") setCexState("idle");
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "12px 14px",
+                          background: selected ? "var(--bg-muted)" : "#fff",
+                          border: selected ? "2px solid var(--brand)" : "1px solid var(--border)",
+                          borderRadius: 12,
+                          cursor: "pointer",
+                          textAlign: "left",
+                          font: "inherit",
+                        }}
+                      >
+                        {CEX_LOGO[v] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={CEX_LOGO[v]} alt="" width={28} height={28} style={{ borderRadius: 8, flex: "none" }} />
+                        ) : null}
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ display: "block", fontWeight: 700, fontSize: 14, color: "var(--fg)" }}>
+                            {CEX_LABEL[v] ?? v}
+                          </span>
+                          <span
+                            style={{
+                              display: "block",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: selected ? "var(--brand)" : "var(--fg-muted)",
+                            }}
+                          >
+                            read-only key
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                <p className="join-proof" style={{ margin: 0 }}>
-                  1 ·{" "}
-                  <a href={CEX_API_PAGE[cexVenue]} target="_blank" rel="noopener noreferrer">
-                    Create an API key on {CEX_LABEL[cexVenue] ?? cexVenue} ↗
-                  </a>{" "}
-                  and check <b>only &quot;Read&quot;</b> — leave trading and withdrawals off. 2 ·
-                  Paste it here. 3 · Sign once with the wallet you claimed with.
-                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    <>
+                      <a href={CEX_API_PAGE[cexVenue]} target="_blank" rel="noopener noreferrer">
+                        Create an API key on {CEX_LABEL[cexVenue] ?? cexVenue} ↗
+                      </a>{" "}
+                      — tick <b>only &quot;Read&quot;</b>; leave trading and withdrawals off.
+                    </>,
+                    <>Paste the key and secret below.</>,
+                    <>
+                      Sign once with the wallet you claimed with — the league then confirms with{" "}
+                      {CEX_LABEL[cexVenue] ?? cexVenue} that the key can only read.
+                    </>,
+                  ].map((content, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <span
+                        style={{
+                          flex: "none",
+                          width: 22,
+                          height: 22,
+                          borderRadius: 999,
+                          background: "var(--brand)",
+                          color: "#fff",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginTop: 1,
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.55 }}>
+                        {content}
+                      </span>
+                    </div>
+                  ))}
+                </div>
 
                 <label>
                   API key
@@ -849,28 +986,35 @@ export default function JoinPage() {
                   </button>
                 ) : null}
 
-                <p className="join-proof">
-                  Stored encrypted · read-only enforced by the exchange itself · used only to read
-                  your fan-token trades inside match windows · disconnect here anytime, which
-                  deletes the key. Requires a claimed username (top of this page).
-                </p>
-
                 {cexNotice ? (
                   <p className="join-proof" aria-live="polite">
                     <Icon id="i-check" /> {cexNotice}
                   </p>
                 ) : null}
-                <button
-                  className="btn secondary"
-                  type="button"
-                  disabled={cexState === "signing" || cexState === "verifying"}
-                  onClick={() => {
-                    setCexNotice("");
-                    disconnectCexVenue(cexVenue, hasWallet ? "browser" : "socios");
-                  }}
-                >
-                  Disconnect a previous {CEX_LABEL[cexVenue] ?? cexVenue} key (sign to confirm)
-                </button>
+                <p className="join-proof" style={{ margin: 0 }}>
+                  Requires a claimed username (top of this page). Connected{" "}
+                  {CEX_LABEL[cexVenue] ?? cexVenue} before?{" "}
+                  <button
+                    type="button"
+                    disabled={cexState === "signing" || cexState === "verifying"}
+                    onClick={() => {
+                      setCexNotice("");
+                      disconnectCexVenue(cexVenue, hasWallet ? "browser" : "socios");
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      font: "inherit",
+                      color: "var(--link)",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                  >
+                    disconnect that key
+                  </button>{" "}
+                  — one signature, deleted immediately.
+                </p>
               </form>
             )}
           </div>
