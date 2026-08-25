@@ -81,6 +81,8 @@ function n18(raw: string | null | undefined): number {
 export interface QuoteRow {
   quoteId: string;
   symbolId: string;
+  /** Sub-account that holds the position; maps to an owner EOA via subAccounts. */
+  partyA?: string | null;
   quantity: string | null;
   openedPrice: string | null;
   averageClosedPrice: string | null;
@@ -122,7 +124,7 @@ async function fetchQuotes(symbolIds: number[], toSec: number): Promise<QuoteRow
          quotes(first: $first, orderBy: quoteId, orderDirection: asc,
                 where: { symbolId_in: $ids, quoteId_gt: $cursor,
                          timestamp_lte: $to, timestampOpenPosition_not: null }) {
-           quoteId symbolId quantity openedPrice averageClosedPrice closedAmount
+           quoteId symbolId partyA quantity openedPrice averageClosedPrice closedAmount
            timestampOpenPosition timestampFullyClose
          }
        }`,
@@ -209,8 +211,95 @@ export function bucketQuotes(
 }
 
 /**
+ * Sub-account address → owner EOA, restricted to the given owners (the league's
+ * verified wallets). The subgraph stores lowercase hex; both sides normalize.
+ */
+async function fetchSubAccountOwners(owners: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  for (let i = 0; i < owners.length; i += 100) {
+    const chunk = owners.slice(i, i + 100).map((o) => o.toLowerCase());
+    let cursor = "0x00";
+    for (let page = 0; page < 10; page++) {
+      const data = await gql<{ subAccounts: { address: string; owner: string }[] }>(
+        `query($owners:[Bytes!], $cursor:Bytes!, $first:Int!) {
+           subAccounts(first: $first, orderBy: address, orderDirection: asc,
+                       where: { owner_in: $owners, address_gt: $cursor }) {
+             address owner
+           }
+         }`,
+        { owners: chunk, cursor, first: PAGE }
+      );
+      for (const s of data.subAccounts) map.set(s.address.toLowerCase(), s.owner.toLowerCase());
+      if (data.subAccounts.length < PAGE) break;
+      cursor = data.subAccounts[data.subAccounts.length - 1].address;
+    }
+  }
+  return map;
+}
+
+export interface VibeOwnerVolume {
+  owner: string; // verified wallet (lowercase 0x…)
+  token: string;
+  symbolId: number;
+  openUsd: number; // notional opened inside the window
+  closeUsd: number; // notional closed inside the window
+  trades: number;
+}
+
+/**
+ * Per-owner window attribution — same leg semantics as bucketQuotes, keyed by
+ * the owner EOA behind each position's sub-account. Positions whose sub-account
+ * doesn't belong to a verified wallet are skipped, so nothing about strangers
+ * is ever aggregated.
+ */
+export function bucketQuotesByOwner(
+  quotes: QuoteRow[],
+  markets: VibeMarket[],
+  fromSec: number,
+  toSec: number,
+  subToOwner: Map<string, string>
+): VibeOwnerVolume[] {
+  const tokenBySymbol = new Map(markets.map((m) => [m.symbolId, m.token]));
+  const agg = new Map<string, VibeOwnerVolume>();
+
+  for (const q of quotes) {
+    const token = tokenBySymbol.get(Number(q.symbolId));
+    if (!token) continue;
+    const owner = q.partyA ? subToOwner.get(q.partyA.toLowerCase()) : undefined;
+    if (!owner) continue;
+
+    const key = `${owner}|${q.symbolId}`;
+    let bucket = agg.get(key);
+    if (!bucket) {
+      bucket = { owner, token, symbolId: Number(q.symbolId), openUsd: 0, closeUsd: 0, trades: 0 };
+      agg.set(key, bucket);
+    }
+    const openTs = Number(q.timestampOpenPosition ?? 0);
+    const closeTs = Number(q.timestampFullyClose ?? 0);
+    if (openTs >= fromSec && openTs <= toSec) {
+      bucket.openUsd += n18(q.quantity) * n18(q.openedPrice);
+      bucket.trades += 1;
+    }
+    if (closeTs > 0 && closeTs >= fromSec && closeTs <= toSec) {
+      const qty = n18(q.closedAmount) || n18(q.quantity);
+      bucket.closeUsd += qty * (n18(q.averageClosedPrice) || n18(q.openedPrice));
+      bucket.trades += 1;
+    }
+  }
+
+  // Drop owners whose activity fell entirely outside the window.
+  return [...agg.values()].filter((b) => b.trades > 0);
+}
+
+/**
  * Refresh vibe perp notional for one match — same idempotent-upsert contract as
  * the CEX and DEX collectors: a full-window refetch, so reruns converge.
+ *
+ * Two layers from ONE quotes fetch: the venue-wide total (venue_volume), and
+ * per-verified-wallet attribution (keyed_cex_volume, venue 'vibe') via the
+ * public sub-account → owner mapping. No key, no signature, no user action —
+ * the wallet claim IS the connection. Perp notional stays excluded from spot
+ * totals in both layers (isPerpSource / per-venue keyed rows).
  */
 export async function refreshVibeVolume(match: MatchRow): Promise<void> {
   const startMs = new Date(match.window_start_utc).getTime();
@@ -218,16 +307,23 @@ export async function refreshVibeVolume(match: MatchRow): Promise<void> {
   if (endMs <= startMs) return;
 
   const tokens = JSON.parse(match.tokens) as string[];
-  if (!VIBE_MARKETS.some((m) => tokens.includes(m.token))) return;
+  const markets = VIBE_MARKETS.filter((m) => tokens.includes(m.token));
+  if (markets.length === 0) return;
 
-  let rows: VibeWindowVolume[];
+  const fromSec = Math.floor(startMs / 1000);
+  const toSec = Math.floor(endMs / 1000);
+  let quotes: QuoteRow[];
   try {
-    rows = await vibeWindowVolume(tokens, startMs, endMs);
+    quotes = await fetchQuotes(
+      markets.map((m) => m.symbolId),
+      toSec
+    );
   } catch (error) {
     logIndex("warn", `vibe volume failed: ${String(error)}`, match.id);
     return;
   }
 
+  const rows = bucketQuotes(quotes, markets, fromSec, toSec);
   const upsert = getDb().prepare(
     `INSERT INTO venue_volume (match_id, source, venue, chain, token, inst, quote, quote_usd, trades, updated_at)
      VALUES (?, ?, 'vibe', 'hyperevm', ?, ?, 'USDC', ?, ?, ?)
@@ -237,6 +333,35 @@ export async function refreshVibeVolume(match: MatchRow): Promise<void> {
   const nowIso = new Date().toISOString();
   for (const r of rows) {
     upsert.run(match.id, VIBE_SOURCE, r.token, `vibecaps:${r.symbolId}`, r.notionalUsd, r.trades, nowIso);
+  }
+
+  // Wallet attribution rides the same fetch; its failure must never take the
+  // venue totals (already written above) down with it.
+  try {
+    const owners = (
+      getDb().prepare("SELECT address FROM wallets WHERE status = 'verified'").all() as {
+        address: string;
+      }[]
+    ).map((w) => w.address);
+    if (owners.length === 0) return;
+    const subToOwner = await fetchSubAccountOwners(owners);
+    if (subToOwner.size === 0) return;
+
+    const ownerRows = bucketQuotesByOwner(quotes, markets, fromSec, toSec, subToOwner);
+    const upsertOwner = getDb().prepare(
+      `INSERT INTO keyed_cex_volume (match_id, address, venue, token, inst, buy_usd, sell_usd, trades, updated_at)
+       VALUES (?, ?, 'vibe', ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+       ON CONFLICT(match_id, address, venue, inst) DO UPDATE SET
+         buy_usd = excluded.buy_usd, sell_usd = excluded.sell_usd,
+         trades = excluded.trades, updated_at = excluded.updated_at`
+    );
+    for (const r of ownerRows) {
+      // buy = open-leg notional, sell = close-leg notional; the display only
+      // ever sums them, matching how the venue-wide figure counts legs.
+      upsertOwner.run(match.id, r.owner, r.token, `vibecaps:${r.symbolId}`, r.openUsd, r.closeUsd, r.trades);
+    }
+  } catch (error) {
+    logIndex("warn", `vibe wallet attribution failed: ${String(error)}`, match.id);
   }
 }
 

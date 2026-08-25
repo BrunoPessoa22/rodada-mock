@@ -423,6 +423,7 @@ function buildVenueBoard(
   }
   if (VIBE_MARKETS.some((m) => tokens.includes(m.token))) {
     const symbolId = VIBE_MARKETS.find((m) => tokens.includes(m.token))!.symbolId;
+    const keyedRow = keyedByVenue.get("vibe");
     rows.push({
       key: VIBE_SOURCE,
       label: "vibe.trading",
@@ -430,6 +431,8 @@ function buildVenueBoard(
       scored: false,
       perp: true,
       usd: bySource.get(VIBE_SOURCE) ?? null,
+      keyedUsd: keyedRow?.usd,
+      keyedTraders: keyedRow?.traders,
       url: VIBE_TRADE_URL(symbolId),
       logo: venueLogoForSource(VIBE_SOURCE),
     });
@@ -1245,6 +1248,7 @@ export default async function Home() {
             .filter(
               (v) =>
                 v.scored ||
+                v.key === "vibe" ||
                 (cexConnectEnabled() && (KEYED_VENUES as readonly string[]).includes(v.key))
             )
             .map((v) => {
@@ -1335,6 +1339,21 @@ export default async function Home() {
                     >
                       Trade on Kayen ↗
                     </a>
+                  ) : v.key === "vibe" ? (
+                    <Link
+                      href="/entrar"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "var(--brand)",
+                        border: "1px solid var(--brand)",
+                        borderRadius: 9999,
+                        padding: "6px 12px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Auto-verified · claim wallet
+                    </Link>
                   ) : null}
                   {!v.scored ? (
                     <a
@@ -1378,6 +1397,7 @@ export default async function Home() {
               .filter(
                 (v) =>
                   !v.scored &&
+                  v.key !== "vibe" &&
                   !(cexConnectEnabled() && (KEYED_VENUES as readonly string[]).includes(v.key))
               )
               .map((v) => (
@@ -1424,8 +1444,9 @@ export default async function Home() {
             }}
           >
             These venues&apos; market-wide league-pair volume counts in every matchday total, but
-            their APIs don&apos;t let the league prove an API key is read-only, so personal
-            verification isn&apos;t possible there yet.
+            personal verification isn&apos;t possible there yet: the exchanges don&apos;t let the
+            league prove an API key is read-only, and the on-chain pools need per-wallet indexers
+            the league hasn&apos;t built (Solana also uses a different wallet type).
           </p>
         </div>
       </section>

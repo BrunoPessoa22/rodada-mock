@@ -727,6 +727,23 @@ export default function JoinPage() {
                   : "Read-only API connections are being enabled. Meanwhile CEX, Solana and Base volume is tracked venue-wide on the matchday board."}
               </div>
             </div>
+            <div
+              style={{
+                background: "rgba(255,255,255,.06)",
+                border: "1px solid rgba(255,255,255,.1)",
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 15, color: "#fff" }}>
+                vibe.trading perps — automatic
+              </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
+                Nothing to connect: vibe positions belong to your wallet on-chain, so once your
+                wallet is claimed your perp activity in league markets shows as verified volume
+                automatically. Perp notional stays on its own line, never in the spot total.
+              </div>
+            </div>
           </div>
         </div>
 

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { bucketQuotes, isPerpSource, VIBE_MARKETS, type QuoteRow } from "./vibe";
+import {
+  bucketQuotes,
+  bucketQuotesByOwner,
+  isPerpSource,
+  VIBE_MARKETS,
+  type QuoteRow,
+} from "./vibe";
 import { TOKENS } from "./tokens";
 
 const E18 = (n: number) => String(BigInt(Math.round(n * 1e6)) * 10n ** 12n);
@@ -9,12 +15,13 @@ function quote(
   symbolId: number,
   openTs: number,
   closeTs: number,
-  opts: { qty?: number; open?: number; close?: number } = {}
+  opts: { qty?: number; open?: number; close?: number; partyA?: string } = {}
 ): QuoteRow {
   const qty = opts.qty ?? 10;
   return {
     quoteId: `${symbolId}-${openTs}`,
     symbolId: String(symbolId),
+    partyA: opts.partyA ?? null,
     quantity: E18(qty),
     openedPrice: E18(opts.open ?? 0.5),
     averageClosedPrice: closeTs > 0 ? E18(opts.close ?? 0.6) : null,
@@ -94,5 +101,63 @@ describe("bucketQuotes window attribution", () => {
     q.averageClosedPrice = null;
     const r = only(bucketQuotes([q], [PSG], WINDOW_FROM, WINDOW_TO));
     expect(r.notionalUsd).toBeCloseTo(10, 6); // 5 open + 5 close at the open mark
+  });
+});
+
+describe("bucketQuotesByOwner — verified-wallet attribution", () => {
+  const SUB_A1 = "0xAAA0000000000000000000000000000000000001";
+  const SUB_A2 = "0xAAA0000000000000000000000000000000000002";
+  const SUB_B = "0xBBB0000000000000000000000000000000000001";
+  const OWNER_A = "0x1111111111111111111111111111111111111111";
+  const OWNER_B = "0x2222222222222222222222222222222222222222";
+  // Case-mixed on purpose: mapping and lookups must both normalize.
+  const subToOwner = new Map([
+    [SUB_A1.toLowerCase(), OWNER_A],
+    [SUB_A2.toLowerCase(), OWNER_A],
+    [SUB_B.toLowerCase(), OWNER_B],
+  ]);
+
+  it("aggregates all of an owner's sub-accounts and splits open vs close legs", () => {
+    const rows = bucketQuotesByOwner(
+      [
+        quote(PSG.symbolId, 1_500, 0, { partyA: SUB_A1 }), // open in window: $5
+        quote(PSG.symbolId, 500, 1_800, { partyA: SUB_A2 }), // close in window: $6
+      ],
+      [PSG],
+      WINDOW_FROM,
+      WINDOW_TO,
+      subToOwner
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ owner: OWNER_A, token: "PSG", trades: 2 });
+    expect(rows[0].openUsd).toBeCloseTo(5, 6);
+    expect(rows[0].closeUsd).toBeCloseTo(6, 6);
+  });
+
+  it("never aggregates positions of unclaimed sub-accounts", () => {
+    const rows = bucketQuotesByOwner(
+      [
+        quote(PSG.symbolId, 1_500, 0, { partyA: "0xdead000000000000000000000000000000000001" }),
+        quote(PSG.symbolId, 1_500, 0), // no partyA at all
+        quote(PSG.symbolId, 1_600, 0, { partyA: SUB_B }),
+      ],
+      [PSG],
+      WINDOW_FROM,
+      WINDOW_TO,
+      subToOwner
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].owner).toBe(OWNER_B);
+  });
+
+  it("drops owners whose only position straddles the window", () => {
+    const rows = bucketQuotesByOwner(
+      [quote(PSG.symbolId, 500, 5_000, { partyA: SUB_A1 })],
+      [PSG],
+      WINDOW_FROM,
+      WINDOW_TO,
+      subToOwner
+    );
+    expect(rows).toHaveLength(0);
   });
 });

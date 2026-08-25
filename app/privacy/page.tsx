@@ -26,8 +26,9 @@ export default function PrivacyPage() {
         <ul>
           <li>
             <b>Public chain data.</b> Wallet addresses, swap and liquidity events, and the amounts
-            in them, read from Chiliz Chain. This is already public and we do not make it more
-            public than it is — the board shows unclaimed addresses truncated (0x12…abcd).
+            in them, read from Chiliz Chain — and, for claimed wallets only, position data from
+            vibe.trading&apos;s public HyperEVM records. This is already public and we do not make
+            it more public than it is — the board shows unclaimed addresses truncated (0x12…abcd).
           </li>
           <li>
             <b>Your display name.</b> The handle you choose. It replaces your truncated address on
