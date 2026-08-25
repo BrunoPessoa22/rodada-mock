@@ -165,13 +165,16 @@ export default function JoinPage() {
     setHasWallet(walletAvailable);
     setManualOpen(false);
     setWalletChecked(true);
+    // A wall tile's "Connect read-only" links here as /entrar?venue=X#cex —
+    // land with that venue already selected.
+    const wanted = new URLSearchParams(window.location.search).get("venue") ?? "";
     getClientConfig().then((config) => {
       setCexVenues(config.cexConnect);
-      // Default the picker to the first venue the server offers.
       if (config.cexConnect.length > 0) {
-        setCexVenue((current) =>
-          config.cexConnect.includes(current) ? current : config.cexConnect[0]
-        );
+        setCexVenue((current) => {
+          if (wanted && config.cexConnect.includes(wanted)) return wanted;
+          return config.cexConnect.includes(current) ? current : config.cexConnect[0];
+        });
       }
     });
   }, []);

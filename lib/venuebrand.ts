@@ -11,7 +11,8 @@
  * without a second edit — and a venue we don't track can't appear.
  */
 import { CEX_LISTINGS, CEX_VENUE_LABEL, VENUE_TRADE_URL, type CexVenue } from "./cex";
-import { CHAIN_TOKEN_REFS } from "./dexvol";
+import { CHAIN_TOKEN_REFS, DEX_POOLS } from "./dexvol";
+import { TOKENS } from "./tokens";
 import { VIBE_MARKETS, VIBE_TRADE_URL } from "./vibe";
 
 export const VENUE_LOGOS: Record<string, string> = {
@@ -45,6 +46,9 @@ export interface VenueBrand {
   label: string;
   logo: string;
   tag: string; // "Chiliz Chain · scored" | "CEX · tracked" | "Solana · tracked" …
+  /** What the league concretely tracks there ("2 league pairs", "6 pools") —
+   *  a tile with a logo and no substance is filler. */
+  stat: string;
   url: string;
   scored: boolean;
 }
@@ -71,6 +75,13 @@ const CEX_ORDER: CexVenue[] = [
   "mercadobitcoin",
 ];
 
+/** League pairs the collectors read on one CEX — the tile's substance line. */
+function cexPairCount(venue: CexVenue): number {
+  return Object.values(CEX_LISTINGS).reduce((n, listings) => n + (listings[venue]?.length ?? 0), 0);
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 /** Every place the league tracks, scored layer first — the landing-page wall. */
 export function venueDirectory(): VenueBrand[] {
   const rows: VenueBrand[] = [
@@ -79,6 +90,7 @@ export function venueDirectory(): VenueBrand[] {
       label: "Kayen / FanX",
       logo: VENUE_LOGOS.kayen,
       tag: "Chiliz Chain · earns points",
+      stat: plural(Object.keys(TOKENS).length, "club token"),
       url: "https://app.kayen.org/",
       scored: true,
     },
@@ -91,6 +103,7 @@ export function venueDirectory(): VenueBrand[] {
       label: CEX_VENUE_LABEL[venue],
       logo: VENUE_LOGOS[venue],
       tag: "CEX · tracked",
+      stat: plural(cexPairCount(venue), "league pair"),
       url: VENUE_TRADE_URL[venue](inst),
       scored: false,
     });
@@ -100,6 +113,7 @@ export function venueDirectory(): VenueBrand[] {
     label: "Jupiter",
     logo: VENUE_LOGOS.jupiter,
     tag: "Solana · tracked",
+    stat: plural(DEX_POOLS.filter((p) => p.network === "solana").length, "pool"),
     url: `https://jup.ag/swap/USDC-${CHAIN_TOKEN_REFS.solana.PSG}`,
     scored: false,
   });
@@ -111,6 +125,7 @@ export function venueDirectory(): VenueBrand[] {
     // can be SHORT their club. Labelled so nobody reads perp notional as token
     // demand — see isPerpSource() in lib/vibe.ts.
     tag: "Perps · tracked · not spot",
+    stat: plural(VIBE_MARKETS.length, "fan market"),
     url: VIBE_TRADE_URL(VIBE_MARKETS[0].symbolId),
     scored: false,
   });
@@ -119,6 +134,7 @@ export function venueDirectory(): VenueBrand[] {
     label: "Aerodrome",
     logo: VENUE_LOGOS.aerodrome,
     tag: "Base · tracked",
+    stat: plural(DEX_POOLS.filter((p) => p.network === "base").length, "pool"),
     url: `https://aerodrome.finance/swap?from=0x833589fcd6edb6e08f4c7c32d4f71b54bda02913&to=${CHAIN_TOKEN_REFS.base.PSG}`,
     scored: false,
   });

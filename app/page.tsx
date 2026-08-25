@@ -14,7 +14,7 @@ import {
   type MatchRow,
 } from "@/lib/queries";
 import { CEX_LISTINGS, CEX_VENUE_LABEL, VENUE_TRADE_URL, venuesForTokens, type CexVenue } from "@/lib/cex";
-import { cexConnectEnabled, KEYED_VENUES, KEYED_VENUE_LABEL } from "@/lib/cexkeys";
+import { cexConnectEnabled, KEYED_VENUES } from "@/lib/cexkeys";
 import { DEX_NETWORK_LABEL, DEX_POOLS, dexTradeUrl } from "@/lib/dexvol";
 import { venueDirectory, venueLogoForSource } from "@/lib/venuebrand";
 import { isPerpSource, VIBE_MARKETS, VIBE_SOURCE, VIBE_TRADE_URL } from "@/lib/vibe";
@@ -1220,98 +1220,213 @@ export default async function Home() {
               maxWidth: 640,
             }}
           >
-            Points come from verified Chiliz Chain trades today. Matchday volume on every other
-            venue below — exchanges, Solana, Base and perps — is measured automatically from
-            public data; nothing to connect. Perp notional is a derivative, so it is shown on
-            its own line and never added to the spot total.
+            Points come from verified Chiliz Chain trades today. Every other venue below —
+            exchanges, Solana, Base and perps — is measured automatically from public data;
+            there is nothing to install or connect for that.
             {cexConnectEnabled() ? (
               <>
                 {" "}
-                On{" "}
-                <b>
-                  {KEYED_VENUES.map((v) => KEYED_VENUE_LABEL[v])
-                    .join(", ")
-                    .replace(/, ([^,]+)$/, " and $1")}
-                </b>{" "}
-                you can additionally{" "}
-                <Link href="/entrar#cex" style={{ color: "var(--link)", fontWeight: 600 }}>
-                  connect a read-only key
-                </Link>{" "}
-                so your own trades count as verified volume.
+                Venues with a <b>Connect read-only</b> button also accept a read-only API key,
+                so your own trades there count as <b>verified volume</b> under your name.
               </>
-            ) : null}
+            ) : null}{" "}
+            Trading itself always happens on the venue, never here; perp notional is a
+            derivative and is never added to the spot total.
           </p>
         </div>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(168px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
             gap: 12,
           }}
         >
-          {venueDirectory().map((v) => (
-            <a
-              key={v.key}
-              href={v.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rd-elev"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                background: "#fff",
-                border: v.scored ? "1px solid var(--brand)" : "1px solid var(--border)",
-                borderRadius: 14,
-                padding: 18,
-                textDecoration: "none",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={v.logo}
-                alt={`${v.label} logo`}
-                width={44}
-                height={44}
-                loading="lazy"
-                style={{ borderRadius: 11 }}
-              />
-              <span>
-                <span style={{ display: "block", fontWeight: 700, fontSize: 15, color: "var(--fg)" }}>
-                  {v.label}
+          {venueDirectory()
+            .filter(
+              (v) =>
+                v.scored ||
+                (cexConnectEnabled() && (KEYED_VENUES as readonly string[]).includes(v.key))
+            )
+            .map((v) => {
+              const canConnect =
+                cexConnectEnabled() && (KEYED_VENUES as readonly string[]).includes(v.key);
+              return (
+              <div
+                key={v.key}
+                className="rd-elev"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                  background: "#fff",
+                  border: v.scored ? "1px solid var(--brand)" : "1px solid var(--border)",
+                  borderRadius: 14,
+                  padding: 18,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={v.logo}
+                    alt={`${v.label} logo`}
+                    width={36}
+                    height={36}
+                    loading="lazy"
+                    style={{ borderRadius: 9, flex: "none" }}
+                  />
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: "block", fontWeight: 700, fontSize: 15, color: "var(--fg)" }}>
+                      {v.label}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        marginTop: 2,
+                        color: v.scored ? "var(--brand)" : "var(--fg-muted)",
+                      }}
+                    >
+                      {v.tag}
+                    </span>
+                  </span>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-muted)" }}>
+                  {v.stat}
                 </span>
-                <span
+                <div
                   style={{
-                    display: "block",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    marginTop: 3,
-                    color: v.scored ? "var(--brand)" : "var(--fg-muted)",
+                    marginTop: "auto",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    paddingTop: 4,
                   }}
                 >
-                  {v.tag}
-                </span>
-                {cexConnectEnabled() && (KEYED_VENUES as readonly string[]).includes(v.key) ? (
-                  <span
-                    style={{
-                      display: "inline-block",
-                      marginTop: 8,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: ".06em",
-                      textTransform: "uppercase",
-                      color: "var(--brand)",
-                      border: "1px solid var(--brand)",
-                      borderRadius: 999,
-                      padding: "3px 8px",
-                    }}
-                  >
-                    Read-only connect
+                  {canConnect ? (
+                    <Link
+                      href={`/entrar?venue=${v.key}#cex`}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "var(--brand)",
+                        border: "1px solid var(--brand)",
+                        borderRadius: 9999,
+                        padding: "6px 12px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Connect read-only
+                    </Link>
+                  ) : v.scored ? (
+                    <a
+                      href={v.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "var(--brand)",
+                        border: "1px solid var(--brand)",
+                        borderRadius: 9999,
+                        padding: "6px 12px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Trade on Kayen ↗
+                    </a>
+                  ) : null}
+                  {!v.scored ? (
+                    <a
+                      href={v.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "var(--fg-muted)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Trade ↗
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Venues the league measures but cannot verify a key for — demoted to a
+            compact strip so a full-size tile never implies an action that does
+            not exist. Their market-wide volume still counts in matchday totals. */}
+        <div style={{ marginTop: 28 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              textTransform: "uppercase",
+              color: "var(--fg-muted)",
+              marginBottom: 10,
+            }}
+          >
+            Also counted in matchday totals
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {venueDirectory()
+              .filter(
+                (v) =>
+                  !v.scored &&
+                  !(cexConnectEnabled() && (KEYED_VENUES as readonly string[]).includes(v.key))
+              )
+              .map((v) => (
+                <a
+                  key={v.key}
+                  href={v.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 12px",
+                    background: "var(--bg-muted)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 9999,
+                    textDecoration: "none",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={v.logo}
+                    alt=""
+                    width={20}
+                    height={20}
+                    loading="lazy"
+                    style={{ borderRadius: 6, flex: "none" }}
+                  />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>{v.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--fg-muted)" }}>
+                    {v.stat} ↗
                   </span>
-                ) : null}
-              </span>
-            </a>
-          ))}
+                </a>
+              ))}
+          </div>
+          <p
+            style={{
+              margin: "12px 0 0",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "var(--fg-muted)",
+              maxWidth: 640,
+              lineHeight: 1.6,
+            }}
+          >
+            These venues&apos; market-wide league-pair volume counts in every matchday total, but
+            their APIs don&apos;t let the league prove an API key is read-only, so personal
+            verification isn&apos;t possible there yet.
+          </p>
         </div>
       </section>
 
