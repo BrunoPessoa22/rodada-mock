@@ -43,15 +43,25 @@ function pickInjectedProvider(): EthereumProvider | null {
  * a useless "wallet error". Dig the reason out of whatever was thrown.
  */
 function walletErrorMessage(err: unknown): string {
-  if (err instanceof Error && err.message) return err.message;
-  if (typeof err === "object" && err !== null) {
+  let raw = "";
+  if (err instanceof Error && err.message) raw = err.message;
+  else if (typeof err === "object" && err !== null) {
     const m = (err as { message?: unknown }).message;
-    if (typeof m === "string" && m) return m;
-    const c = (err as { code?: unknown }).code;
-    if (c !== undefined) return `wallet returned code ${String(c)}`;
+    if (typeof m === "string" && m) raw = m;
+    else {
+      const c = (err as { code?: unknown }).code;
+      if (c !== undefined) raw = `wallet returned code ${String(c)}`;
+    }
+  } else if (typeof err === "string" && err) raw = err;
+  if (!raw) {
+    return "the wallet gave no reason — open the extension, check for a pending request, and try again";
   }
-  if (typeof err === "string" && err) return err;
-  return "the wallet gave no reason — open the extension, check for a pending request, and try again";
+  // MetaMask queues connection requests; a second click while one waits throws
+  // "already pending". Tell the user where the stuck request actually lives.
+  if (/already pending/i.test(raw)) {
+    return "your wallet already has a request waiting — click the wallet's toolbar icon, approve or dismiss it, then try again";
+  }
+  return raw;
 }
 
 /**
