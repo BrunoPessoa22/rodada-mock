@@ -5,10 +5,15 @@ import {
   decryptSecret,
   encryptSecret,
   evaluateBinanceRestrictions,
+  evaluateBitgetAuthorities,
+  evaluateHtxPermission,
   evaluateOkxPerm,
   fetchBinanceFills,
+  fetchBitgetFills,
+  fetchHtxFills,
   fetchOkxFills,
   cexConnectEnabled,
+  venueNeedsPassphrase,
 } from "./cexkeys";
 
 const ADDR = "0xAbCd000000000000000000000000000000001234";
@@ -84,13 +89,52 @@ describe("evaluateBinanceRestrictions — deny by default", () => {
 });
 
 describe("evaluateOkxPerm", () => {
-  it("accepts read_only and rejects any trade/withdraw combination", () => {
+  it("accepts read_only and rejects anything else, unknown perms included", () => {
     expect(evaluateOkxPerm("read_only").ok).toBe(true);
-    for (const perm of ["read_only,trade", "trade", "withdraw,read_only"]) {
+    for (const perm of ["read_only,trade", "trade", "withdraw,read_only", "read_only,some_new_perm"]) {
       const res = evaluateOkxPerm(perm);
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.transient).toBe(false);
     }
+  });
+});
+
+describe("evaluateBitgetAuthorities", () => {
+  it("accepts exactly [readonly], rejects extras and empty, garbage is transient", () => {
+    expect(evaluateBitgetAuthorities(["readonly"]).ok).toBe(true);
+    for (const auth of [["readonly", "trade"], ["trade"], ["readonly", "withdraw"], []]) {
+      const res = evaluateBitgetAuthorities(auth);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.transient).toBe(false);
+    }
+    const garbage = evaluateBitgetAuthorities(undefined);
+    expect(garbage.ok).toBe(false);
+    if (!garbage.ok) expect(garbage.transient).toBe(true);
+  });
+});
+
+describe("evaluateHtxPermission", () => {
+  it("accepts readOnly (with expiry surfaced) and rejects wider permission lists", () => {
+    const ok = evaluateHtxPermission("readOnly", 62);
+    expect(ok.ok).toBe(true);
+    if (ok.ok) expect(ok.perms).toContain("62d");
+    for (const perm of ["readOnly,trade", "readOnly,trade,withdraw"]) {
+      const res = evaluateHtxPermission(perm);
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.transient).toBe(false);
+    }
+    const garbage = evaluateHtxPermission(undefined);
+    expect(garbage.ok).toBe(false);
+    if (!garbage.ok) expect(garbage.transient).toBe(true);
+  });
+});
+
+describe("venueNeedsPassphrase", () => {
+  it("OKX and Bitget need one; Binance and HTX do not", () => {
+    expect(venueNeedsPassphrase("okx")).toBe(true);
+    expect(venueNeedsPassphrase("bitget")).toBe(true);
+    expect(venueNeedsPassphrase("binance")).toBe(false);
+    expect(venueNeedsPassphrase("htx")).toBe(false);
   });
 });
 
@@ -216,5 +260,58 @@ describe("fills aggregation", () => {
   it("binance: a non-200 page throws instead of undercounting silently", async () => {
     vi.stubGlobal("fetch", async () => new Response("{}", { status: 418 }));
     await expect(fetchBinanceFills(CREDS, listing, 0, 1000)).rejects.toThrow("HTTP 418");
+  });
+
+  it("bitget: uses the quote-value amount field and pages with idLessThan", async () => {
+    const page1 = Array.from({ length: 100 }, (_, i) => ({
+      tradeId: String(5000 - i),
+      side: i % 2 === 0 ? "buy" : "sell",
+      amount: "2.5",
+    }));
+    const page2 = [{ tradeId: "10", side: "buy", amount: "7" }];
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", async (url: string | URL) => {
+      calls.push(String(url));
+      return new Response(
+        JSON.stringify({ code: "00000", data: calls.length === 1 ? page1 : page2 }),
+        { status: 200 }
+      );
+    });
+    const agg = await fetchBitgetFills(
+      { ...CREDS, passphrase: "p" },
+      { inst: "PSGUSDT", quote: "USDT" },
+      0,
+      10_000
+    );
+    expect(agg.trades).toBe(101);
+    expect(agg.buyQuote).toBeCloseTo(50 * 2.5 + 7);
+    expect(agg.sellQuote).toBeCloseTo(50 * 2.5);
+    expect(calls[1]).toContain("idLessThan=4901");
+  });
+
+  it("htx: walks the window in 48h slices and derives side from the type prefix", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", async (url: string | URL) => {
+      calls.push(String(url));
+      return new Response(
+        JSON.stringify({
+          status: "ok",
+          data: [
+            { price: "2", "filled-amount": "3", type: "buy-limit" },
+            { price: "4", "filled-amount": "1", type: "sell-market" },
+          ],
+        }),
+        { status: 200 }
+      );
+    });
+    const H48 = 48 * 3600 * 1000;
+    const agg = await fetchHtxFills(CREDS, { inst: "psgusdt", quote: "USDT" }, 0, H48 + 3600_000);
+    // 60h span → two slices: [0, 48h] and [48h, 49h].
+    expect(calls.length).toBe(2);
+    expect(decodeURIComponent(calls[0])).toContain(`end-time=${H48}`);
+    expect(decodeURIComponent(calls[1])).toContain(`start-time=${H48}`);
+    expect(agg.trades).toBe(4);
+    expect(agg.buyQuote).toBeCloseTo(2 * 6);
+    expect(agg.sellQuote).toBeCloseTo(2 * 4);
   });
 });

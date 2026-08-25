@@ -86,8 +86,10 @@ points     = SkillScore × (1 − e^(−Volume / V_target))`}
             on-chain pools on <b>Solana (Jupiter/Meteora)</b> and <b>Base (Aerodrome)</b> is
             measured per window and shown next to the scored number, but earns no points yet —
             those venues expose no per-trader data the league can verify. <b>Live now:</b> you can
-            connect a <b>read-only API key</b> on OKX or Binance from the join page — your own
-            fills in league pairs then show as verified volume on the matchday board. Verified CEX
+            connect a <b>read-only API key</b> on Binance, OKX, Bitget or HTX from the join page —
+            your own fills in league pairs then show as verified volume on the matchday board.
+            These four are supported because their APIs let the league <b>prove</b> a key is
+            read-only before storing it; venues without that proof stay tracked-only. Verified CEX
             volume graduates from shown to <b>scored</b> through the same published formula only at
             a season roll, never mid-season (see the season rule below).
           </p>

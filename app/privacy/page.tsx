@@ -97,8 +97,8 @@ export default function PrivacyPage() {
           On a single server the operator controls, in one database, backed up daily. Third parties
           involved: the public Chiliz Chain RPC, public market-data endpoints for prices and venue
           volume, WalletConnect for the Socios.com sign-in flow, and — only if you connected a
-          read-only key — signed read requests to your own exchange account on Binance or OKX. None
-          of them receive your contact details.
+          read-only key — signed read requests to your own account on the exchange you connected.
+          None of them receive your contact details.
         </p>
 
         <h3>Cookies</h3>

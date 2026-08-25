@@ -91,11 +91,20 @@ function getClientConfig(): Promise<ClientConfig> {
   return configPromise;
 }
 
-const CEX_LABEL: Record<string, string> = { binance: "Binance", okx: "OKX" };
+const CEX_LABEL: Record<string, string> = {
+  binance: "Binance",
+  okx: "OKX",
+  bitget: "Bitget",
+  htx: "HTX",
+};
 const CEX_API_PAGE: Record<string, string> = {
   binance: "https://www.binance.com/en/my/settings/api-management",
   okx: "https://www.okx.com/account/my-api",
+  bitget: "https://www.bitget.com/account/newapi",
+  htx: "https://www.htx.com/apikey/",
 };
+/** Venues whose keys carry a user-set passphrase beyond key + secret. */
+const CEX_NEEDS_PASSPHRASE = new Set(["okx", "bitget"]);
 /** Same self-hosted marks the landing venue wall uses (public/venues/). */
 const CEX_LOGO: Record<string, string> = {
   binance: "/venues/binance.jpg",
@@ -329,8 +338,8 @@ export default function JoinPage() {
       setCexState("error");
       return;
     }
-    if (cexVenue === "okx" && !pass) {
-      setCexError("OKX keys need their passphrase");
+    if (CEX_NEEDS_PASSPHRASE.has(cexVenue) && !pass) {
+      setCexError(`${CEX_LABEL[cexVenue] ?? cexVenue} keys need their passphrase`);
       setCexState("error");
       return;
     }
@@ -711,8 +720,8 @@ export default function JoinPage() {
               </div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
                 {cexVenues.length > 0
-                  ? "Live now · OKX and Binance · read-only API key — connect below. Other venues stay tracked venue-wide on the matchday board."
-                  : "Read-only API — OKX · Binance, being enabled. Meanwhile CEX, Solana and Base volume is tracked venue-wide on the matchday board."}
+                  ? `Live now · ${cexVenues.map((v) => CEX_LABEL[v] ?? v).join(" · ")} · read-only API key — connect below. Other venues stay tracked venue-wide on the matchday board.`
+                  : "Read-only API connections are being enabled. Meanwhile CEX, Solana and Base volume is tracked venue-wide on the matchday board."}
               </div>
             </div>
           </div>
@@ -878,6 +887,9 @@ export default function JoinPage() {
                         Create an API key on {CEX_LABEL[cexVenue] ?? cexVenue} ↗
                       </a>{" "}
                       — tick <b>only &quot;Read&quot;</b>; leave trading and withdrawals off.
+                      {cexVenue === "htx"
+                        ? " HTX note: a key without an IP binding expires after 90 days."
+                        : null}
                     </>,
                     <>Paste the key and secret below.</>,
                     <>
@@ -934,7 +946,7 @@ export default function JoinPage() {
                     placeholder="paste the secret"
                   />
                 </label>
-                {cexVenue === "okx" ? (
+                {CEX_NEEDS_PASSPHRASE.has(cexVenue) ? (
                   <label>
                     Passphrase (set when you created the key)
                     <input
@@ -943,7 +955,7 @@ export default function JoinPage() {
                       autoComplete="off"
                       type="password"
                       className="mono"
-                      placeholder="OKX API passphrase"
+                      placeholder={`${CEX_LABEL[cexVenue] ?? cexVenue} API passphrase`}
                     />
                   </label>
                 ) : null}

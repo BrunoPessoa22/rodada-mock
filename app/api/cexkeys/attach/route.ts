@@ -3,8 +3,10 @@ import {
   buildCexKeyMessage,
   cexConnectEnabled,
   checkReadOnly,
+  KEYED_VENUE_LABEL,
   saveKey,
   VENUE_API_PAGE,
+  venueNeedsPassphrase,
   type KeyedVenue,
 } from "@/lib/cexkeys";
 import { getDb } from "@/lib/db";
@@ -66,8 +68,11 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  if (row.venue === "okx" && !pass) {
-    return Response.json({ error: "OKX keys need their passphrase" }, { status: 400 });
+  if (venueNeedsPassphrase(row.venue) && !pass) {
+    return Response.json(
+      { error: `${KEYED_VENUE_LABEL[row.venue]} keys need their passphrase` },
+      { status: 400 }
+    );
   }
 
   const message = buildCexKeyMessage("attach", row.venue, row.address, row.key_last4, row.nonce);

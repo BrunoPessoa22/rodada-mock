@@ -1227,8 +1227,13 @@ export default async function Home() {
             {cexConnectEnabled() ? (
               <>
                 {" "}
-                On <b>{KEYED_VENUES.map((v) => KEYED_VENUE_LABEL[v]).join(" and ")}</b> you can
-                additionally{" "}
+                On{" "}
+                <b>
+                  {KEYED_VENUES.map((v) => KEYED_VENUE_LABEL[v])
+                    .join(", ")
+                    .replace(/, ([^,]+)$/, " and $1")}
+                </b>{" "}
+                you can additionally{" "}
                 <Link href="/entrar#cex" style={{ color: "var(--link)", fontWeight: 600 }}>
                   connect a read-only key
                 </Link>{" "}

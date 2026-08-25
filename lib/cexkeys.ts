@@ -24,20 +24,40 @@ import { getDb, logIndex } from "./db";
 import { CEX_LISTINGS, quoteUsdRate, type CexListing } from "./cex";
 import type { MatchRow } from "./queries";
 
-/** Venues that support keyed read-only connections today. */
-export const KEYED_VENUES = ["binance", "okx"] as const;
+/**
+ * Venues that support keyed read-only connections today. Membership bar: the
+ * venue must expose an endpoint that returns the SUBMITTED KEY's permissions,
+ * so read-only is provable before storage. Verified 2026-08-25 against
+ * official docs: Binance (apiRestrictions), OKX (account/config perm), Bitget
+ * (spot/account/info authorities), HTX (v2/user/api-key permission).
+ * Gate, MEXC, Upbit and Mercado Bitcoin have NO such endpoint — a key's
+ * scopes are set in their UI but unreadable via API, so they stay
+ * tracked-only. Probing a write and expecting 403 is not an acceptable
+ * substitute. Re-verify docs before adding any venue here.
+ */
+export const KEYED_VENUES = ["binance", "okx", "bitget", "htx"] as const;
 export type KeyedVenue = (typeof KEYED_VENUES)[number];
 
 export const KEYED_VENUE_LABEL: Record<KeyedVenue, string> = {
   binance: "Binance",
   okx: "OKX",
+  bitget: "Bitget",
+  htx: "HTX",
 };
 
 /** Where the user creates the key — deep link, never the venue homepage. */
 export const VENUE_API_PAGE: Record<KeyedVenue, string> = {
   binance: "https://www.binance.com/en/my/settings/api-management",
   okx: "https://www.okx.com/account/my-api",
+  bitget: "https://www.bitget.com/account/newapi",
+  htx: "https://www.htx.com/apikey/",
 };
+
+/** Venues whose keys carry a user-set passphrase beyond key + secret. */
+const PASSPHRASE_VENUES: readonly KeyedVenue[] = ["okx", "bitget"];
+export function venueNeedsPassphrase(venue: KeyedVenue): boolean {
+  return PASSPHRASE_VENUES.includes(venue);
+}
 
 export function isKeyedVenue(v: unknown): v is KeyedVenue {
   return typeof v === "string" && (KEYED_VENUES as readonly string[]).includes(v);
@@ -183,6 +203,61 @@ async function okxSignedGet(
   return { status: res.status, body: await res.json().catch(() => null) };
 }
 
+async function bitgetSignedGet(
+  path: string,
+  query: string,
+  creds: CexCredentials
+): Promise<{ status: number; body: unknown }> {
+  const ts = String(Date.now());
+  const requestPath = query ? `${path}?${query}` : path;
+  const sign = createHmac("sha256", creds.apiSecret)
+    .update(`${ts}GET${requestPath}`)
+    .digest("base64");
+  const res = await fetch(`https://api.bitget.com${requestPath}`, {
+    ...fetchOpts(),
+    headers: {
+      "ACCESS-KEY": creds.apiKey,
+      "ACCESS-SIGN": sign,
+      "ACCESS-TIMESTAMP": ts,
+      "ACCESS-PASSPHRASE": creds.passphrase ?? "",
+      "Content-Type": "application/json",
+      locale: "en-US",
+    },
+  });
+  return { status: res.status, body: await res.json().catch(() => null) };
+}
+
+/**
+ * HTX signature v2: canonical sorted URL-encoded query (auth params included),
+ * prehash "GET\n{host}\n{path}\n{query}", HMAC-SHA256 → Base64 appended as
+ * the Signature param. Timestamp is UTC ISO8601 to the second, no ms, no Z.
+ */
+async function htxSignedGet(
+  path: string,
+  params: Record<string, string>,
+  creds: CexCredentials
+): Promise<{ status: number; body: unknown }> {
+  const host = "api.huobi.pro";
+  const all: Record<string, string> = {
+    ...params,
+    AccessKeyId: creds.apiKey,
+    SignatureMethod: "HmacSHA256",
+    SignatureVersion: "2",
+    Timestamp: new Date().toISOString().slice(0, 19),
+  };
+  const canonical = Object.keys(all)
+    .sort()
+    .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(all[k])}`)
+    .join("&");
+  const sign = createHmac("sha256", creds.apiSecret)
+    .update(`GET\n${host}\n${path}\n${canonical}`)
+    .digest("base64");
+  const res = await fetch(`https://${host}${path}?${canonical}&Signature=${encodeURIComponent(sign)}`, {
+    ...fetchOpts(),
+  });
+  return { status: res.status, body: await res.json().catch(() => null) };
+}
+
 // ---------------------------------------------------------------------------
 // Read-only verification — the compliance gate
 // ---------------------------------------------------------------------------
@@ -228,10 +303,13 @@ export function evaluateOkxPerm(perm: unknown): ReadOnlyCheck {
     return { ok: false, reason: "unexpected response from OKX", transient: true };
   }
   const parts = perm.split(",").map((p) => p.trim().toLowerCase());
-  if (parts.includes("trade") || parts.includes("withdraw")) {
+  // Deny-by-default: any permission that isn't read_only — including one OKX
+  // invents later — rejects the key.
+  const extra = parts.filter((p) => p !== "read_only");
+  if (extra.length > 0) {
     return {
       ok: false,
-      reason: `the key has "${parts.filter((p) => p !== "read_only").join(", ")}" permission — create a new key with ONLY "Read" checked`,
+      reason: `the key has "${extra.join(", ")}" permission — create a new key with ONLY "Read" checked`,
       transient: false,
     };
   }
@@ -239,6 +317,51 @@ export function evaluateOkxPerm(perm: unknown): ReadOnlyCheck {
     return { ok: false, reason: "the key does not have Read permission", transient: false };
   }
   return { ok: true, perms: perm };
+}
+
+/** Bitget: `authorities` from /api/v2/spot/account/info must be exactly ["readonly"]. */
+export function evaluateBitgetAuthorities(authorities: unknown): ReadOnlyCheck {
+  if (!Array.isArray(authorities)) {
+    return { ok: false, reason: "unexpected response from Bitget", transient: true };
+  }
+  const parts = authorities.map((a) => String(a).trim().toLowerCase());
+  const extra = parts.filter((p) => p !== "readonly");
+  if (extra.length > 0) {
+    return {
+      ok: false,
+      reason: `the key has "${extra.join(", ")}" permission — create a new Read-only key`,
+      transient: false,
+    };
+  }
+  if (!parts.includes("readonly")) {
+    return { ok: false, reason: "the key does not have Read permission", transient: false };
+  }
+  return { ok: true, perms: parts.join(",") };
+}
+
+/**
+ * HTX: `permission` from /v2/user/api-key is a comma list where readOnly is
+ * the base; anything beyond it rejects. validDays is surfaced in the stored
+ * perms because non-IP-bound HTX keys expire after 90 days.
+ */
+export function evaluateHtxPermission(permission: unknown, validDays?: number): ReadOnlyCheck {
+  if (typeof permission !== "string" || permission.length === 0) {
+    return { ok: false, reason: "unexpected response from HTX", transient: true };
+  }
+  const parts = permission.split(",").map((p) => p.trim().toLowerCase());
+  const extra = parts.filter((p) => p !== "readonly");
+  if (extra.length > 0) {
+    return {
+      ok: false,
+      reason: `the key has "${extra.join(", ")}" permission — create a new key with ONLY read access`,
+      transient: false,
+    };
+  }
+  if (!parts.includes("readonly")) {
+    return { ok: false, reason: "the key does not have Read permission", transient: false };
+  }
+  const life = typeof validDays === "number" && validDays >= 0 ? ` (expires in ${validDays}d)` : "";
+  return { ok: true, perms: `${permission}${life}` };
 }
 
 /**
@@ -269,22 +392,75 @@ export async function checkReadOnly(
       }
       return { ok: false, reason: `Binance unavailable: ${msg}`, transient: true };
     }
-    const { status, body } = await okxSignedGet("/api/v5/account/config", "", creds);
-    const rec = (typeof body === "object" && body !== null ? body : {}) as {
-      code?: string;
-      msg?: string;
-      data?: { perm?: string }[];
+    if (venue === "okx") {
+      const { status, body } = await okxSignedGet("/api/v5/account/config", "", creds);
+      const rec = (typeof body === "object" && body !== null ? body : {}) as {
+        code?: string;
+        msg?: string;
+        data?: { perm?: string }[];
+      };
+      if (status === 200 && rec.code === "0") return evaluateOkxPerm(rec.data?.[0]?.perm);
+      const msg = rec.msg || `HTTP ${status}`;
+      // 50102 = timestamp expired — clock skew, same rule as Binance -1021.
+      if (rec.code === "50102") {
+        return { ok: false, reason: `OKX clock skew: ${msg}`, transient: true };
+      }
+      if (status === 401 || rec.code === "50111" || rec.code === "50113" || rec.code === "50105") {
+        return { ok: false, reason: `OKX rejected the key: ${msg}`, transient: false };
+      }
+      return { ok: false, reason: `OKX unavailable: ${msg}`, transient: true };
+    }
+    if (venue === "bitget") {
+      const { status, body } = await bitgetSignedGet("/api/v2/spot/account/info", "", creds);
+      const rec = (typeof body === "object" && body !== null ? body : {}) as {
+        code?: string;
+        msg?: string;
+        data?: { authorities?: unknown };
+      };
+      if (status === 200 && rec.code === "00000") {
+        return evaluateBitgetAuthorities(rec.data?.authorities);
+      }
+      // No verified error-code table for Bitget auth failures — only a real
+      // permission readout may be definitive, so nothing here can auto-revoke.
+      return {
+        ok: false,
+        reason: `Bitget rejected the request: ${rec.msg ?? `HTTP ${status}`}`,
+        transient: true,
+      };
+    }
+    // htx — two-step: uid, then the key's own permission record.
+    const uidRes = await htxSignedGet("/v2/user/uid", {}, creds);
+    const uidRec = (typeof uidRes.body === "object" && uidRes.body !== null ? uidRes.body : {}) as {
+      code?: number;
+      message?: string;
+      data?: number;
     };
-    if (status === 200 && rec.code === "0") return evaluateOkxPerm(rec.data?.[0]?.perm);
-    const msg = rec.msg || `HTTP ${status}`;
-    // 50102 = timestamp expired — clock skew, same rule as Binance -1021.
-    if (rec.code === "50102") {
-      return { ok: false, reason: `OKX clock skew: ${msg}`, transient: true };
+    if (uidRes.status !== 200 || uidRec.code !== 200 || uidRec.data === undefined) {
+      return {
+        ok: false,
+        reason: `HTX rejected the request: ${uidRec.message ?? `HTTP ${uidRes.status}`}`,
+        transient: true, // same rule as Bitget: only a permission readout may revoke
+      };
     }
-    if (status === 401 || rec.code === "50111" || rec.code === "50113" || rec.code === "50105") {
-      return { ok: false, reason: `OKX rejected the key: ${msg}`, transient: false };
+    const keyRes = await htxSignedGet(
+      "/v2/user/api-key",
+      { uid: String(uidRec.data), accessKey: creds.apiKey },
+      creds
+    );
+    const keyRec = (typeof keyRes.body === "object" && keyRes.body !== null ? keyRes.body : {}) as {
+      code?: number;
+      message?: string;
+      data?: { accessKey?: string; permission?: string; validDays?: number }[];
+    };
+    if (keyRes.status === 200 && keyRec.code === 200 && Array.isArray(keyRec.data)) {
+      const row = keyRec.data.find((k) => k.accessKey === creds.apiKey) ?? keyRec.data[0];
+      return evaluateHtxPermission(row?.permission, row?.validDays);
     }
-    return { ok: false, reason: `OKX unavailable: ${msg}`, transient: true };
+    return {
+      ok: false,
+      reason: `HTX rejected the request: ${keyRec.message ?? `HTTP ${keyRes.status}`}`,
+      transient: true,
+    };
   } catch (error) {
     return { ok: false, reason: `network error: ${String(error)}`, transient: true };
   }
@@ -462,6 +638,106 @@ export async function fetchOkxFills(
   return agg;
 }
 
+const BITGET_PAGE_LIMIT = 100;
+const BITGET_MAX_PAGES = 20;
+
+export async function fetchBitgetFills(
+  creds: CexCredentials,
+  listing: CexListing,
+  startMs: number,
+  endMs: number
+): Promise<FillsAggregate> {
+  const agg: FillsAggregate = { inst: listing.inst, quote: listing.quote, buyQuote: 0, sellQuote: 0, trades: 0 };
+  let idLessThan = ""; // tradeId cursor — pages older records
+  for (let page = 0; page < BITGET_MAX_PAGES; page++) {
+    const params = new URLSearchParams({
+      symbol: listing.inst,
+      startTime: String(startMs),
+      endTime: String(endMs),
+      limit: String(BITGET_PAGE_LIMIT),
+    });
+    if (idLessThan) params.set("idLessThan", idLessThan);
+    const { status, body } = await bitgetSignedGet("/api/v2/spot/trade/fills", params.toString(), creds);
+    const rec = (typeof body === "object" && body !== null ? body : {}) as {
+      code?: string;
+      msg?: string;
+      data?: { tradeId: string; side: string; amount: string }[];
+    };
+    if (status !== 200 || rec.code !== "00000" || !Array.isArray(rec.data)) {
+      throw new Error(`bitget fills ${listing.inst}: ${rec.msg ?? `HTTP ${status}`}`);
+    }
+    for (const f of rec.data) {
+      const q = Number(f.amount); // quote value of the fill, per Bitget docs
+      if (!Number.isFinite(q)) continue;
+      if (f.side === "buy") agg.buyQuote += q;
+      else agg.sellQuote += q;
+      agg.trades += 1;
+    }
+    if (rec.data.length < BITGET_PAGE_LIMIT) return agg;
+    idLessThan = rec.data[rec.data.length - 1].tradeId;
+    if (page === BITGET_MAX_PAGES - 1) {
+      logIndex("warn", `bitget fills page cap hit for ${listing.inst} — window undercounted`);
+    }
+  }
+  return agg;
+}
+
+/** HTX allows a 48h query window at most — a match window is walked in slices. */
+const HTX_WINDOW_MS = 48 * 3600 * 1000;
+const HTX_PAGE_LIMIT = 500;
+
+export async function fetchHtxFills(
+  creds: CexCredentials,
+  listing: CexListing,
+  startMs: number,
+  endMs: number
+): Promise<FillsAggregate> {
+  const agg: FillsAggregate = { inst: listing.inst, quote: listing.quote, buyQuote: 0, sellQuote: 0, trades: 0 };
+  for (let ws = startMs; ws < endMs; ws += HTX_WINDOW_MS) {
+    const we = Math.min(ws + HTX_WINDOW_MS, endMs);
+    const { status, body } = await htxSignedGet(
+      "/v1/order/matchresults",
+      {
+        symbol: listing.inst,
+        "start-time": String(ws),
+        "end-time": String(we),
+        size: String(HTX_PAGE_LIMIT),
+      },
+      creds
+    );
+    const rec = (typeof body === "object" && body !== null ? body : {}) as {
+      status?: string;
+      "err-msg"?: string;
+      data?: { price: string; "filled-amount": string; type: string }[];
+    };
+    if (status !== 200 || rec.status !== "ok" || !Array.isArray(rec.data)) {
+      throw new Error(`htx fills ${listing.inst}: ${rec["err-msg"] ?? `HTTP ${status}`}`);
+    }
+    for (const f of rec.data) {
+      const q = Number(f.price) * Number(f["filled-amount"]); // base qty × price
+      if (!Number.isFinite(q)) continue;
+      if (f.type.startsWith("buy")) agg.buyQuote += q;
+      else agg.sellQuote += q;
+      agg.trades += 1;
+    }
+    if (rec.data.length >= HTX_PAGE_LIMIT) {
+      logIndex("warn", `htx fills size cap hit for ${listing.inst} — 48h slice undercounted`);
+    }
+  }
+  return agg;
+}
+
+/** One fills fetcher per keyed venue — the collector dispatches through this. */
+const VENUE_FILLS: Record<
+  KeyedVenue,
+  (creds: CexCredentials, listing: CexListing, startMs: number, endMs: number) => Promise<FillsAggregate>
+> = {
+  binance: fetchBinanceFills,
+  okx: fetchOkxFills,
+  bitget: fetchBitgetFills,
+  htx: fetchHtxFills,
+};
+
 // ---------------------------------------------------------------------------
 // Collector — piggybacks the indexer's venue-refresh cadence
 // ---------------------------------------------------------------------------
@@ -540,10 +816,7 @@ export async function refreshDueKeyedCex(now = new Date()): Promise<void> {
         const listings = CEX_LISTINGS[token]?.[row.venue] ?? [];
         for (const listing of listings) {
           try {
-            const fills =
-              row.venue === "binance"
-                ? await fetchBinanceFills(creds, listing, startMs, endMs)
-                : await fetchOkxFills(creds, listing, startMs, endMs);
+            const fills = await VENUE_FILLS[row.venue](creds, listing, startMs, endMs);
             if (fills.trades === 0) continue;
             const rate = await quoteUsdRate(listing.quote);
             if (rate === null) {
