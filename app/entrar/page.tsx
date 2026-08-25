@@ -9,6 +9,8 @@ type SigPath = "browser" | "socios" | null;
 
 interface EthereumProvider {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
+  isMetaMask?: boolean;
+  providers?: EthereumProvider[];
 }
 
 declare global {
@@ -18,6 +20,39 @@ declare global {
 }
 
 const CHILIZ_CHAIN_ID = 88888;
+
+/**
+ * With several wallet extensions installed (MetaMask + Phantom/Rabby/…),
+ * window.ethereum is whichever won the injection race and may expose the rest
+ * under .providers. Clicking "sign" then talks to the wrong wallet — the popup
+ * the user expects never opens and the throw is often a plain object, not an
+ * Error. Prefer MetaMask explicitly when a multi-provider array exists.
+ */
+function pickInjectedProvider(): EthereumProvider | null {
+  const eth = typeof window !== "undefined" ? window.ethereum : undefined;
+  if (!eth) return null;
+  if (Array.isArray(eth.providers) && eth.providers.length > 0) {
+    return eth.providers.find((p) => p.isMetaMask) ?? eth.providers[0];
+  }
+  return eth;
+}
+
+/**
+ * Wallets don't reliably throw Error instances — EIP-1193 rejections from some
+ * providers arrive as plain {code, message} objects, which used to surface as
+ * a useless "wallet error". Dig the reason out of whatever was thrown.
+ */
+function walletErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "object" && err !== null) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string" && m) return m;
+    const c = (err as { code?: unknown }).code;
+    if (c !== undefined) return `wallet returned code ${String(c)}`;
+  }
+  if (typeof err === "string" && err) return err;
+  return "the wallet gave no reason — open the extension, check for a pending request, and try again";
+}
 
 /**
  * Runtime client config (/api/config): the Reown/WalletConnect project id and
@@ -96,7 +131,7 @@ export default function JoinPage() {
   const [cexNotice, setCexNotice] = useState("");
 
   useEffect(() => {
-    const walletAvailable = typeof window !== "undefined" && !!window.ethereum;
+    const walletAvailable = pickInjectedProvider() !== null;
     setHasWallet(walletAvailable);
     setManualOpen(false);
     setWalletChecked(true);
@@ -159,16 +194,17 @@ export default function JoinPage() {
   }
 
   async function getBrowserSigner(): Promise<Signer> {
-    if (!window.ethereum) throw new Error("no browser wallet detected");
-    const accounts = (await window.ethereum.request({
+    const provider = pickInjectedProvider();
+    if (!provider) throw new Error("no browser wallet detected");
+    const accounts = (await provider.request({
       method: "eth_requestAccounts",
     })) as string[];
     const address = accounts?.[0];
-    if (!address) throw new Error("no account");
+    if (!address) throw new Error("no account approved in the wallet");
     return {
       address,
       sign: async (message) =>
-        (await window.ethereum!.request({
+        (await provider.request({
           method: "personal_sign",
           params: [toHexMessage(message), address],
         })) as string,
@@ -228,7 +264,7 @@ export default function JoinPage() {
       const { address, sign } = await getBrowserSigner();
       await runClaim(address, sign);
     } catch (err) {
-      setSigError(err instanceof Error ? err.message : "wallet error");
+      setSigError(walletErrorMessage(err));
       setSigState("error");
     }
   }
@@ -243,7 +279,7 @@ export default function JoinPage() {
       await runClaim(address, sign);
     } catch (err) {
       // A closed modal surfaces as a rejection — keep the message human.
-      const raw = err instanceof Error ? err.message : "wallet error";
+      const raw = walletErrorMessage(err);
       setSigError(/reject|cancel|closed/i.test(raw) ? "connection cancelled in the app" : raw);
       setSigState("error");
     }
@@ -323,7 +359,7 @@ export default function JoinPage() {
       setCexPass("");
       setCexState("connected");
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "error";
+      const raw = walletErrorMessage(err);
       setCexError(/reject|cancel|closed/i.test(raw) ? "signature cancelled in the wallet" : raw);
       setCexState("error");
     }
@@ -364,7 +400,7 @@ export default function JoinPage() {
       setCexNotice(`${CEX_LABEL[venue] ?? venue} disconnected — the key was deleted.`);
       setCexState("idle");
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "error";
+      const raw = walletErrorMessage(err);
       setCexError(/reject|cancel|closed/i.test(raw) ? "signature cancelled in the wallet" : raw);
       setCexState("error");
     }
